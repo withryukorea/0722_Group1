@@ -13,7 +13,9 @@
   "_categoryDependsOnTrip": false,
   "_location": "서울 종로구 청진동 D타워",
   "_tripCheck": { "fromWorkplaceKm": 0.2, "adminAreaChanged": false, "isTrip": false },
-  "_tax": { "taxableAmount": 15819, "vat": 1581 },
+  "_fxRate": 1,
+  "_amountKRW": 17400,
+  "_tax": { "supplyKRW": 15819, "vatKRW": 1581, "taxFreeKRW": 0 },
   "_approvalNo": "00971877",
   "_cardName": "현대비지법인",
   "_note": "인쇄가 흐리고 용지가 휘어 있어 상단 상호/사업자번호 줄의 인식률이 떨어짐. 감열지 퇴색 케이스. 승인일시가 계산일시와 동일해 paidAt 판정은 쉬움."

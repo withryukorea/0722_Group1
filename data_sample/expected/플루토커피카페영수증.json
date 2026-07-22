@@ -11,6 +11,9 @@
   "confidence": null,
 
   "_expectedCategory": "TRAVEL_MEAL",
+  "_fxRate": 1,
+  "_amountKRW": 14000,
+  "_tax": { "supplyKRW": 14000, "vatKRW": null, "note": "영수증에 부가세 내역 없음. 역산하지 않음" },
   "_categoryDependsOnTrip": true,
   "_tripDateBasis": "paidAt",
   "_location": "부산 기장군 정관읍",

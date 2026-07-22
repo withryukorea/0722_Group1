@@ -13,7 +13,13 @@
   "_expectedCategory": "WELFARE_AI",
   "_fxRate": 1500,
   "_amountKRW": 33000,
-  "_tax": { "vatRate": 0.1, "vatUSD": 2.00, "vatKRW": 3000, "vatKRWOnDocument": 3022 },
+  "_tax": {
+    "supplyKRW": 33000,
+    "vatKRW": 0,
+    "overseasCombined": true,
+    "documentVatUSD": 2.00,
+    "documentVatKRW": 3022
+  },
   "_invoiceNo": "TUNC0J2S-0014",
   "_receiptNo": "2610-8289-3063",
   "_paymentMethod": "Visa - ****",
