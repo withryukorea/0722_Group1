@@ -15,66 +15,56 @@
 
   <main class="content">
     <div id="breadcrumb" class="breadcrumb"></div>
-    <h2 class="page-title">법인카드 정산 <span class="fav off">★</span></h2>
+    <h2 class="page-title">법인카드 정산 <span class="fav">★</span></h2>
 
     <!-- 검색 필터 -->
     <div class="filter-box">
       <div class="filter-grid">
         <div class="field">
-          <select class="lbl-select" id="f-date-kind">
-            <option>사용일자</option><option>결재일시</option>
-          </select>
+          <label>사용일자</label>
           <div class="ctrl">
-            <input type="date" value="2026-07-01"> <span>~</span> <input type="date" value="2026-07-31">
+            <input type="date" value="2025-07-01"> <span>~</span> <input type="date" value="2026-07-22">
           </div>
         </div>
-        <div class="field"><label>가맹점</label><div class="ctrl"><input type="text" id="f-merchant"></div></div>
+        <div class="field"><label>승인번호</label><div class="ctrl"><input type="text" id="f-apprno"></div></div>
         <div class="field"><label>진행상태</label><div class="ctrl">
-          <select id="f-status">
-            <option value="">전체</option>
-            <option value="unmatched">미정산</option>
-            <option value="matched">매칭완료</option>
-            <option value="vouchered">정산완료</option>
-          </select>
+          <select id="f-status"><option value="">전체</option><option>미정산</option><option>정산완료</option></select>
         </div></div>
 
-        <div class="field"><label>카드소유자</label><div class="ctrl"><input type="text" id="f-owner" value="유상욱"></div></div>
-        <div class="field"><label>부서</label><div class="ctrl"><input type="text" id="f-dept" value="전력사업기획팀"></div></div>
-        <div class="field"><label>카드번호</label><div class="ctrl">
-          <select><option>전체</option><option>4025-96**-****-3059</option></select>
+        <div class="field"><label>회사구분</label><div class="ctrl">
+          <select><option>SK E&amp;S - A000</option></select>
         </div></div>
+        <div class="field"><label>사용자명/사번</label><div class="ctrl"><input type="text" id="f-owner"></div></div>
+        <div class="field"><label>가맹점</label><div class="ctrl"><input type="text" id="f-merchant"></div></div>
       </div>
       <button class="btn-search" onclick="applyFilter()">조회</button>
     </div>
 
-    <div class="notice-bar"><span class="i">i</span>
-      <b>미정산</b> 건은 영수증 매칭 후 전표를 작성해야 합니다. 우리 앱에서 영수증을 촬영하면 자동으로 매칭·전표작성됩니다.</div>
+    <div class="notice-bar"><span class="i">i</span>취소된 카드내역도 모두 정산이 필요합니다 정산시 결제취소건 모두 부가세없음에 체크하여 주시기 바랍니다.</div>
 
     <!-- 툴바 -->
     <div class="toolbar">
-      <button class="btn btn-pink" onclick="goVoucher()">🧾 전표작성</button>
-      <button class="btn btn-line" onclick="applyFilter()">🔍 카드검색</button>
+      <button class="btn btn-dark" onclick="createVoucher()">✎ 전표작성</button>
+      <button class="btn btn-line" onclick="alert('데모 버전에서는 카드검색을 지원하지 않습니다.')">🔍 카드검색</button>
       <button class="btn btn-line" onclick="alert('데모 버전에서는 엑셀다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 엑셀다운로드</button>
     </div>
 
     <!-- 목록 -->
-    <div class="table-wrap scroll-y">
-      <table class="grid" style="min-width: 1560px;">
+    <div class="table-wrap">
+      <table class="grid">
         <colgroup>
-          <col style="width:44px"><col style="width:98px"><col style="width:150px"><col style="width:220px">
-          <col style="width:120px"><col style="width:110px"><col style="width:88px"><col style="width:130px">
-          <col style="width:150px"><col style="width:100px"><col style="width:90px"><col style="width:90px">
+          <col style="width:44px"><col style="width:36px"><col style="width:92px"><col style="width:150px">
+          <col style="width:210px"><col style="width:110px"><col style="width:100px"><col style="width:80px">
+          <col style="width:130px"><col style="width:150px"><col style="width:90px"><col style="width:80px"><col style="width:80px">
         </colgroup>
         <thead>
           <tr>
-            <th>No.</th><th>사용일자</th><th>결재일시</th><th>가맹점상호</th><th>업종</th>
-            <th>사용금액</th><th>카드소유자</th><th>부서</th><th>카드번호</th><th>승인번호</th>
-            <th>진행상태</th><th>등록자</th>
+            <th>No.</th><th><input type="checkbox" id="chk-all" onclick="toggleAll(this)"></th>
+            <th>사용일자</th><th>결재일시</th><th>가맹점상호</th><th>업종</th><th>사용금액</th>
+            <th>카드소유자</th><th>부서</th><th>카드번호</th><th>승인번호</th><th>진행상태</th><th>등록자</th>
           </tr>
         </thead>
-        <tbody id="tx-body">
-          <tr class="empty-pad"><td colspan="12">불러오는 중…</td></tr>
-        </tbody>
+        <tbody id="tx-body"></tbody>
       </table>
     </div>
 
@@ -89,6 +79,7 @@
 </div>
 
 <script src="js/layout.js"></script>
+<script src="js/card-data.js"></script>
 <script>
 renderChrome({
   top: '법인카드',
@@ -96,89 +87,96 @@ renderChrome({
   breadcrumb: ['메뉴', '법인카드', '법인카드 정산'],
 });
 
-let ALL = [];
+let ALL = [];          // 화면에 뿌릴 전체 행 (API 성공 시 서버 데이터, 실패 시 내장 목데이터)
 let view = [];
+let apiMode = false;   // true면 전표작성이 실제 서버에 상신된다
 
-const STATUS_LABEL = { unmatched: '미정산', matched: '매칭완료', vouchered: '정산완료' };
-const STATUS_CLASS = { unmatched: 'state-red', matched: 'state-blue', vouchered: '' };
-
-function fmt(n) { return Number(n || 0).toLocaleString('ko-KR'); }
-function maskCard(c) {
-  if (!c) return '';
-  const s = String(c);
-  return s.slice(0, 4) + '-' + s.slice(4, 6) + '**-****-' + s.slice(-4);
+/* 서버 스키마(docs/02 CardTransaction) → 이 화면의 컬럼으로 변환 */
+function guessBiz(m) {
+  if (/호텔|HOTEL/i.test(m)) return '호텔';
+  if (/택시|메트로|스카이라이너|철도|공항/i.test(m)) return '교통';
+  if (/GS25|CU |편의점/i.test(m)) return '편의점';
+  if (/ANTHROPIC|OPENAI|GITHUB|CURSOR/i.test(m)) return '컴퓨터소프트웨어';
+  if (/문고|서점/i.test(m)) return '서적';
+  if (/STARBUCKS|카페|커피/i.test(m)) return '커피숍';
+  return '일반음식점';
 }
-function fmtDate(d) { return d ? String(d).replace(/-/g, '.') : ''; }
-function fmtDateTime(s) {
-  if (!s) return '';
-  const d = String(s).replace('T', ' ').slice(0, 16).replace(/-/g, '.');
-  return d;
+function adaptTx(t, i) {
+  // approvedAt은 +09:00(KST) 문자열 — 보는 PC의 시간대와 무관하게 그대로 표시
+  const useDate = t.approvedAt.slice(0, 10).replaceAll('-', '.');
+  return {
+    id: t.id,
+    useDate,
+    payAt: `${useDate} ${t.approvedAt.slice(11, 19)}`,
+    merchant: t.merchant + (t.currency !== 'KRW' ? ` (${t.currency} ${t.amount.toLocaleString()})` : ''),
+    biz: guessBiz(t.merchant),
+    amount: t.amountKRW,
+    owner: '유상욱', dept: '전력사업기획팀', cardNo: '4025961080293059',
+    apprNo: String(45125 + i * 52371).padStart(8, '0'),
+    status: t.status === 'vouchered' ? '정산완료' : '미정산',
+    registrant: t.status === 'vouchered' ? '유상욱' : '',
+  };
 }
 
-function render() {
+async function load() {
+  const txs = await eaccApi('/api/transactions');
+  apiMode = Array.isArray(txs);
+  ALL = apiMode ? txs.map(adaptTx) : CARD_TXNS.map(t => ({ ...t, id: t.apprNo }));
+  view = ALL.slice();
+  renderTable();
+}
+
+function renderTable() {
   const body = document.getElementById('tx-body');
-  if (view.length === 0) {
-    body.innerHTML = `<tr class="empty-pad"><td colspan="12">조회된 내역이 없습니다.</td></tr>`;
-  } else {
-    body.innerHTML = view.map((t, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${fmtDate(t.usedDate)}</td>
-        <td>${fmtDateTime(t.approvedAt)}</td>
-        <td class="l">${t.merchant || ''}</td>
-        <td>${t.industry || ''}</td>
-        <td class="r">${fmt(t.amountKRW ?? t.amount)}</td>
-        <td>${t.owner || ''}</td>
-        <td>${t.dept || ''}</td>
-        <td>${maskCard(t.cardNo)}</td>
-        <td>${t.approvalNo || ''}</td>
-        <td class="${STATUS_CLASS[t.status] || ''}">${STATUS_LABEL[t.status] || t.status || ''}</td>
-        <td>${t.registrant || '-'}</td>
-      </tr>`).join('');
-  }
+  body.innerHTML = view.map((t, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><input type="checkbox" class="row-chk" value="${t.id}"></td>
+      <td>${t.useDate}</td>
+      <td>${t.payAt}</td>
+      <td class="l">${t.merchant}</td>
+      <td>${t.biz}</td>
+      <td class="r">${t.amount.toLocaleString('ko-KR')}</td>
+      <td>${t.owner}</td>
+      <td>${t.dept}</td>
+      <td>${t.cardNo}</td>
+      <td>${t.apprNo}</td>
+      <td class="${t.status === '미정산' ? 'state-red' : ''}">${t.status}</td>
+      <td>${t.registrant}</td>
+    </tr>`).join('')
+    + `<tr class="empty-pad"><td colspan="13"></td></tr>`;
   document.getElementById('total').textContent = view.length;
+  document.getElementById('chk-all').checked = false;
 }
 
 function applyFilter() {
-  const merchant = document.getElementById('f-merchant').value.trim();
+  const apprno = document.getElementById('f-apprno').value.trim();
   const status = document.getElementById('f-status').value;
   const owner = document.getElementById('f-owner').value.trim();
-  const dept = document.getElementById('f-dept').value.trim();
+  const merchant = document.getElementById('f-merchant').value.trim();
   view = ALL.filter(t =>
-    (!merchant || (t.merchant || '').includes(merchant)) &&
+    (!apprno || t.apprNo.includes(apprno)) &&
     (!status || t.status === status) &&
-    (!owner || (t.owner || '').includes(owner)) &&
-    (!dept || (t.dept || '').includes(dept))
+    (!owner || t.owner.includes(owner)) &&
+    (!merchant || t.merchant.toLowerCase().includes(merchant.toLowerCase()))
   );
-  render();
+  renderTable();
 }
 
-// 전표작성: 현재 조회된 카드내역을 voucher-create.html 이 기대하는 draft 형태로
-// sessionStorage 에 담아 넘긴다. (정산목록 → 전표작성 화면으로 실제 내역 핸드오프)
-function goVoucher() {
-  const src = view.length ? view : ALL;
-  const rows = src.map(t => ({
-    id: t.id,
-    useDate: fmtDate(t.usedDate),
-    payAt: String(t.approvedAt || '').replace('T', ' ').slice(0, 19).replace(/-/g, '.'),
-    merchant: t.merchant,
-    biz: t.industry,
-    amount: t.amountKRW ?? t.amount,
-    cardNo: t.cardNo,
-    apprNo: t.approvalNo,
-  }));
-  if (!rows.length) { alert('전표작성할 카드내역이 없습니다.'); return; }
-  sessionStorage.setItem('voucherDraft', JSON.stringify({ apiMode: true, rows }));
+function toggleAll(master) {
+  document.querySelectorAll('.row-chk').forEach(c => { c.checked = master.checked; });
+}
+
+function createVoucher() {
+  const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
+  if (checked.length === 0) { alert('전표를 작성할 카드내역을 선택해 주세요.'); return; }
+  // 선택 내역을 들고 전표작성 화면으로 이동 → 거기서 유형 선택 팝업이 먼저 뜬다
+  const rows = ALL.filter(t => checked.includes(t.id));
+  sessionStorage.setItem('voucherDraft', JSON.stringify({ apiMode, rows }));
   location.href = 'voucher-create.html';
 }
 
-fetch('/api/transactions')
-  .then(r => r.ok ? r.json() : Promise.reject())
-  .then(list => { ALL = Array.isArray(list) ? list : []; view = ALL.slice(); render(); })
-  .catch(() => {
-    document.getElementById('tx-body').innerHTML =
-      `<tr class="empty-pad"><td colspan="12">서버(/api/transactions)에 연결할 수 없습니다. 서버를 실행해 주세요.</td></tr>`;
-  });
+load();
 </script>
 </body>
 </html>

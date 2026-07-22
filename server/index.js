@@ -28,16 +28,17 @@ app.post("/api/reset", (req, res) => {
   res.json({ ok: true });
 });
 
-// ── 가짜 e-Accounting 화면 (정적 파일) ─────────────────────────
-// 프론트는 저장소 루트의 eaccounting/ 폴더(공용 디자인 시스템 공유)를 서빙한다.
-//   /                    → index.html (메인 대시보드)
-//   /card-settlement.html → 법인카드 정산 (GET /api/transactions 연동)
-//   /mydocs-all.html      → 나의 문서함 전체조회
+// ── 직원용 이어카운팅 화면 (배포 데모 홈) ─────────────────────
+// 루트(/)와 /eaccounting 양쪽에서 서빙 → 배포 홈 URL 및 절대경로 링크 모두 동작
 app.use("/", express.static(path.join(__dirname, "..", "eaccounting")));
+app.use("/eaccounting", express.static(path.join(__dirname, "..", "eaccounting")));
+
+// ── 관리자 웹화면 (정적 파일) → /admin ────────────────────────
+app.use("/admin", express.static(path.join(__dirname, "public")));
 
 app.listen(PORT, () => {
-  console.log(`\n  가짜 e-Accounting 서버 실행 중`);
-  console.log(`  ├ 메인 화면 : http://localhost:${PORT}/`);
-  console.log(`  ├ 법인카드  : http://localhost:${PORT}/card-settlement.html`);
-  console.log(`  └ API 예시  : http://localhost:${PORT}/api/transactions\n`);
+  console.log(`\n  가짜 E-Accounting 서버 실행 중`);
+  console.log(`  ├ 직원용 화면 : http://localhost:${PORT}/`);
+  console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/admin/`);
+  console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
 });

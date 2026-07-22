@@ -1,11 +1,9 @@
 [
   { "code": "TRAVEL_MEAL",      "name": "출장-식대",     "examples": ["식당", "카페", "이자카야", "라멘"] },
-  { "code": "TRAVEL_TRANSPORT", "name": "출장-교통",     "examples": ["택시", "지하철", "철도", "항공", "카카오_택시"] },
+  { "code": "TRAVEL_TRANSPORT", "name": "출장-교통",     "examples": ["택시", "지하철", "철도", "항공", "스카이라이너"] },
   { "code": "TRAVEL_LODGING",   "name": "출장-숙박",     "examples": ["호텔", "HOTEL", "료칸"] },
-  { "code": "SNACK",            "name": "간식비",        "examples": ["편의점", "GS25", "CU", "베이커리", "커피숍", "폴바셋"] },
-  { "code": "ENTERTAIN",        "name": "복리후생-회식",  "examples": ["일반주점", "치킨", "호프", "고깃집"] },
-  { "code": "SUPPLIES",         "name": "사무용품비",     "examples": ["오피스디포", "문구", "기타사무용품"] },
+  { "code": "SNACK",            "name": "간식비",        "examples": ["편의점", "GS25", "CU", "베이커리"] },
   { "code": "WELFARE_BOOK",     "name": "복지-도서",     "examples": ["교보문고", "서점", "yes24"] },
-  { "code": "WELFARE_AI",       "name": "복지-AI구독",   "examples": ["ANTHROPIC", "OPENAI", "CHATGPT", "CLAUDE", "GITHUB", "CURSOR"] },
+  { "code": "WELFARE_AI",       "name": "복지-AI구독",   "examples": ["ANTHROPIC", "OPENAI", "GITHUB", "CURSOR"] },
   { "code": "WELFARE_ETC",      "name": "복지-기타",     "examples": [] }
 ]

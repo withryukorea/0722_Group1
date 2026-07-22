@@ -3,105 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>e-Accounting - 메인</title>
+<title>e-Accounting System</title>
 <link rel="stylesheet" href="css/common.css">
 </head>
-<body>
+<body class="home-bg">
 
 <div id="gnb"></div>
 
 <!-- 환영 배너 -->
 <section class="home-hero">
-  <div class="illust">🧾</div>
+  <div class="illust">📱💰</div>
   <div class="greet">
-    <div class="name">유상욱 팀원 님</div>
-    <div class="msg">e-Accounting System에 오신 것을 환영합니다.<br>
-      오늘도 <b>정확하고 빠른 정산</b> 되세요!</div>
+    <div class="name">유상욱 팀원 님,</div>
+    <div class="msg"><b>e-Accounting System</b>에 오신 것을 환영합니다!<br>오늘도 즐거운 하루 되세요!</div>
   </div>
   <div class="home-stats">
-    <div class="stat">
-      <div class="ico">💳</div>
-      <div class="lb">법인카드</div>
-      <div class="num hot" id="s-card">-</div>
-    </div>
-    <div class="stat">
-      <div class="ico">🖊️</div>
-      <div class="lb">결재할 문서</div>
-      <div class="num" id="s-todo">0</div>
-    </div>
-    <div class="stat">
-      <div class="ico">📂</div>
-      <div class="lb">진행중 문서</div>
-      <div class="num" id="s-doing">0</div>
-    </div>
+    <a class="stat" href="card-settlement.html">
+      <div class="ico">💳</div><div class="lb">법인카드</div><div class="num hot" id="stat-card">7</div>
+    </a>
+    <a class="stat" href="mydocs-all.html">
+      <div class="ico">📝</div><div class="lb">결재할문서</div><div class="num">0</div>
+    </a>
+    <a class="stat" href="mydocs-all.html">
+      <div class="ico">📄</div><div class="lb">진행중문서</div><div class="num">0</div>
+    </a>
   </div>
 </section>
 
-<!-- 퀵 메뉴 바 -->
+<!-- 퀵메뉴 -->
 <div class="quick-bar">
   <div class="inner">
     <a href="card-settlement.html"><span class="qi">💳</span>법인카드 정산</a>
-    <a href="#"><span class="qi">🧾</span>전표 작성</a>
-    <a href="#"><span class="qi">📄</span>전자세금계산서</a>
-    <a href="#"><span class="qi">💰</span>지급 현황</a>
-    <a href="#"><span class="qi">📎</span>증빙 관리</a>
-    <a href="#"><span class="qi">📊</span>예산 조회</a>
-    <a href="#" class="hl"><span class="qi">🏦</span>입금 미 반제 내역<br><small>확인 필요</small></a>
+    <a href="#"><span class="qi">🚄</span>국내출장비 정산</a>
+    <a href="#"><span class="qi">✈️</span>해외출장비 정산</a>
+    <a href="#"><span class="qi">🧾</span>매입세금계산서</a>
+    <a href="#"><span class="qi">⚖️</span>매출전표 기안</a>
+    <a href="#"><span class="qi">📊</span>예산조회</a>
+    <a href="#" class="hl"><span class="qi">📥</span>입금 미 반제 내역<small>바로가기</small></a>
   </div>
 </div>
 
-<!-- 하단 3분할 -->
+<!-- 공지 / 담당자 / FAQ -->
 <div class="home-cols">
-  <!-- 공지사항 -->
-  <div class="panel">
-    <div class="p-head"><h3>📢 공지사항</h3><a class="more" href="#">+ 더보기</a></div>
+  <div class="panel gray">
+    <div class="p-head"><h3>공지사항</h3><a class="more" href="#">더보기</a></div>
     <ul>
-      <li class="row"><span class="t">[필독] 11월 법인카드 정산 마감 안내 (~11/25)</span><span class="d">2025.11.10</span></li>
-      <li class="row"><span class="t">전자증빙 첨부 의무화 시행 안내</span><span class="d">2025.11.05</span></li>
-      <li class="row"><span class="t">해외출장비 환율 적용 기준 변경</span><span class="d">2025.10.28</span></li>
-      <li class="row"><span class="t">복리후생비(AI구독) 한도 상향 안내</span><span class="d">2025.10.20</span></li>
-      <li class="row"><span class="t">e-Accounting 시스템 정기점검 안내</span><span class="d">2025.10.15</span></li>
+      <li class="row"><span class="t">(26.03.26) SKI 국문 사업자등록증 공지</span><span class="d">2026-03-26</span></li>
+      <li class="row"><span class="t">[공지] 중복전표 검증 가능 Process 개선 Upd...</span><span class="d">2025-04-24</span></li>
+      <li class="row"><span class="t">[공지] 11/1이후 매출/매입 세금계산서 발급/...</span><span class="d">2024-11-03</span></li>
+      <li class="row"><span class="t">[안내] e-Accounting 사용자 매뉴얼 Update</span><span class="d">2024-05-07</span></li>
     </ul>
   </div>
 
-  <!-- 업무담당자 -->
   <div class="panel">
-    <div class="p-head"><h3>👥 업무 담당자</h3><a class="more" href="#">+ 더보기</a></div>
+    <div class="p-head"><h3>업무담당자</h3><a class="more" href="#">더보기</a></div>
     <div class="people">
-      <div class="row"><span class="nm">김민수</span><span class="role">법인카드 정산</span></div>
-      <div class="row"><span class="nm">박영호</span><span class="role">전표 결재</span></div>
-      <div class="row"><span class="nm">이수진</span><span class="role">전자세금계산서</span></div>
-      <div class="row"><span class="nm">정다은</span><span class="role">지급 관리</span></div>
-      <div class="row"><span class="nm">최현우</span><span class="role">예산 관리</span></div>
-      <div class="row"><span class="nm">한지민</span><span class="role">시스템 문의</span></div>
+      <div class="row"><span class="nm">김수민</span><span class="role">법인카드(회계팀검토)/거래처/법인카드(개인)</span></div>
+      <div class="row"><span class="nm">박진영</span><span class="role">기업문화실/전불/LNG Americas, Inc./SKI...</span></div>
+      <div class="row"><span class="nm">송용정</span><span class="role">PR실/본사부/재무본부/세무실/Communication전략...</span></div>
+      <div class="row"><span class="nm">유용현</span><span class="role">Communication본부/도시가스경영지원실/도시가스사...</span></div>
+      <div class="row"><span class="nm">이은준</span><span class="role">재생E사업개발실/재생E사업기획실/풍력사업개발...</span></div>
+      <div class="row"><span class="nm">이정윤</span><span class="role">LNG사업본부/LNG사업기획실/LNG사업운영...</span></div>
+      <div class="row"><span class="nm">임서희</span><span class="role">재무3실/전력사업본부/전력사업운영실/광양발전소...</span></div>
+      <div class="row"><span class="nm">정수연</span><span class="role">지속가능경영실/수소마케팅실/수소사업기획실/경영기...</span></div>
+      <div class="row"><span class="nm">주익순</span><span class="role">PassKey, Inc./구매실/신에너지사업추진실/O/I추진실/신...</span></div>
     </div>
   </div>
 
-  <!-- FAQ -->
-  <div class="panel">
-    <div class="p-head"><h3>❓ 자주 묻는 질문</h3><a class="more" href="#">+ 더보기</a></div>
+  <div class="panel gray">
+    <div class="p-head"><h3>FAQ</h3><a class="more" href="#">더보기</a></div>
     <ul>
-      <li class="row"><span class="t">Q. 법인카드 사용내역은 언제 반영되나요?</span></li>
-      <li class="row"><span class="t">Q. 영수증을 분실했을 때 처리 방법은?</span></li>
-      <li class="row"><span class="t">Q. 해외출장 환율은 어떤 기준인가요?</span></li>
-      <li class="row"><span class="t">Q. 전결 라인은 어떻게 지정하나요?</span></li>
-      <li class="row"><span class="t">Q. 복리후생비 잔여 한도는 어디서 보나요?</span></li>
+      <li class="row"><span class="t">세무 &gt; 매입 유형별 매입전표 정산 매뉴얼</span></li>
+      <li class="row"><span class="t">세무 &gt; 매출 유형별 매출 세금계산서 발행 매뉴얼</span></li>
+      <li class="row"><span class="t">세무 &gt; 원천세 원천징수 전표 작성 매뉴얼</span></li>
+      <li class="row"><span class="t">세무 &gt; 기타 취득세 과세대상 자산 처리 매뉴얼</span></li>
+      <li class="row"><span class="t">회계 &gt; 전불 전불금 사용내역 양식</span></li>
     </ul>
   </div>
 </div>
 
 <script src="js/layout.js"></script>
 <script>
-renderChrome({ top: '나의 문서함' });
+renderChrome({ top: '' });   // 메인은 활성 상단메뉴 없음
 
-// 법인카드 미정산 건수는 실데이터(API)에서 가져온다 (서버 연동)
-fetch('/api/transactions')
-  .then(r => r.ok ? r.json() : Promise.reject())
-  .then(list => {
-    const cnt = Array.isArray(list) ? list.length : 0;
-    document.getElementById('s-card').textContent = cnt;
-  })
-  .catch(() => { document.getElementById('s-card').textContent = 7; });
+// 서버가 있으면 미정산 카드내역 건수를 실데이터로 표시 (없으면 기본값 7 유지)
+eaccApi('/api/transactions?status=unmatched').then(txs => {
+  if (Array.isArray(txs)) document.getElementById('stat-card').textContent = txs.length;
+});
 </script>
 </body>
 </html>

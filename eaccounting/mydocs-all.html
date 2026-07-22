@@ -97,7 +97,29 @@ renderChrome({
   breadcrumb: ['메뉴', '나의 문서함', '결재문서', '전체조회'],
 });
 
-let view = APPROVAL_DOCS.slice();
+let ALL = APPROVAL_DOCS.slice();
+let view = ALL.slice();
+
+/* 서버에 상신된 전표(/api/vouchers)를 목록 맨 위에 '결재중'으로 표시
+   — 법인카드 정산 화면이나 모바일앱에서 상신한 전표가 여기 나타난다 */
+async function loadLive() {
+  const vouchers = await eaccApi('/api/vouchers');
+  if (Array.isArray(vouchers) && vouchers.length) {
+    const live = vouchers.map(v => {
+      const d = v.submittedAt ? v.submittedAt.slice(0, 10).replaceAll('-', '.') : '';
+      return {
+        hold: '', type: '법인카드전표', docNo: v.id,
+        postDate: d, evidDate: d, draftDate: d, payDate: '',
+        drafter: '유상욱', dept: '전력사업기획팀',
+        approver: (v.approvalLine || []).join(' → '),
+        progress: '결재중', slipState: '기안전표',
+        amount: v.totalKRW, vendor: v.title || '', company: '에스케이이노베이션 주식회사',
+      };
+    }).reverse();
+    ALL = [...live, ...APPROVAL_DOCS];
+    applyFilter();
+  }
+}
 
 function fmtAmount(a) { return a === '' || a == null ? '' : Number(a).toLocaleString('ko-KR'); }
 function progressClass(p) { return p === '반려' ? 'state-red' : p === '결재중' ? 'state-blue' : ''; }
@@ -129,7 +151,7 @@ function applyFilter() {
   const docno = document.getElementById('f-docno').value.trim();
   const drafter = document.getElementById('f-drafter').value.trim();
   const vendor = document.getElementById('f-vendor').value.trim();
-  view = APPROVAL_DOCS.filter(d =>
+  view = ALL.filter(d =>
     (!type || d.type === type) &&
     (!progress || d.progress === progress) &&
     (!docno || d.docNo.includes(docno)) &&
@@ -146,12 +168,13 @@ function toggleAll(master) {
 function approveChecked(newState) {
   const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
   if (checked.length === 0) { alert('처리할 문서를 선택해 주세요.'); return; }
-  APPROVAL_DOCS.forEach(d => { if (checked.includes(d.docNo)) d.progress = newState; });
+  ALL.forEach(d => { if (checked.includes(d.docNo)) d.progress = newState; });
   applyFilter();
   alert(`${checked.length}건이 [${newState}] 처리되었습니다.`);
 }
 
 renderTable();
+loadLive();
 </script>
 </body>
 </html>

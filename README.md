@@ -17,8 +17,9 @@
 ## 구조 (예정)
 
 ```
-/app       모바일 웹앱 (P2, P5)
-/server    Mock E-Accounting API + OCR + 매칭엔진 (P1, P3, P4)
-/fixtures  시드/목업 데이터 — 병렬 개발용 (P1)
-/docs      기획 문서
+/app          모바일 웹앱 (P2, P5)
+/server       Mock E-Accounting API + OCR + 매칭엔진 (P1, P3, P4)
+/eaccounting  가짜 이어카운팅 웹화면 (정적 HTML, 화면별 분담은 eaccounting/README.md 참고)
+/fixtures     시드/목업 데이터 — 병렬 개발용 (P1)
+/docs         기획 문서
 ```
