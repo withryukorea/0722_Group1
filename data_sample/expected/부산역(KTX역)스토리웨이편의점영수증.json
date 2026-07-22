@@ -16,7 +16,9 @@
   "_tripDateBasis": "paidAt",
   "_location": "부산역",
   "_tripCheck": { "fromWorkplaceKm": 390, "adminAreaChanged": true, "isTrip": true },
-  "_tax": { "taxableAmount": 13091, "vat": 1309, "taxFreeAmount": 0 },
+  "_fxRate": 1,
+  "_amountKRW": 14400,
+  "_tax": { "supplyKRW": 13091, "vatKRW": 1309, "taxFreeKRW": 0 },
   "_approvalNo": "00103212",
   "_note": "역사 내 편의점형 매장. 조명 반사와 배경(대리석) 때문에 상단 로고 주변 대비가 낮음. 하단 안내문구가 겹쳐 찍혀 OCR이 본문으로 오인할 수 있음. 카드번호 뒤 4자리가 가려져 있어 카드매칭 불가 → 금액+일시로만 매칭해야 하는 케이스."
 }

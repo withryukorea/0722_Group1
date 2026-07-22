@@ -13,7 +13,7 @@
   "_categoryDependsOnTrip": true,
   "_fxRate": 1,
   "_amountKRW": 12000,
-  "_tax": { "taxableAmount": 10909, "vat": 1091, "taxFreeAmount": 0 },
+  "_tax": { "supplyKRW": 10909, "vatKRW": 1091, "taxFreeKRW": 0 },
   "_approvalNo": "00330947",
   "_cardName": "현대비자법인",
   "_paymentMethod": "삼성페이 (현대비자법인 카드 승인)",

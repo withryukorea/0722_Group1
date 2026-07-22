@@ -13,7 +13,13 @@
   "_expectedCategory": "WELFARE_AI",
   "_fxRate": 1500,
   "_amountKRW": 165000,
-  "_tax": { "vatRate": 0.1, "vatUSD": 10.00, "vatKRW": 15000 },
+  "_tax": {
+    "supplyKRW": 165000,
+    "vatKRW": 0,
+    "overseasCombined": true,
+    "documentVatUSD": 10.00,
+    "documentVatKRW": null
+  },
   "_invoiceNo": "6IBKFSKM-0006",
   "_receiptNo": "2950-5033-2472",
   "_paymentMethod": "Visa - ****",

@@ -10,6 +10,7 @@
   "confidence": null,
 
   "_expectedCategory": "TRAVEL_TRANSPORT",
+  "_tax": { "supplyKRW": 53500, "vatKRW": null, "note": "영수증에 부가세 내역 없음. 역산하지 않음" },
   "_categoryDependsOnTrip": false,
   "_fxRate": 1,
   "_amountKRW": 53500,
