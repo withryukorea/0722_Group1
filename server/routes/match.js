@@ -5,6 +5,7 @@
 //   score ≥ 70 자동매칭 / 40~70 확인 필요 / < 40 미매칭
 const express = require("express");
 const { db } = require("../store");
+const { resolveApprovalLine, PROFILE } = require("./presets");
 const router = express.Router();
 
 /* 환율 조회 — fx.json이 {rates:{...}} 구조든 평면 맵이든 동작 */
@@ -75,6 +76,44 @@ router.post("/match", (req, res) => {
   res.json(results);
 });
 
+// POST /api/match/confirm  body: { receiptId, txId }  — 낮은 점수 건의 수동 확정 / txId:null 이면 매칭 해제
+// (sot/02 매칭 흐름: 자동 매칭 + 낮은 점수 건만 수동 확정, 증빙 추가·해제)
+router.post("/match/confirm", (req, res) => {
+  const { receiptId, txId } = req.body || {};
+  const r = db.receipts.find((x) => x.id === receiptId);
+  if (!r) return res.status(404).json({ error: "RECEIPT_NOT_FOUND", receiptId });
+
+  const release = () => { // 영수증이 물고 있던 기존 거래를 풀어준다
+    if (!r.matchedTxId) return;
+    const prev = db.transactions.find((t) => t.id === r.matchedTxId);
+    if (prev && prev.matchedReceiptId === r.id && prev.status !== "vouchered") {
+      prev.status = "unmatched";
+      prev.matchedReceiptId = null;
+    }
+  };
+
+  if (txId === null || txId === undefined) { // 매칭 해제
+    release();
+    r.matchedTxId = null;
+    return res.json({ receiptId, txId: null, status: "unlinked" });
+  }
+
+  const tx = db.transactions.find((t) => t.id === txId);
+  if (!tx) return res.status(400).json({ error: "UNKNOWN_TX", txId, hint: "존재하지 않는 카드거래입니다" });
+  if (tx.status === "vouchered") {
+    return res.status(409).json({ error: "TX_ALREADY_VOUCHERED", txId, hint: "이미 전표 처리된 거래입니다" });
+  }
+  if (tx.matchedReceiptId && tx.matchedReceiptId !== r.id) {
+    return res.status(409).json({ error: "TX_ALREADY_MATCHED", txId, matchedReceiptId: tx.matchedReceiptId, hint: "다른 영수증과 매칭된 거래입니다. 먼저 해제하세요" });
+  }
+
+  release();
+  tx.status = "matched";
+  tx.matchedReceiptId = r.id;
+  r.matchedTxId = tx.id;
+  res.json({ receiptId, txId, status: "confirmed" });
+});
+
 /* 계정과목 자동분류 — 우선순위 규칙 + accounts.json examples 키워드 */
 const CLASSIFY_RULES = [
   [/ANTHROPIC|OPENAI|CLAUDE|CHATGPT|GITHUB|CURSOR/i, "WELFARE_AI"],
@@ -136,9 +175,12 @@ router.post("/vouchers/preview", (req, res) => {
     return res.status(400).json({ error: "NO_MATCHES", hint: "matches:[{receiptId,txId}] 또는 매칭된 receiptIds 를 보내주세요" });
   }
 
+  // 적요양식 치환: {merchant}/{n}/{date} + [이름]·[직급]=프로필, [월]=결제월 (sot/02 descriptionTemplate)
   const fillTemplate = (tpl, tx) =>
     (tpl || "{merchant}").replaceAll("{merchant}", tx.merchant).replaceAll("{n}", "1")
-      .replaceAll("{date}", (tx.approvedAt || "").slice(0, 10));
+      .replaceAll("{date}", (tx.approvedAt || "").slice(0, 10))
+      .replaceAll("[이름]", PROFILE.name).replaceAll("[직급]", PROFILE.rank)
+      .replaceAll("[월]", String(Number((tx.approvedAt || "").slice(5, 7)) || ""));
 
   const lines = pairs.map((p) => {
     const tx = db.transactions.find((t) => t.id === p.txId);
@@ -155,6 +197,11 @@ router.post("/vouchers/preview", (req, res) => {
     } else {
       acc = classify(tx);
     }
+    // 실계정코드: Preset 지정값(출장은 국내/해외 여비교통비로 고정) → accounts.json 기본 매핑
+    const realCode = (preset && preset.rules.realAccountCode) || acc.realCode || null;
+    const realName = preset && preset.rules.realAccountCode && preset.rules.realAccountCode !== acc.realCode
+      ? REAL_ACCOUNT_NAMES[preset.rules.realAccountCode] || acc.realName
+      : acc.realName;
     const vatFree = tx.currency !== "KRW" || NO_VAT.test(tx.merchant + (tx.biz || ""));
     const supply = vatFree ? tx.amountKRW : Math.ceil(tx.amountKRW / 1.1);
     // 사용자가 부가세를 확정(vat.confirmed)했으면 그 값을 우선
@@ -165,9 +212,13 @@ router.post("/vouchers/preview", (req, res) => {
       presetId: preset ? preset.id : null,
       accountCode: acc.code,
       accountName: acc.name,
+      accountRealCode: realCode,
+      accountDisplay: realCode ? `[${realCode}]${realName || ""}` : acc.name, // 이어카운팅 계정과목 입력칸 형식
+      costCenter: (preset && preset.rules.costCenter) || PROFILE.costCenter,
       amountKRW: tx.amountKRW,
       supplyKRW: vatConfirmed != null ? tx.amountKRW - vatConfirmed : supply,
       vatKRW: vatConfirmed != null ? vatConfirmed : tx.amountKRW - supply,
+      serviceDate: (receipt && receipt.serviceDate) || (tx.approvedAt || "").slice(0, 10),
       description: preset
         ? fillTemplate(preset.rules.descriptionTemplate, tx)
         : `${tx.merchant} · ${acc.name}`,
@@ -175,18 +226,41 @@ router.post("/vouchers/preview", (req, res) => {
   });
   const totalKRW = lines.reduce((s, l) => s + l.amountKRW, 0);
 
-  // 전결라인: Preset 지정 건이 있으면 지배 Preset(합계 최대)의 라인, 없으면 전결규정 fallback
+  // 전결라인: Preset 지정 건이 있으면 지배 Preset(합계 최대)의 양식을 해석, 없으면 전결규정 fallback
   const presetSums = {};
   lines.forEach((l) => { if (l.presetId) presetSums[l.presetId] = (presetSums[l.presetId] || 0) + l.amountKRW; });
   const domPresetId = Object.entries(presetSums).sort((a, b) => b[1] - a[1]).map(([id]) => id)[0];
   const domPreset = domPresetId ? db.presets.find((x) => x.id === domPresetId) : null;
-  const approvalLine = domPreset ? domPreset.rules.approvalLine : approvalLineFor(lines, totalKRW);
+  let approvalLine, approvalLineDetail;
+  if (domPreset && domPreset.rules.approvalLineTemplate) {
+    approvalLineDetail = resolveApprovalLine(domPreset.rules.approvalLineTemplate); // $DRAFTER/$SUPERIOR 해석
+    approvalLine = approvalLineDetail.flat;
+  } else if (domPreset) {
+    approvalLine = domPreset.rules.approvalLine;
+    approvalLineDetail = { draft: `${PROFILE.name} ${PROFILE.rank}`, reviewers: approvalLine.slice(0, -1), approve: approvalLine[approvalLine.length - 1] };
+  } else {
+    approvalLine = approvalLineFor(lines, totalKRW);
+    approvalLineDetail = { draft: `${PROFILE.name} ${PROFILE.rank}`, reviewers: approvalLine.slice(0, -1), approve: approvalLine[approvalLine.length - 1] };
+  }
 
-  // Preset 한도 경고 (차단 없음 — 경고만)
+  // Preset 한도 경고 (차단 없음 — 경고만). limitPeriod=daily(TRIP)는 일자별로 검사한다
   const warnings = [];
   for (const [pid, sum] of Object.entries(presetSums)) {
     const p = db.presets.find((x) => x.id === pid);
-    if (p && p.rules.limitKRW) {
+    if (!p || !p.rules.limitKRW) continue;
+    if (p.rules.limitPeriod === "daily") {
+      const byDay = {};
+      lines.filter((l) => l.presetId === pid).forEach((l) => {
+        const day = l.serviceDate || "unknown";
+        byDay[day] = (byDay[day] || 0) + l.amountKRW;
+      });
+      for (const [day, daySum] of Object.entries(byDay)) {
+        const after = ((p.usage && p.usage.byDay && p.usage.byDay[day]) || 0) + daySum;
+        if (after > p.rules.limitKRW) {
+          warnings.push({ type: "PRESET_DAILY_LIMIT_EXCEEDED", presetId: pid, day, message: `${p.name} ${day} 일일 한도 초과: ${after.toLocaleString("ko-KR")} / ${p.rules.limitKRW.toLocaleString("ko-KR")}원` });
+        }
+      }
+    } else {
       const after = ((p.usage && p.usage.usedKRW) || 0) + sum;
       if (after > p.rules.limitKRW) {
         warnings.push({ type: "PRESET_LIMIT_EXCEEDED", presetId: pid, message: `${p.name} 한도 초과: ${after.toLocaleString("ko-KR")} / ${p.rules.limitKRW.toLocaleString("ko-KR")}원` });
@@ -201,10 +275,19 @@ router.post("/vouchers/preview", (req, res) => {
       : `법인카드 정산 (${first.merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ""})`,
     lines,
     totalKRW,
+    costCenter: (domPreset && domPreset.rules.costCenter) || PROFILE.costCenter,
     approvalLine,
+    approvalLineDetail, // { draft, reviewers[], approve } — 이어카운팅 결재선 표에 그대로 전개
     warnings,
     status: "draft",
   });
 });
+
+/* Preset이 출장용 실계정코드를 override 할 때의 표시명 (accounts.json 기본 매핑에 없는 코드만) */
+const REAL_ACCOUNT_NAMES = {
+  "706101": "여비교통비-국내출장",
+  "706102": "여비교통비-해외출장",
+  "706201": "여비교통비-시내교통",
+};
 
 module.exports = router;

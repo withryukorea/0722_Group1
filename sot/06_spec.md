@@ -9,7 +9,7 @@
 3. 유입 ② PC 업로드 (이어카운팅): PDF/이미지 업로드 → 파싱 → 정산단위 키워드 자동추천.
 4. (Optional) 부가세 확인/수정, 적격증빙 경고 — 파싱 확인 단계에 표시.
 5. 매칭 (이어카운팅): 영수증↔카드승인내역 자동 매칭, 낮은 점수만 수동 확정, 증빙 추가·해제.
-6. 정산 (이어카운팅 전표작성 화면): 정산단위 지정칸(계정과목·Cost Center·적요·결재선) **자동완성·고정**, 나머지는 일반 정산처럼 입력 → 검토 → 상신.
+6. 정산 (이어카운팅 전표작성 화면): 법인카드 정산 목록에서 `[일반 정산 | 정산단위 정산]` 선택 — **정산단위 정산**이면 선택한 정산단위로 태깅된 미정산 건이 자동 필터·선택됨. 정산단위 지정칸(계정과목·Cost Center·적요·결재선) **자동완성·고정**, 나머지는 일반 정산처럼 입력 → 검토 → 상신.
 7. 상신 후 문서함·접수 화면 반영 + 정산단위 `usage` 차감 → 모바일 대시보드 갱신.
 
 ## Functional Spec — 핵심 (반드시 만든다)
@@ -96,7 +96,8 @@
 | 🖥 PC 영수증 업로드 | `design/screens/pc/upload` 참고 → eaccounting | 🆕/♻️ |
 | 🖥 매칭 화면 (증빙 추가·해제) | `design/screens/pc/settlement` 참고 → eaccounting | 🆕/♻️ |
 | 🖥 정산: 해외출장비 정산 | `eaccounting/travel-foreign.html` | ♻️ 정산단위 자동채움 연결 |
-| 🖥 정산: 법인카드(현업완결) | `eaccounting/voucher-create.html` | ♻️ 정산단위 자동채움 연결 |
+| 🖥 법인카드 정산 목록: 정산단위 정산 모드 | `eaccounting/card-settlement.html` — [일반\|정산단위] 토글 + 드롭다운 + 자동 필터·선택 | 🆕/♻️ |
+| 🖥 정산: 법인카드(현업완결) | `eaccounting/voucher-create.html` | ♻️ 정산단위 자동채움 연결 + 정산단위 배너 |
 | 🖥 전표 접수/문서함 | `eaccounting/mydocs-all.html` | ♻️ |
 | ⚙️ 백엔드 | `presets.js`·`receipts.js`·`match.js`·`vouchers.js` | ♻️ 정산단위 엔진 구현됨 — 스키마 확장(costCenter·양식류) 정합 필요 |
 

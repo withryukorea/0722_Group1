@@ -2,6 +2,8 @@
   {
     "code": "TRAVEL_MEAL",
     "name": "출장-식대",
+    "realCode": "706102",
+    "realName": "여비교통비-해외출장",
     "examples": [
       "식당",
       "카페",
@@ -12,6 +14,8 @@
   {
     "code": "TRAVEL_TRANSPORT",
     "name": "출장-교통",
+    "realCode": "706201",
+    "realName": "여비교통비-시내교통",
     "examples": [
       "택시",
       "지하철",
@@ -23,6 +27,8 @@
   {
     "code": "TRAVEL_LODGING",
     "name": "출장-숙박",
+    "realCode": "706102",
+    "realName": "여비교통비-해외출장",
     "examples": [
       "호텔",
       "HOTEL",
@@ -32,6 +38,8 @@
   {
     "code": "SNACK",
     "name": "간식비",
+    "realCode": "705918",
+    "realName": "복리후생-음료대",
     "examples": [
       "편의점",
       "GS25",
@@ -42,6 +50,8 @@
   {
     "code": "WELFARE_BOOK",
     "name": "복지-도서",
+    "realCode": "710203",
+    "realName": "도서-일반도서구입비",
     "examples": [
       "교보문고",
       "서점",
@@ -51,6 +61,8 @@
   {
     "code": "WELFARE_AI",
     "name": "복지-AI구독",
+    "realCode": "726350",
+    "realName": "수수료-기타",
     "examples": [
       "ANTHROPIC",
       "OPENAI",
@@ -61,11 +73,15 @@
   {
     "code": "WELFARE_ETC",
     "name": "복지-기타",
+    "realCode": "735901",
+    "realName": "회의비-경상회의비",
     "examples": []
   },
   {
     "code": "SGA_POSTAGE",
     "name": "판관비-우편",
+    "realCode": "707103",
+    "realName": "통신비-우편료",
     "examples": [
       "우체국",
       "등기",
