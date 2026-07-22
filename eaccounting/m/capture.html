@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AXE-acc 모바일 — 영수증 촬영</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/mobile.css">
+</head>
+<body class="mobile">
+<div class="app">
+  <header class="app-head"></header>
+  <main class="app-body">
+
+    <!-- 1단계: 카메라 -->
+    <section id="stageCam">
+      <div class="cam-stage">
+        <img class="shot" id="shotImg" alt="" style="display:none">
+        <div class="cam-guide"><i></i><i></i><i></i><i></i></div>
+        <div class="scanline" id="scanline"></div>
+        <div class="cam-msg" id="camMsg">영수증을 프레임 안에 맞춰주세요</div>
+      </div>
+      <div class="cam-controls">
+        <button class="cam-side" id="btnGallery">
+          <span class="ic">🖼️</span>갤러리
+          <input type="file" id="fileInput" accept="image/*,.pdf" hidden>
+        </button>
+        <button class="shutter" id="btnShoot" aria-label="촬영"></button>
+        <input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+        <button class="cam-side" id="btnSample"><span class="ic">🧾</span>샘플</button>
+      </div>
+      <div class="chips" id="sampleChips" style="display:none;margin-top:10px;justify-content:center"></div>
+      <p class="muted" style="text-align:center;margin-top:10px" id="camNote">
+        촬영하거나 갤러리에서 불러오면 자동 크롭 → OCR → 프리셋 분류까지 자동으로 진행됩니다
+      </p>
+    </section>
+
+    <!-- 2단계: 인식 결과 -->
+    <section id="stageResult" style="display:none">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="background:#14161B;max-height:210px;display:flex;justify-content:center">
+          <img id="resultImg" alt="" style="max-height:210px;max-width:100%;object-fit:contain">
+          <div id="resultNoImg" style="color:#8A90A0;padding:40px 0;font-size:34px">📄</div>
+        </div>
+        <div style="padding:14px 16px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span class="badge ok" id="okBadge">✓ 자동 크롭 · OCR 완료</span>
+            <span class="muted">신뢰도 <b id="conf"></b></span>
+          </div>
+          <dl class="ocr-grid" id="ocrGrid"></dl>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">프리셋 자동 분류 <span class="more">탭해서 변경</span></div>
+        <div class="chips" id="catChips"></div>
+        <div class="preset-why" id="whyBox"></div>
+      </div>
+
+      <div class="card" id="capCard"></div>
+
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn block" id="btnRetake">다시 촬영</button>
+        <button class="btn primary block" id="btnSave">저장하기</button>
+      </div>
+    </section>
+
+    <!-- 3단계: 저장 완료 -->
+    <section id="stageDone" style="display:none;text-align:center;padding-top:40px">
+      <div style="width:76px;height:76px;border-radius:50%;background:var(--ok-bg);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 14px">✓</div>
+      <h2 style="font-size:19px;letter-spacing:-.02em">저장 완료!</h2>
+      <p class="muted" id="doneMsg" style="margin:8px 0 24px;line-height:1.6"></p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn" id="btnMore">계속 촬영</button>
+        <a class="btn primary" href="receipts.html">보관함 보기</a>
+      </div>
+      <p class="muted" style="margin-top:16px;line-height:1.5">정산·전표 생성은 <b>PC AXE-acc › 간편정산</b>에서 진행하세요<br>(같은 저장소 — 방금 촬영한 영수증이 바로 보입니다)</p>
+    </section>
+
+  </main>
+  <nav class="tabbar"></nav>
+</div>
+
+<script src="../js/layout.js"></script>
+<script src="../js/quick-data.js"></script>
+<script src="js/m-chrome.js"></script>
+<script>
+const D = SKD;
+SKM.chrome("capture", "촬영 · 갤러리 업로드 → 자동 크롭 + OCR + 프리셋 분류");
+
+const $ = (id) => document.getElementById(id);
+const show = (stage) => {
+  $("stageCam").style.display = stage === "cam" ? "" : "none";
+  $("stageResult").style.display = stage === "result" ? "" : "none";
+  $("stageDone").style.display = stage === "done" ? "" : "none";
+  window.scrollTo(0, 0);
+};
+
+/* 서버 프리셋 캐시 (미연결이면 null → 폴백 모드) */
+let PRESETS = null;
+(async () => {
+  PRESETS = await eaccApi("/api/presets");
+  if (!PRESETS) $("camNote").innerHTML = '<span class="badge neutral">서버 미연결</span> 내장 데모로 동작합니다 — 촬영·샘플 모두 시뮬레이션';
+})();
+const presetOf = (id) => (PRESETS || []).find(p => p.id === id) || null;
+
+/* 서버 WoZ 데모 샘플 (fixtures/receipts-ocr 7종 중 모바일 데모 5종) */
+const SAMPLES = [
+  { key: "coffee",    label: "☕ 폴바셋 커피" },
+  { key: "chicken",   label: "🍗 치킨 (회식)" },
+  { key: "taxi1",     label: "🚕 카카오택시" },
+  { key: "anthropic", label: "🤖 Anthropic 구독" },
+  { key: "openai",    label: "📄 OpenAI (PDF)" }
+];
+
+let current = null;       // 서버 Receipt 또는 폴백 SKD 행
+let pickedPreset = null;  // 사용자가 고른 presetId
+let localPicked = null;   // 폴백 모드 분류 선택
+
+/* ---- 스캔 연출 + 서버 호출 ---- */
+function runScan(promise, imgSrc, fallbackRid) {
+  $("camMsg").textContent = "영수증 인식 중… 자동 크롭 → OCR";
+  $("scanline").style.display = "block";
+  const shot = $("shotImg");
+  if (imgSrc) { shot.src = imgSrc; shot.style.display = ""; } else { shot.style.display = "none"; }
+
+  Promise.all([promise, new Promise(res => setTimeout(res, 1600))]).then(([receipt]) => {
+    $("scanline").style.display = "none";
+    $("camMsg").textContent = "영수증을 프레임 안에 맞춰주세요";
+    if (receipt) {
+      current = receipt; pickedPreset = receipt.suggestedPresetId || null;
+      renderServerResult(imgSrc);
+    } else {
+      const r = D.RECEIPTS.find(x => x.id === (fallbackRid || "r_paris"));
+      current = { ...r, __local: true }; localPicked = null;
+      renderLocalResult(imgSrc || D.imgUrl(r.img));
+    }
+    show("result");
+  });
+}
+
+async function postMultipart(file) {
+  const fd = new FormData(); fd.append("image", file);
+  const bases = location.protocol === "file:" ? ["http://localhost:4000"] : ["", "http://localhost:4000"];
+  for (const base of bases) {
+    try {
+      const res = await fetch(base + "/api/receipts", { method: "POST", body: fd });
+      if (res.ok) return await res.json();
+    } catch (e) { /* 다음 후보 */ }
+  }
+  return null;
+}
+
+/* ---- 서버 결과 렌더 ---- */
+function renderServerResult(imgSrc) {
+  const r = current, o = r.ocr || {};
+  const img = imgSrc || r.croppedUrl;
+  if (img) { $("resultImg").src = img; $("resultImg").style.display = ""; $("resultNoImg").style.display = "none"; }
+  else { $("resultImg").style.display = "none"; $("resultNoImg").style.display = ""; }
+  $("conf").textContent = o.confidence != null ? Math.round(o.confidence * 100) + "%" : "—";
+  $("okBadge").textContent = "✓ 서버 저장 · " + r.id;
+  const cur = o.currency || "KRW";
+  $("ocrGrid").innerHTML = `
+    <dt>가맹점</dt><dd>${o.merchant || "(미인식)"}</dd>
+    <dt>결제금액</dt><dd class="num">${cur === "KRW" ? D.krw(o.amount || 0)
+      : (cur === "USD" ? "$" + Number(o.amount).toFixed(2) : "¥" + D.fmt(o.amount)) + ` <span class="badge info">× ${r.fxRate} = ${D.krw(r.amountKRW)}</span>`}</dd>
+    <dt>결제일시</dt><dd>${o.paidAt ? D.dt(o.paidAt) : "—"}</dd>
+    ${r.serviceDate && r.serviceDate !== (o.paidAt || "").slice(0, 10)
+      ? `<dt>이용일</dt><dd>${D.dateShort(r.serviceDate)} <span class="badge warn">사전결제 — 이용일 기준 판정</span></dd>` : ""}
+    ${o.vat != null ? `<dt>부가세</dt><dd>${D.krw(o.vat)} <span class="badge neutral">영수증 표기</span></dd>` : ""}
+    ${o.invoiceNo ? `<dt>문서번호</dt><dd class="num">${o.invoiceNo}</dd>` : ""}
+    <dt>결제수단</dt><dd>법인카드 (SK카드)</dd>`;
+  renderPresetChips();
+}
+
+/* 프리셋 칩: 서버 추천 + 사용자 변경 (PATCH는 저장 시) */
+function renderPresetChips() {
+  const list = PRESETS || [];
+  $("catChips").innerHTML = [
+    ...list.map(p => `<button class="chip ${pickedPreset === p.id ? "on brand" : ""}" data-p="${p.id}">
+      ${p.name}${current.suggestedPresetId === p.id ? " · 추천" : ""}</button>`),
+    `<button class="chip ${!pickedPreset ? "on" : ""}" data-p="">일반 결제</button>`
+  ].join("");
+  $("catChips").querySelectorAll(".chip").forEach(c =>
+    c.onclick = () => { pickedPreset = c.dataset.p || null; renderPresetChips(); });
+
+  const checks = (current.checks || []).map(c => `${c.status === "warn" ? "⚠️" : "ℹ️"} ${c.message}`).join("<br>");
+  $("whyBox").innerHTML = (current.suggestedPresetId
+    ? `<b>자동 추천</b> · 「${(presetOf(current.suggestedPresetId) || {}).name}」 프리셋 조건(기간/키워드)과 일치합니다. <b>자동 적용하지 않습니다</b> — 저장 시 선택한 프리셋로 확정됩니다.`
+    : `<b>프리셋 미해당</b> · 일반 결제로 저장됩니다. 계정과목은 정산 단계에서 자동 분류됩니다.`)
+    + (checks ? `<br>${checks}` : "");
+  renderPresetCap();
+}
+
+/* 한도 미리보기 (프리셋 usage 기준) */
+function renderPresetCap() {
+  const p = presetOf(pickedPreset);
+  let html = `<div class="card-title">한도 확인</div>`;
+  if (p && p.rules.limitKRW) {
+    const used = (p.usage && p.usage.usedKRW) || 0;
+    const after = used + (current.amountKRW || 0);
+    const over = after > p.rules.limitKRW;
+    html += `<div class="gauge ${over ? "over" : ""}">
+      <div class="g-head"><span>${p.name}</span><b class="num">${D.krw(after)} / ${D.krw(p.rules.limitKRW)}</b></div>
+      <div class="g-track"><div class="g-fill" style="width:${Math.min(100, after / p.rules.limitKRW * 100)}%"></div></div>
+      <div class="g-foot"><span>이 건 포함 시 (${p.rules.limitPeriod === "monthly" ? "월" : "기간"} 한도)</span>
+        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "⚠ 한도 초과 — 경고만, 상신 가능" : "한도 이내 ✓"}</span></div></div>`;
+  } else if (p) {
+    html += `<p class="muted">「${p.name}」 — 별도 금액 한도가 없는 프리셋입니다.</p>`;
+  } else {
+    html += `<p class="muted">일반경비 — 별도 한도 기준이 없는 항목입니다. 전결규정에 따라 결재라인이 자동 지정됩니다.</p>`;
+  }
+  $("capCard").innerHTML = html;
+}
+
+/* ---- 폴백(서버 미연결) 결과 렌더 — 시제품#1 로직 ---- */
+function renderLocalResult(imgSrc) {
+  const r = current;
+  if (imgSrc) { $("resultImg").src = imgSrc; $("resultImg").style.display = ""; $("resultNoImg").style.display = "none"; }
+  else { $("resultImg").style.display = "none"; $("resultNoImg").style.display = ""; }
+  $("conf").textContent = "93%";
+  $("okBadge").textContent = "✓ 자동 크롭 · OCR 완료 (내장 데모)";
+  $("ocrGrid").innerHTML = `
+    <dt>가맹점</dt><dd>${r.merchant}</dd>
+    <dt>결제금액</dt><dd class="num">${D.money(r)}${r.currency !== "KRW" ? ` <span class="badge info">× ${r.fxRate} = ${D.krw(r.amountKRW)}</span>` : ""}</dd>
+    <dt>결제일시</dt><dd>${D.dt(r.paidAt)}</dd>
+    <dt>결제수단</dt><dd>법인카드 (SK카드)</dd>`;
+  const auto = D.groupOf(r);
+  const sel = localPicked || auto;
+  $("catChips").innerHTML = D.GROUP_ORDER.map(g =>
+    `<button class="chip ${sel === g ? "on brand" : ""}" data-g="${g}">${D.GROUPS[g].name}${g === auto ? " · 자동" : ""}</button>`).join("");
+  $("catChips").querySelectorAll(".chip").forEach(c =>
+    c.onclick = () => { localPicked = c.dataset.g; renderLocalResult(imgSrc); });
+  $("whyBox").innerHTML = `<b>분류 근거</b> · ${r.why} <br><span style="opacity:.8">세부비목: ${D.subOf(r)}</span>`;
+  $("capCard").innerHTML = `<div class="card-title">한도 확인</div><p class="muted">서버 미연결 — 데모 모드에서는 한도 차감이 시뮬레이션되지 않습니다.</p>`;
+}
+
+/* ---- 이벤트 ---- */
+$("btnShoot").onclick = () => $("camInput").click();     // 실기기: 카메라, PC: 파일 선택
+$("camInput").onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  runScan(postMultipart(f), URL.createObjectURL(f));
+};
+$("btnGallery").onclick = () => $("fileInput").click();
+$("fileInput").onchange = (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const url = f.type.startsWith("image/") ? URL.createObjectURL(f) : null;
+  runScan(postMultipart(f), url, f.type.startsWith("image/") ? "r_paris" : "r_gpt");
+};
+$("btnSample").onclick = () => {
+  const box = $("sampleChips");
+  box.style.display = box.style.display === "none" ? "flex" : "none";
+  box.innerHTML = SAMPLES.map(s => `<button class="chip" data-key="${s.key}">${s.label}</button>`).join("");
+  box.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+    box.style.display = "none";
+    runScan(eaccApi("/api/receipts", { body: { key: c.dataset.key } }), null);
+  });
+};
+$("btnRetake").onclick = () => show("cam");
+$("btnMore").onclick = () => show("cam");
+$("btnSave").onclick = async () => {
+  if (current && !current.__local) {
+    /* 서버 모드: 프리셋 선택을 확정 (PATCH) */
+    if (pickedPreset !== (current.presetId || null)) {
+      await eaccApi(`/api/receipts/${current.id}`, { method: "PATCH", body: { presetId: pickedPreset } });
+    }
+    const o = current.ocr || {};
+    const p = presetOf(pickedPreset);
+    $("doneMsg").innerHTML = `<b>${o.merchant || current.id}</b> · ${D.krw(current.amountKRW)}<br>
+      ${p ? `프리셋 「${p.name}」` : "일반 결제"}로 저장되었습니다.<br>정산 시 카드승인내역과 자동 매칭됩니다.`;
+  } else {
+    const g = localPicked || D.groupOf(current);
+    $("doneMsg").innerHTML = `<b>${current.merchant}</b> · ${D.krw(current.amountKRW)}<br>
+      ${D.GROUPS[g].name} › ${D.subOf(current)} 으로 저장되었습니다. (내장 데모)`;
+  }
+  show("done");
+};
+</script>
+</body>
+</html>

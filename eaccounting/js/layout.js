@@ -101,7 +101,7 @@ function renderChrome(opts) {
       <a class="logo" href="index.html">
         <span class="sk">SK</span>
         <span class="sub">ㅇㅇ컴퍼니<br>E&amp;S</span>
-        <span class="sys">e-Accounting System</span>
+        <span class="sys">AXE-acc · e-Accounting</span>
       </a>
       <nav>${topMenu.map(m => {
         const sb = EACC.sidebars[m];
