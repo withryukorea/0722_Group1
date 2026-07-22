@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ea002c">
-  <meta name="description" content="영수증을 촬영하면 카드내역 매칭과 전표 초안까지 이어지는 모바일 정산 웹앱">
+  <meta name="description" content="영수증을 촬영하고 OCR 내용을 확인해 공용 서버에 저장하는 모바일 정산 웹앱">
   <title>찍으면 끝 · 영수증 정산</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
@@ -19,7 +19,7 @@
         </a>
         <div class="header-side">
           <span class="header-user">홍길동 · 전력사업기획팀</span>
-          <button class="icon-button" id="reset-button" type="button" aria-label="출장 일정 관리" title="출장 일정 관리">일정</button>
+          <button class="icon-button" id="reset-button" type="button" aria-label="배정된 정산단위 확인" title="배정된 정산단위 확인">출장</button>
         </div>
       </div>
       <div class="app-head-sub">
@@ -34,7 +34,7 @@
       <button type="button" data-route="dashboard"><span class="nav-icon home" aria-hidden="true"></span><b>홈</b></button>
       <button class="nav-capture" type="button" data-route="capture"><span class="camera-icon" aria-hidden="true"></span><b>촬영</b></button>
       <button type="button" data-route="receipts"><span class="nav-icon receipt" aria-hidden="true"></span><b>영수증</b></button>
-      <button type="button" data-route="setup"><span class="nav-icon calendar" aria-hidden="true"></span><b>일정</b></button>
+      <button type="button" data-route="setup"><span class="nav-icon calendar" aria-hidden="true"></span><b>정산단위</b></button>
     </nav>
   </div>
 
