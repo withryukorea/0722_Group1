@@ -1,22 +1,22 @@
 [
-  { "category": "TRAVEL_MEAL",      "maxKRW": 300000,    "approvers": ["김민수 팀장"] },
-  { "category": "TRAVEL_MEAL",      "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
+  { "category": "TRAVEL_MEAL",      "maxKRW": 300000,    "approvers": ["김아무개 팀장"] },
+  { "category": "TRAVEL_MEAL",      "maxKRW": 99999999,  "approvers": ["김아무개 팀장", "박아무개 부장"] },
 
-  { "category": "TRAVEL_TRANSPORT", "maxKRW": 200000,    "approvers": ["김민수 팀장"] },
-  { "category": "TRAVEL_TRANSPORT", "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
+  { "category": "TRAVEL_TRANSPORT", "maxKRW": 200000,    "approvers": ["김아무개 팀장"] },
+  { "category": "TRAVEL_TRANSPORT", "maxKRW": 99999999,  "approvers": ["김아무개 팀장", "박아무개 부장"] },
 
-  { "category": "TRAVEL_LODGING",   "maxKRW": 500000,    "approvers": ["김민수 팀장", "박영호 부장"] },
-  { "category": "TRAVEL_LODGING",   "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장", "이상무 임원"] },
+  { "category": "TRAVEL_LODGING",   "maxKRW": 500000,    "approvers": ["김아무개 팀장", "박아무개 부장"] },
+  { "category": "TRAVEL_LODGING",   "maxKRW": 99999999,  "approvers": ["김아무개 팀장", "박아무개 부장", "이아무개 임원"] },
 
-  { "category": "SNACK",            "maxKRW": 50000,     "approvers": ["김민수 팀장"] },
-  { "category": "SNACK",            "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
+  { "category": "SNACK",            "maxKRW": 50000,     "approvers": ["김아무개 팀장"] },
+  { "category": "SNACK",            "maxKRW": 99999999,  "approvers": ["김아무개 팀장", "박아무개 부장"] },
 
-  { "category": "WELFARE_BOOK",     "maxKRW": 100000,    "approvers": ["김민수 팀장"] },
-  { "category": "WELFARE_BOOK",     "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
+  { "category": "WELFARE_BOOK",     "maxKRW": 100000,    "approvers": ["김아무개 팀장"] },
+  { "category": "WELFARE_BOOK",     "maxKRW": 99999999,  "approvers": ["김아무개 팀장", "박아무개 부장"] },
 
-  { "category": "WELFARE_AI",       "maxKRW": 300000,    "approvers": ["김민수 팀장"] },
-  { "category": "WELFARE_AI",       "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
+  { "category": "WELFARE_AI",       "maxKRW": 300000,    "approvers": ["김아무개 팀장"] },
+  { "category": "WELFARE_AI",       "maxKRW": 99999999,  "approvers": ["김아무개 팀장", "박아무개 부장"] },
 
-  { "category": "WELFARE_ETC",      "maxKRW": 100000,    "approvers": ["김민수 팀장"] },
-  { "category": "WELFARE_ETC",      "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] }
+  { "category": "WELFARE_ETC",      "maxKRW": 100000,    "approvers": ["김아무개 팀장"] },
+  { "category": "WELFARE_ETC",      "maxKRW": 99999999,  "approvers": ["김아무개 팀장", "박아무개 부장"] }
 ]

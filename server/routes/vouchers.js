@@ -12,6 +12,13 @@ router.get("/", (req, res) => {
 // body: 02-API-CONTRACT.md 의 Voucher 형태 (approvalLine 포함해서 넘어옴)
 router.post("/", (req, res) => {
   const body = req.body || {};
+  // 중복 상신 방지: 이미 전표 처리(vouchered)된 거래는 다시 상신 불가
+  const dupTx = (Array.isArray(body.lines) ? body.lines : [])
+    .map((l) => l.txId)
+    .filter((id) => id && db.transactions.some((t) => t.id === id && t.status === "vouchered"));
+  if (dupTx.length) {
+    return res.status(409).json({ error: "DUPLICATE_SUBMISSION", txIds: dupTx, hint: "이미 전표가 상신된 카드내역입니다." });
+  }
   const voucher = {
     id: nextVoucherId(),
     title: body.title || "제목 없는 전표",

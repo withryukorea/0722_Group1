@@ -24,7 +24,9 @@ const db = {
   fx: initial.fx,
   accounts: initial.accounts,
   vouchers: [], // 상신된 전표가 여기 쌓인다 (관리자 화면이 이걸 보여줌)
+  receipts: [], // 업로드된 영수증 (P3 /api/receipts 가 쌓는다)
   _voucherSeq: 1,
+  _receiptSeq: 1,
 };
 
 // 전표 id 생성기 (vch_001, vch_002 ...)
@@ -34,12 +36,21 @@ function nextVoucherId() {
   return id;
 }
 
+// 영수증 id 생성기 (rcpt_101, rcpt_102 ... — WoZ 고정 데이터(rcpt_001~007)와 겹치지 않게 101부터)
+function nextReceiptId() {
+  const id = "rcpt_" + String(100 + db._receiptSeq).padStart(3, "0");
+  db._receiptSeq += 1;
+  return id;
+}
+
 // 데모 중 처음부터 다시 하고 싶을 때 사용 (관리자 화면의 리셋 버튼)
 function reset() {
   db.transactions = JSON.parse(JSON.stringify(initial.transactions));
   db.budgets = JSON.parse(JSON.stringify(initial.budgets));
   db.vouchers = [];
+  db.receipts = [];
   db._voucherSeq = 1;
+  db._receiptSeq = 1;
 }
 
-module.exports = { db, nextVoucherId, reset };
+module.exports = { db, nextVoucherId, nextReceiptId, reset };

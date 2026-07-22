@@ -28,9 +28,9 @@ npm start
 | GET | `/api/fx` | 환율 테이블 | ✅ P1 |
 | GET | `/api/accounts` | 계정과목 코드표 | ✅ P1 |
 | POST | `/api/reset` | 데모 초기화 | ✅ P1 |
-| POST | `/api/receipts` | 업로드→OCR | ⬜ **P3** `routes/receipts.js` |
-| POST | `/api/match` | 영수증↔거래 매칭 | ⬜ **P4** `routes/match.js` |
-| POST | `/api/vouchers/preview` | 전표 초안 생성 | ⬜ **P4** `routes/match.js` |
+| POST | `/api/receipts` | 업로드→OCR | ✅ P3 (WoZ 폴백 포함) |
+| POST | `/api/match` | 영수증↔거래 매칭 | ✅ P4 |
+| POST | `/api/vouchers/preview` | 전표 초안 생성 | ✅ P4 |
 | POST/GET | `/api/trips` `/api/trips/:id` | 출장 등록/조회 | ⬜ **P5** `routes/trips.js` |
 
 ## 팀원 안내

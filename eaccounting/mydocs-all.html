@@ -114,6 +114,7 @@ async function loadLive() {
         approver: (v.approvalLine || []).join(' → '),
         progress: '결재중', slipState: '기안전표',
         amount: v.totalKRW, vendor: v.title || '', company: 'SKㅇㅇ 주식회사',
+        attach: (v.lines || []).map(l => l.receiptId).filter(Boolean),  // 증빙(영수증) 열람용
       };
     }).reverse();
     ALL = [...live, ...APPROVAL_DOCS];
@@ -138,7 +139,9 @@ function renderTable() {
       <td class="${progressClass(d.progress)}">${d.progress}</td>
       <td>${d.slipState}</td>
       <td class="r">${fmtAmount(d.amount)}</td>
-      <td class="l">${d.vendor}</td>
+      <td class="l">${d.vendor}${d.attach && d.attach.length
+        ? ` ${d.attach.map((rid, k) => `<a href="/api/receipts/${rid}/image" target="_blank" title="증빙 영수증 ${rid}" style="color:var(--blue); text-decoration:none;">📎${k + 1}</a>`).join(' ')}`
+        : ''}</td>
       <td class="l">${d.company}</td>
     </tr>`).join('');
   document.getElementById('total').textContent = view.length;
