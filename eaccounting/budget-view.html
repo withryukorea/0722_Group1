@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 예산조회</title>
+<link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <h2 class="page-title">예산조회 <span class="fav">★</span></h2>
+
+    <div class="info-bar" style="margin-bottom:18px;">
+      ⓘ 배포된 정산단위(Preset)별 한도와 사용 현황입니다. 전표가 상신되면 사용액이 실시간으로 차감됩니다.
+    </div>
+
+    <div class="bv-grid" id="bv-grid">
+      <div class="placeholder" style="grid-column:1/-1;"><div class="big">⏳</div>예산 정보를 불러오는 중입니다...</div>
+    </div>
+  </main>
+</div>
+
+<script src="js/layout.js"></script>
+<script>
+renderChrome({
+  top: '법인카드',
+  active: '예산조회',
+  breadcrumb: ['메뉴', '법인카드', '예산조회'],
+});
+
+/* 오프라인 폴백 (서버 없이 파일로 열었을 때) */
+const FALLBACK_PRESETS = [
+  { id: 'ps_ai_sub', name: 'AI구독료 정산', type: 'RECURRING',
+    rules: { limitKRW: 300000, limitPeriod: 'monthly', allowedAccountCodes: ['WELFARE_AI'], approvalLine: ['김아무개 팀장'] },
+    usage: { usedKRW: 120000, byDay: {} } },
+  { id: 'ps_tokyo_trip', name: '7월 도쿄 출장', type: 'TRIP', period: { start: '2026-07-14', end: '2026-07-17' },
+    rules: { limitKRW: 200000, limitPeriod: 'daily', allowedAccountCodes: ['TRAVEL_MEAL', 'TRAVEL_TRANSPORT', 'TRAVEL_LODGING'], approvalLine: ['김아무개 팀장'] },
+    usage: { usedKRW: 0, byDay: {} } },
+];
+
+const PERIOD_LABEL = { daily: '일일 한도', monthly: '월 한도', total: '총 한도' };
+const fmt = (n) => (n || 0).toLocaleString('ko-KR');
+
+function card(p) {
+  const limit = p.rules.limitKRW || 0;
+  const used = (p.usage && p.usage.usedKRW) || 0;
+  const remain = limit - used;
+  const pct = limit ? Math.min(100, Math.round(used / limit * 100)) : 0;
+  const over = limit && used > limit;
+  const byDay = Object.entries((p.usage && p.usage.byDay) || {});
+  return `
+  <div class="bv-card">
+    <div class="bv-head">
+      <span class="bv-badge ${p.type.toLowerCase()}">${p.type}</span>
+      <h3>${p.name}</h3>
+      ${over ? '<span class="bv-badge over">한도 초과</span>' : ''}
+    </div>
+    <div class="bv-sub">
+      ${PERIOD_LABEL[p.rules.limitPeriod] || '한도'} ${fmt(limit)}원
+      ${p.period ? ` · ${p.period.start} ~ ${p.period.end}` : ''}
+      · 결재선 ${(p.rules.approvalLine || []).join(' → ')}
+    </div>
+    <div class="bv-nums">
+      <span>사용 <b>${fmt(used)}</b>원</span>
+      <span>잔여 <b class="remain ${remain < 0 ? 'minus' : ''}">${fmt(remain)}</b>원</span>
+    </div>
+    <div class="gauge"><i class="${over ? 'over' : ''}" style="width:${pct}%;"></i></div>
+    ${byDay.length ? `<div class="bv-byday">일자별: ${byDay.map(([d, v]) => `<span>${d.slice(5)} · ${fmt(v)}원</span>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+async function load() {
+  const presets = await eaccApi('/api/presets?active=true');
+  const list = Array.isArray(presets) && presets.length ? presets : FALLBACK_PRESETS;
+  document.getElementById('bv-grid').innerHTML = list.map(card).join('');
+}
+load();
+</script>
+</body>
+</html>

@@ -377,6 +377,34 @@ table.apv-tbl td { border-bottom: 1px solid var(--line-soft); padding: 8px 6px; 
 .apv-none { text-align: center; color: var(--text-sub); padding: 40px 12px; font-size: 13px; line-height: 1.8; }
 .apv-myline { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 
+/* ---------------- 예산조회 (Preset 한도 게이지) ---------------- */
+.bv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.bv-card { background: #fff; border: 1px solid var(--line-soft); border-radius: 10px; padding: 20px 24px; }
+.bv-card .bv-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.bv-card .bv-head h3 { font-size: 16.5px; margin: 0; }
+.bv-badge { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+.bv-badge.trip { background: #e7f0ff; color: #2f6fd8; }
+.bv-badge.recurring { background: #ffe9f1; color: var(--pink); }
+.bv-badge.campaign { background: #eef7ec; color: #2b8a3e; }
+.bv-badge.over { background: var(--red); color: #fff; }
+.bv-sub { font-size: 12.5px; color: var(--text-sub); margin-bottom: 14px; }
+.bv-nums { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 8px; }
+.bv-nums b.remain { color: var(--blue); } .bv-nums b.remain.minus { color: var(--red); }
+.gauge { height: 12px; background: #eef0f4; border-radius: 8px; overflow: hidden; }
+.gauge > i { display: block; height: 100%; background: linear-gradient(90deg, #f46e9c, #ee3d6d); border-radius: 8px; }
+.gauge > i.over { background: var(--red); }
+.bv-byday { margin-top: 12px; font-size: 12.5px; color: #555; }
+.bv-byday span { display: inline-block; background: #f4f5f8; border-radius: 5px; padding: 3px 9px; margin: 2px 4px 2px 0; }
+
+/* AI구독료 정책 추천 배너 */
+.ai-banner { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px;
+  background: #fdf3f7; border: 1px solid #f2b9cd; border-radius: 8px; padding: 12px 18px; font-size: 13.5px; }
+.ai-banner .btn-apply { margin-left: auto; height: 32px; padding: 0 16px; border: none; border-radius: 5px;
+  background: var(--pink); color: #fff; font-weight: 700; cursor: pointer; animation: aiPulse 1.6s infinite; }
+@keyframes aiPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(238,61,109,.45); } 50% { box-shadow: 0 0 0 7px rgba(238,61,109,0); } }
+.vat-warn { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 700; color: #b45309;
+  background: #fef3c7; border-radius: 4px; padding: 2px 8px; }
+
 /* ---------------- 준비중 화면 ---------------- */
 .placeholder { background: #fff; border: 1px dashed #c6ccd6; border-radius: 10px;
   padding: 90px 20px; text-align: center; color: var(--text-sub); }

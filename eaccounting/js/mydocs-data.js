@@ -36,14 +36,14 @@ const APPROVAL_DOCS = [
 /* 나의 문서함 > 기안문서 > 전체조회 목데이터 (Total 49건)
    제공된 실제 화면의 최신 법인카드전표 패턴을 기준으로 구성한다. */
 const DRAFT_DOCS = [
-  { type: '법인카드전표 (현업완결)', docNo: '3200014525', postDate: '2026.07.07', evidDate: '2026.07.07', draftDate: '2026.07.16', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 35250, vendor: '', company: '에스케이이노베이션 주식회사' },
-  { type: '법인카드전표 (현업완결)', docNo: '3200014524', postDate: '2026.07.13', evidDate: '2026.07.13', draftDate: '2026.07.16', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 384140, vendor: '', company: '에스케이이노베이션 주식회사' },
-  { type: '법인카드전표 (현업완결)', docNo: '3200013229', postDate: '2026.06.30', evidDate: '2026.06.30', draftDate: '2026.07.01', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 116200, vendor: '', company: '에스케이이노베이션 주식회사' },
-  { type: '법인카드전표 (현업완결)', docNo: '3200012574', postDate: '2026.06.25', evidDate: '2026.06.25', draftDate: '2026.06.29', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 293800, vendor: '', company: '에스케이이노베이션 주식회사' },
-  { type: '법인카드전표 (현업완결)', docNo: '3200012560', postDate: '2026.06.22', evidDate: '2026.06.22', draftDate: '2026.06.29', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 54000, vendor: '', company: '에스케이이노베이션 주식회사' },
-  { type: '법인카드전표 (현업완결)', docNo: '3200012547', postDate: '2026.06.24', evidDate: '2026.06.24', draftDate: '2026.06.29', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 421390, vendor: '', company: '에스케이이노베이션 주식회사' },
-  { type: '법인카드전표 (회계팀검토)', docNo: '3200012265', postDate: '2026.06.19', evidDate: '2026.06.19', draftDate: '2026.06.24', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 172088, vendor: '', company: '에스케이이노베이션 주식회사' },
-  { type: '법인카드전표 (현업완결)', docNo: '3200011841', postDate: '2026.06.11', evidDate: '2026.06.11', draftDate: '2026.06.16', payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 112000, vendor: '', company: '에스케이이노베이션 주식회사' },
+  { type: '법인카드전표 (현업완결)', docNo: '3200014525', postDate: '2026.07.07', evidDate: '2026.07.07', draftDate: '2026.07.16', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 35250, vendor: '', company: 'SKㅇㅇ 주식회사' },
+  { type: '법인카드전표 (현업완결)', docNo: '3200014524', postDate: '2026.07.13', evidDate: '2026.07.13', draftDate: '2026.07.16', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 384140, vendor: '', company: 'SKㅇㅇ 주식회사' },
+  { type: '법인카드전표 (현업완결)', docNo: '3200013229', postDate: '2026.06.30', evidDate: '2026.06.30', draftDate: '2026.07.01', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 116200, vendor: '', company: 'SKㅇㅇ 주식회사' },
+  { type: '법인카드전표 (현업완결)', docNo: '3200012574', postDate: '2026.06.25', evidDate: '2026.06.25', draftDate: '2026.06.29', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 293800, vendor: '', company: 'SKㅇㅇ 주식회사' },
+  { type: '법인카드전표 (현업완결)', docNo: '3200012560', postDate: '2026.06.22', evidDate: '2026.06.22', draftDate: '2026.06.29', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 54000, vendor: '', company: 'SKㅇㅇ 주식회사' },
+  { type: '법인카드전표 (현업완결)', docNo: '3200012547', postDate: '2026.06.24', evidDate: '2026.06.24', draftDate: '2026.06.29', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 421390, vendor: '', company: 'SKㅇㅇ 주식회사' },
+  { type: '법인카드전표 (회계팀검토)', docNo: '3200012265', postDate: '2026.06.19', evidDate: '2026.06.19', draftDate: '2026.06.24', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 172088, vendor: '', company: 'SKㅇㅇ 주식회사' },
+  { type: '법인카드전표 (현업완결)', docNo: '3200011841', postDate: '2026.06.11', evidDate: '2026.06.11', draftDate: '2026.06.16', payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '', progress: '결재완료', slipState: '확정전표', amount: 112000, vendor: '', company: 'SKㅇㅇ 주식회사' },
 ];
 
 for (let i = DRAFT_DOCS.length; i < 49; i += 1) {
@@ -55,8 +55,8 @@ for (let i = DRAFT_DOCS.length; i < 49; i += 1) {
     postDate: `2026.${month}.${day}`,
     evidDate: `2026.${month}.${day}`,
     draftDate: `2026.${month}.${String(Math.min(28, Number(day) + 3)).padStart(2, '0')}`,
-    payDate: '', drafter: '유상욱', dept: '전력사업기획팀', approvalLine: '',
+    payDate: '', drafter: '홍길동', dept: '전력사업기획팀', approvalLine: '',
     progress: '결재완료', slipState: '확정전표', amount: 42000 + i * 13750,
-    vendor: '', company: '에스케이이노베이션 주식회사',
+    vendor: '', company: 'SKㅇㅇ 주식회사',
   });
 }

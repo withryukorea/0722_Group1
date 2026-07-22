@@ -26,13 +26,13 @@
   };
 
   const fallbackTransactions = [
-    { id: 'tx_001', usedDate: '2026-07-21', approvedAt: '2026-07-21T12:24:31+09:00', merchant: '폴바셋광화문예금보험공사점', industry: '커피숍', amount: 20500, amountKRW: 20500, owner: '유상욱', dept: '전력사업기획팀' },
-    { id: 'tx_002', usedDate: '2026-07-20', approvedAt: '2026-07-20T21:41:32+09:00', merchant: '둘둘치킨종로1가점', industry: '일반주점', amount: 64000, amountKRW: 64000, owner: '유상욱', dept: '전력사업기획팀' },
-    { id: 'tx_003', usedDate: '2026-07-19', approvedAt: '2026-07-19T08:33:24+09:00', merchant: 'ANTHROPIC* CLAUDE SUB', industry: '컴퓨터소프트웨어매장', amount: 167435, amountKRW: 167435, owner: '유상욱', dept: '전력사업기획팀' },
-    { id: 'tx_004', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:44+09:00', merchant: '카카오_택시9', industry: '택시', amount: 34500, amountKRW: 34500, owner: '유상욱', dept: '전력사업기획팀' },
-    { id: 'tx_005', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:42+09:00', merchant: '카카오_택시9', industry: '택시', amount: 5000, amountKRW: 5000, owner: '유상욱', dept: '전력사업기획팀' },
-    { id: 'tx_006', usedDate: '2026-07-16', approvedAt: '2026-07-16T15:57:35+09:00', merchant: '오피스디포코리아', industry: '기타사무용품', amount: 58650, amountKRW: 58650, owner: '유상욱', dept: '전력사업기획팀' },
-    { id: 'tx_007', usedDate: '2026-07-10', approvedAt: '2026-07-10T09:02:39+09:00', merchant: 'OPENAI *CHATGPT SUBSCR', industry: '컴퓨터소프트웨어매장', amount: 162612, amountKRW: 162612, owner: '유상욱', dept: '전력사업기획팀' },
+    { id: 'tx_001', usedDate: '2026-07-21', approvedAt: '2026-07-21T12:24:31+09:00', merchant: '폴바셋광화문예금보험공사점', industry: '커피숍', amount: 20500, amountKRW: 20500, owner: '홍길동', dept: '전력사업기획팀' },
+    { id: 'tx_002', usedDate: '2026-07-20', approvedAt: '2026-07-20T21:41:32+09:00', merchant: '둘둘치킨종로1가점', industry: '일반주점', amount: 64000, amountKRW: 64000, owner: '홍길동', dept: '전력사업기획팀' },
+    { id: 'tx_003', usedDate: '2026-07-19', approvedAt: '2026-07-19T08:33:24+09:00', merchant: 'ANTHROPIC* CLAUDE SUB', industry: '컴퓨터소프트웨어매장', amount: 167435, amountKRW: 167435, owner: '홍길동', dept: '전력사업기획팀' },
+    { id: 'tx_004', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:44+09:00', merchant: '카카오_택시9', industry: '택시', amount: 34500, amountKRW: 34500, owner: '홍길동', dept: '전력사업기획팀' },
+    { id: 'tx_005', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:42+09:00', merchant: '카카오_택시9', industry: '택시', amount: 5000, amountKRW: 5000, owner: '홍길동', dept: '전력사업기획팀' },
+    { id: 'tx_006', usedDate: '2026-07-16', approvedAt: '2026-07-16T15:57:35+09:00', merchant: '오피스디포코리아', industry: '기타사무용품', amount: 58650, amountKRW: 58650, owner: '홍길동', dept: '전력사업기획팀' },
+    { id: 'tx_007', usedDate: '2026-07-10', approvedAt: '2026-07-10T09:02:39+09:00', merchant: 'OPENAI *CHATGPT SUBSCR', industry: '컴퓨터소프트웨어매장', amount: 162612, amountKRW: 162612, owner: '홍길동', dept: '전력사업기획팀' },
   ];
 
   document.querySelector('#btn-draft').addEventListener('click', submitVoucher);
@@ -125,7 +125,7 @@
         <td class="sub-cell">${escapeHtml(meta.taxKind)}</td>
         <td rowspan="2">${BUDGET_DEPT}</td>
         <td rowspan="2">${EXPENSE_ACCOUNT}</td>
-        <td rowspan="2" class="center">${escapeHtml(transaction.owner || '유상욱')}</td>
+        <td rowspan="2" class="center">${escapeHtml(transaction.owner || '홍길동')}</td>
         <td rowspan="2" class="center">${taxable ? '有' : '無'}</td>
         <td rowspan="2">${memo}</td>
       </tr><tr><td colspan="2" class="sub-cell">${escapeHtml(meta.address)}</td></tr>`;

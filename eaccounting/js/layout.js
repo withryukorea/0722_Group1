@@ -33,7 +33,7 @@ const EACC = {
         { label: '법인카드 관리', icon: '💳', children: [
           { label: '신규신청' }, { label: '변경/해지' }, { label: '공용카드 신청' }, { label: '신청서 진행 현황' }] },
         { label: '법인카드 정산이력', icon: '🧾' },
-        { label: '예산조회', icon: '📊' },
+        { label: '예산조회', icon: '📊', href: 'budget-view.html' },
       ],
     },
     '전불/출장비': {
