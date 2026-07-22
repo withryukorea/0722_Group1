@@ -94,14 +94,14 @@ const aiB = D.BUDGETS[0];
 /* ---- KPI ---- */
 document.getElementById("kpis").innerHTML = `
   <div class="card kpi accent">
-    <div class="k-label">사용 총액 (전체 누적)</div>
-    <div class="k-val num">${D.krw(grand)}</div>
-    <div class="k-sub">영수증 ${all.length}건 · 외화 자동 환산 포함</div>
+    <div class="k-label">2026년 7월 사용 총액</div>
+    <div class="k-val num">${D.krw(julyTotal)}</div>
+    <div class="k-sub">영수증 ${july.length}건 · 외화 자동 환산 포함</div>
   </div>
   <div class="card kpi">
-    <div class="k-label">이번 달 사용 <span class="badge neutral">2026.07</span></div>
-    <div class="k-val num">${D.krw(julyTotal)}</div>
-    <div class="k-sub">${july.length}건 · 해외출장 진행중</div>
+    <div class="k-label">전체 누적 <span class="badge neutral">전 기간</span></div>
+    <div class="k-val num">${D.krw(grand)}</div>
+    <div class="k-sub">영수증 ${all.length}건 · 모바일·PC 통합</div>
   </div>
   <div class="card kpi">
     <div class="k-label">확인 필요 <span class="badge warn">${reviewN}건</span></div>

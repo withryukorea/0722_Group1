@@ -195,7 +195,7 @@ window.SKD = (function () {
     const tripId = findTripFor(rc, trips);
     const dup = (rc.checks || []).some(c => (c.code || c.type || c) === "DUPLICATE_DOCUMENT");
     const status = dup ? "duplicate" : (rc.matchedTxId ? "matched" : "review");
-    const img = rc.imageUrl ? (CFG.apiBase + rc.imageUrl) : null;
+    const img = rc.imageUrl ? ((API.activeBase || CFG.apiBase) + rc.imageUrl) : null;
     return {
       id: rc.id,
       merchant: ocr.merchant || rc.id,
@@ -365,14 +365,30 @@ window.SKD = (function () {
   /* 상단바에 라이브/데모 배지 표시 (SKP.chrome 이후 호출) */
   function mountBadge() {
     const host = document.querySelector(".topbar .tb-user");
-    if (!host) return;
     const live = MODE === "live";
-    const b = document.createElement("span");
-    b.className = "badge " + (live ? "ok" : "warn");
-    b.style.cssText = "margin-left:8px;font-size:10.5px;vertical-align:middle";
-    b.title = live ? "공유 서버(라이브) 데이터" : "서버 연결 실패 — 데모 시드로 표시 중";
-    b.textContent = live ? "● 라이브 공유" : "● 데모(오프라인)";
-    host.appendChild(b);
+    if (host) {
+      const b = document.createElement("span");
+      b.className = "badge " + (live ? "ok" : "warn");
+      b.style.cssText = "margin-left:8px;font-size:10.5px;vertical-align:middle";
+      b.title = live
+        ? "공유 서버(라이브) 데이터 · " + (API.activeBase || "현재 주소")
+        : "서버 연결 실패 — 데모 시드로 표시 중";
+      b.textContent = live ? "● 라이브 공유" : "● 데모(오프라인)";
+      host.appendChild(b);
+    }
+
+    if (!live) {
+      const page = document.querySelector(".page");
+      if (!page || page.querySelector(".data-mode-alert")) return;
+      const alert = document.createElement("div");
+      alert.className = "data-mode-alert";
+      const localHelp = location.hostname === "localhost" || location.hostname === "127.0.0.1"
+        ? " 서버를 실행한 뒤 http://localhost:4000/pc/에서 열어 주세요."
+        : " 공유 서버 주소 설정을 확인해 주세요.";
+      alert.innerHTML = "<strong>데모 데이터 표시 중</strong> — 공유 서버에 연결되지 않아 이 금액은 모바일과 동기화되지 않습니다." + localHelp;
+      page.insertBefore(alert, page.firstChild);
+      console.warn("[PC] 공유 서버 연결 실패. 데모 데이터로 전환했습니다.", _err);
+    }
   }
 
   /* 데모 스토리텔링용(업로드 화면 칩): 라이브에 없으면 데모 시드에서 조회 */

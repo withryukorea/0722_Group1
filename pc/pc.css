@@ -33,6 +33,12 @@ body.pc { min-width: 1024px; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
 .page-head h1 { font-size: 21px; letter-spacing: -.02em; }
 .page-head .desc { font-size: 13px; color: var(--ink-3); margin-top: 3px; }
+.data-mode-alert {
+  margin-bottom: 16px; padding: 12px 15px; border: 1px solid #F4B96B;
+  border-radius: 10px; background: #FFF7E8; color: #8A4B08;
+  font-size: 13px; line-height: 1.5;
+}
+.data-mode-alert strong { color: #B45309; }
 
 /* ---- 그리드 ---- */
 .grid { display: grid; gap: 16px; }
