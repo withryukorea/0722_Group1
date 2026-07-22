@@ -9,6 +9,7 @@
 
 | 문서 | 내용 |
 |------|------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Git 협업 절차, 브랜치·PR 규칙, 병합 권한 및 주의사항 |
 | [docs/01-PLANNING.md](docs/01-PLANNING.md) | 기획서: 문제정의, MVP 범위, 아키텍처 결정, 데모 시나리오 |
 | [docs/02-API-CONTRACT.md](docs/02-API-CONTRACT.md) | 데이터 모델 + API 계약 (H1에 동결, 병렬 개발의 기준) |
 | [docs/03-ROLES-TIMELINE.md](docs/03-ROLES-TIMELINE.md) | 5인 역할 분담 + 10시간 타임라인 + 스코프 컷 순서 |
