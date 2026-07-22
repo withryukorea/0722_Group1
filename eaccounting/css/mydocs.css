@@ -1,0 +1,84 @@
+/* 나의 문서함 전용 스타일 — 제공된 실제 e-Accounting 화면 구성을 따른다. */
+.page-heading {
+  margin-bottom: 16px;
+  padding: 4px 0 18px;
+  border-bottom: 1px solid #bfc4cd;
+}
+.page-heading .page-title { margin-bottom: 0; }
+
+.mydocs-filter { align-items: stretch; }
+.mydocs-filter .filter-grid { grid-template-columns: repeat(3, minmax(270px, 1fr)); }
+.mydocs-filter .field label { width: 88px; }
+.mydocs-filter .field input,
+.mydocs-filter .field select { min-width: 0; }
+.mydocs-filter .date-field { min-width: 0; }
+.mydocs-filter .date-range input { flex: 1 1 125px; width: 0; min-width: 120px; }
+.filter-actions { display: flex; flex-direction: column; justify-content: center; gap: 7px; }
+.filter-actions .btn-search { height: 52px; }
+.btn-reset {
+  width: 96px;
+  height: 30px;
+  border: 1px solid #c6ccd6;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-sub);
+  font-size: 12.5px;
+}
+.btn-reset:hover { background: #f4f5f8; }
+
+.toolbar { align-items: center; }
+.toolbar-spacer { flex: 1; }
+.toolbar .btn[hidden] { display: none !important; }
+.mydocs-grid.approval { min-width: 1860px; }
+.mydocs-grid.drafted { min-width: 1580px; }
+.mydocs-grid td { height: 32px; padding-top: 6px; padding-bottom: 6px; }
+.mydocs-grid tr.live-row td { background: #fff7fa; }
+.mydocs-grid tr.live-row:hover td { background: #ffedf3; }
+.mydocs-grid .new-mark { color: var(--pink); font-size: 10.5px; font-weight: 800; }
+.mydocs-grid .state-pending { color: var(--blue); font-weight: 700; }
+.mydocs-grid .state-completed { color: #21854a; }
+.mydocs-grid .state-rejected { color: var(--red); font-weight: 700; }
+.mydocs-grid .approval-line { max-width: 150px; overflow: hidden; text-overflow: ellipsis; color: #4f5b73; font-size: 12px; }
+.voucher-preview-link { color: #315fa8; text-decoration: underline; text-underline-offset: 2px; }
+.voucher-preview-link:hover { color: var(--pink); }
+
+.toast {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 50;
+  transform: translateY(16px);
+  min-width: 250px;
+  padding: 13px 18px;
+  border-radius: 8px;
+  background: #30374f;
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(20,28,50,.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 1540px) {
+  .mydocs-filter .filter-grid { grid-template-columns: repeat(2, minmax(300px, 1fr)); }
+}
+@media (max-width: 1180px) {
+  .mydocs-filter { flex-direction: column; }
+  .filter-actions { flex-direction: row; }
+  .filter-actions .btn-search, .filter-actions .btn-reset { width: 110px; height: 36px; }
+}
+@media (max-width: 900px) {
+  .mydocs-filter .filter-grid { grid-template-columns: 1fr; }
+}

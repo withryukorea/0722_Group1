@@ -16,8 +16,9 @@
 | 화면 | 파일 | API 연동 |
 |------|------|----------|
 | 메인(접속 화면) | `index.html` | 미정산 건수 카운트 |
-| 법인카드 > 법인카드 정산 | `card-settlement.html` | 카드내역 조회(GET /api/transactions), 전표작성(POST /api/vouchers) |
-| 나의 문서함 > 결재문서 > 전체조회 | `mydocs-all.html` | 상신된 전표를 목록 맨 위에 '결재중'으로 표시(GET /api/vouchers) |
+| 법인카드 > 법인카드 정산 | `card-settlement.html` | 카드내역 조회(GET /api/transactions), 전표작성 및 미리보기 |
+| 나의 문서함 > 결재/기안문서 조회 | `mydocs-all.html` | 상신된 전표 조회(GET /api/vouchers), 검색·결재 데모 |
+| 법인카드전표 미리보기(기안) 팝업 | `voucher-preview.html` | 카드내역·상세정산·기안(POST /api/vouchers) 연동 |
 
 ## 역할 구분 (server/public 관리자 화면과의 관계)
 
@@ -29,6 +30,10 @@
 
 - `css/common.css` — 디자인 시스템(색/헤더/사이드바/버튼/테이블/필터)
 - `js/layout.js` — 상단 헤더(GNB)·사이드바(SNB)·브레드크럼 렌더러 + `eaccApi` 헬퍼
+- `css/mydocs.css` — 나의 문서함 전용 반응형·상태 UI. 소유: Codex
+- `css/voucher-preview.css` — 전표 미리보기 팝업 전용 UI. 소유: Codex
+- `js/mydocs.js` — 문서함 API 연동·검색·결재 데모 로직. 소유: Codex
+- `js/voucher-preview.js` — 카드·정산 라인 렌더링과 전표 기안 로직. 소유: Codex
 
 ## 새 화면 추가하는 법 (3단계)
 

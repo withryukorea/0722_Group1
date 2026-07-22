@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>미리보기(기안) - 법인카드전표</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/voucher-preview.css">
+</head>
+<body>
+  <header class="preview-bar">
+    <span class="preview-label" aria-hidden="true"></span>
+    <button class="draft-button" id="btn-draft" type="button">기안</button>
+  </header>
+
+  <main class="preview-content">
+    <section class="preview-section approval-section">
+      <h1 id="voucher-title">법인카드전표 (현업완결)</h1>
+      <h2>결재정보</h2>
+      <div class="approval-grid" aria-label="결재선">
+        <div class="approval-head draft">기안</div>
+        <div class="approval-head review">검토</div>
+        <div class="approval-head approve">승인</div>
+        <div class="approval-person draft-person">
+          <span>전력사업기획팀</span><strong>유상욱 팀원</strong>
+        </div>
+        <div class="approval-empty"></div><div class="approval-empty"></div><div class="approval-empty"></div>
+        <div class="approval-person approve-person">
+          <span>전력사업기획팀</span><strong id="final-approver">김예섬 팀장</strong>
+        </div>
+      </div>
+      <div class="opinion-row">
+        <label for="draft-opinion">기안의견</label>
+        <textarea id="draft-opinion" rows="2" aria-label="기안의견"></textarea>
+      </div>
+    </section>
+
+    <section class="preview-section">
+      <h2>전표정보</h2>
+      <table class="info-table">
+        <tbody>
+          <tr>
+            <th>회사구분</th><td>A000</td>
+            <th>회계년도</th><td id="fiscal-year">2026</td>
+            <th>회계월</th><td id="fiscal-month">07</td>
+          </tr>
+          <tr>
+            <th>증빙일자</th><td id="evidence-date">2026.07.10</td>
+            <th>전기일자</th><td id="posting-date">2026.07.10</td>
+            <th>작성자</th><td>유상욱 - 전력사업기획팀</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="preview-section">
+      <h2>카드이용내역</h2>
+      <div class="wide-table-wrap">
+        <table class="card-detail-table">
+          <colgroup>
+            <col class="col-no"><col class="col-date"><col class="col-amount"><col class="col-foreign">
+            <col class="col-merchant"><col class="col-industry"><col class="col-tax-kind"><col class="col-budget">
+            <col class="col-account"><col class="col-user"><col class="col-vat"><col class="col-memo">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>No.</th><th>사용일자</th><th>금액</th><th>외화금액</th><th colspan="3">거래처</th>
+              <th>예산부서</th><th>계정과목</th><th>사용자</th><th>부가세</th><th>적요</th>
+            </tr>
+          </thead>
+          <tbody id="card-detail-body">
+            <tr><td colspan="12" class="loading-cell">카드 이용내역을 불러오는 중입니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="preview-section settlement-section">
+      <button class="section-toggle" id="btn-toggle-settlement" type="button" aria-expanded="true">
+        상세정산내역 <span>⌃</span>
+      </button>
+      <div class="settlement-panel" id="settlement-panel">
+        <table class="settlement-table">
+          <colgroup><col class="line-no"><col class="account"><col class="debit"><col class="credit"><col class="budget"><col class="memo"></colgroup>
+          <thead><tr><th>No.</th><th>계정코드</th><th>차변</th><th>대변</th><th>예산부서</th><th>적요</th></tr></thead>
+          <tbody id="settlement-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="preview-toast" role="status" aria-live="polite"></div>
+  <script src="js/voucher-preview.js"></script>
+</body>
+</html>
