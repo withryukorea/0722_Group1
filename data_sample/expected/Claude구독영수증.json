@@ -1,0 +1,22 @@
+{
+  "merchant": "Anthropic, PBC",
+  "amount": 110.00,
+  "currency": "USD",
+  "paidAt": "2026-07-05T00:00:00+09:00",
+  "cardLast4": null,
+  "items": [
+    { "name": "Max plan - 5x  Jul 5–Aug 5, 2026", "qty": 1, "unitPrice": 100.00, "amount": 100.00 }
+  ],
+  "confidence": null,
+
+  "_docType": "receipt",
+  "_expectedCategory": "WELFARE_AI",
+  "_fxRate": 1500,
+  "_amountKRW": 165000,
+  "_tax": { "vatRate": 0.1, "vatUSD": 10.00, "vatKRW": 15000 },
+  "_invoiceNo": "6IBKFSKM-0006",
+  "_receiptNo": "2950-5033-2472",
+  "_paymentMethod": "Visa - ****",
+  "_masked": ["이메일", "카드 뒤 4자리"],
+  "_note": "PDF 전자영수증(2페이지, 2페이지째는 빈 장) → **다중 페이지 처리**와 빈 페이지 무시가 필요한 유일한 샘플.\nChatGPT 건과 함께 **AI구독 2종 비교** 케이스가 된다. 결제일이 다르고(Claude 07-05, ChatGPT 07-09) 금액도 달라($110 vs $22) 복지비 한도 차감 순서를 시연하기 좋다.\n⚠️ ChatGPT 영수증과 달리 **원화 환산액이 문서에 없다.** VAT가 $10.00로만 적혀 있어 환율을 시스템(fixtures/fx.json)에서 가져와야 한다 → 같은 WELFARE_AI인데 한쪽은 문서 환산액, 한쪽은 시스템 환율을 써야 하는 상황.\n결제자 이름이 사람 이름이 아니라 \"<이메일>'s Organization\" 형태라 payer 파싱 규칙이 다르다.\n합계 $110은 두 AI구독을 합치면 $132 → 복지비 한도(fixtures/budgets.json) 확인 필요."
+}

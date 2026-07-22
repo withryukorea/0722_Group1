@@ -1,0 +1,26 @@
+{
+  "merchant": "파리크라상 서울역점",
+  "amount": 10300,
+  "currency": "KRW",
+  "paidAt": "2026-04-15T07:47:01+09:00",
+  "cardLast4": null,
+  "items": [
+    { "name": "RB)블랙올리브베이", "qty": 1, "amount": 4300 },
+    { "name": "OEAU생수라벨프리", "qty": 1, "amount": 1200 },
+    { "name": "RTD)청귤샤인머스캣2", "qty": 1, "amount": 4800 }
+  ],
+  "confidence": null,
+
+  "_expectedCategory": "TRAVEL_MEAL",
+  "_categoryDependsOnTrip": true,
+  "_tripId": "trip_2026-04-15",
+  "_tripDateBasis": "paidAt",
+  "_location": "서울 용산구 서울역",
+  "_tripCheck": { "fromWorkplaceKm": 4, "adminAreaChanged": true, "isTrip": false },
+  "_conflict": "규칙 0(거리 30km 미달 → 외근 → SNACK)과 규칙 1(출장 기간 내 → TRAVEL_MEAL)이 충돌하는 유일한 건. 현재는 TRAVEL_MEAL로 둠. 팀 확정 필요.",
+  "_tax": { "taxableAmount": 9364, "vat": 936 },
+  "_approvalNo": "00496591",
+  "_cardName": "현대비자카드",
+  "_masked": ["해피포인트 블록 전체(고객명·적립/잔여 포인트)"],
+  "_note": "재발행 영수증. 상단에 '영수증 재발행' 문구가 있어 원본과 구분 필요.\n원본에는 결제 정보 아래에 해피포인트 적립 블록(고객명, 포인트 카드번호, 적립/잔여 포인트)이 붙어 있었으나 **개인정보 삭제로 제거**했다. 그 결과 이미지 하단에 흰 여백이 크게 남아 있다 → 영수증 영역 자동 크롭이 여백을 어떻게 처리하는지 확인하는 케이스로 쓸 수 있다.\n같은 날 07:58 서울역 출발 KTX(ktx영수증.jpg)와 11분 차이 → 하나의 출장 동선으로 이어짐."
+}

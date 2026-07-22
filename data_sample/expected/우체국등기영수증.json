@@ -1,0 +1,16 @@
+{
+  "merchant": "광화문우체국",
+  "amount": 4110,
+  "currency": "KRW",
+  "paidAt": "2026-07-02T15:34:00+09:00",
+  "cardLast4": null,
+  "items": [
+    { "name": "국내등기(통상)우편물 익일특급 76g", "qty": 1, "amount": 4110 }
+  ],
+  "confidence": null,
+
+  "_expectedCategory": "SGA_POSTAGE",
+  "_approvalNo": "00501966",
+  "_cardName": "현대법인비자",
+  "_note": "우편료는 **판관비**로 처리하기로 정함(2026-07-22). 다만 docs/02-API-CONTRACT.md의 계정과목 코드표에 해당 코드가 없어 SGA_POSTAGE를 임시로 씀 → 코드표 추가는 전원 합의 필요(계약 우선 규칙).\n재출력본이고 우측 상단 QR이 있음. 접수일자(15:34)와 출력일자(15:35)가 달라 어느 쪽을 paidAt으로 볼지 규칙 필요 → 접수일자 채택."
+}
