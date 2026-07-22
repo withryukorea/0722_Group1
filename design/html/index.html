@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>찍으면 끝 — 화면 모음 (단독 실행형)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Pretendard", "Segoe UI", "Malgun Gothic", sans-serif; background: #fff; color: #1A1C22; padding: 48px 24px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 24px; letter-spacing: -.02em; }
+  h1 em { font-style: normal; color: #EA002C; }
+  .sub { color: #8A90A0; font-size: 13.5px; margin: 6px 0 28px; line-height: 1.6; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .col { border: 1px solid #E6E8EE; border-radius: 16px; padding: 20px; box-shadow: 0 1px 3px rgba(26,28,34,.06); }
+  .col h2 { font-size: 15px; margin-bottom: 4px; }
+  .col p { font-size: 12px; color: #8A90A0; margin-bottom: 14px; }
+  a.item { display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; margin-bottom: 8px;
+           border: 1px solid #E6E8EE; border-radius: 10px; text-decoration: none; color: #1A1C22; font-size: 14px; font-weight: 600; }
+  a.item:hover { border-color: #EA002C; background: #FDECEF; }
+  a.item small { color: #8A90A0; font-weight: 500; }
+  a.item.main { background: linear-gradient(135deg, #EA002C, #F47725); color: #fff; border: none; }
+  a.item.main small { color: rgba(255,255,255,.85); }
+  .note { margin-top: 24px; font-size: 12px; color: #8A90A0; line-height: 1.7; background: #F5F6F8; border-radius: 12px; padding: 14px 16px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧾 찍으면 <em>끝</em> — 화면 모음</h1>
+  <p class="sub">서버 없이 더블클릭으로 열리는 단독 실행형 스냅샷입니다. CSS·JS·샘플 데이터가 파일 안에 내장되어 있고,
+  영수증 이미지는 저장소의 <b>data_sample/images/</b>를 참조합니다 (저장소를 통째로 받아야 이미지가 보입니다).</p>
+
+  <div class="grid">
+    <div class="col">
+      <h2>📱 모바일 앱</h2>
+      <p>휴대폰 프레임 · 촬영 → 프리셋 분류 → 한도 확인</p>
+      <a class="item main" href="mobile-index.html">홈 대시보드 <small>사용총액 · 한도</small></a>
+      <a class="item" href="mobile-capture.html">영수증 촬영 <small>OCR · 프리셋</small></a>
+      <a class="item" href="mobile-receipts.html">영수증 보관함 <small>필터 · 수동매칭</small></a>
+      <a class="item" href="mobile-schedule.html">일정 정보 관리 <small>출장 2건 · 정산 전송</small></a>
+    </div>
+    <div class="col">
+      <h2>🖥 PC 솔루션</h2>
+      <p>분석 · 검색 · 정산 (E-Accounting과 별개 솔루션)</p>
+      <a class="item main" href="pc-index.html">분석·통계 대시보드 <small>차트 · 트래커</small></a>
+      <a class="item" href="pc-expenses.html">사용내역 <small>검색 · 일괄적용</small></a>
+      <a class="item" href="pc-upload.html">영수증 업로드 <small>사진 · PDF</small></a>
+      <a class="item" href="pc-settlement.html">정산·전표 <small>매칭 · 전결라인</small></a>
+    </div>
+  </div>
+
+  <p class="note">✏️ 이 폴더의 파일은 <b>자동 생성 스냅샷</b>입니다. 수정은 원본(design/screens/, design/components/)에서 하고 다시 빌드해 주세요.<br>
+  개발용 서버 실행: <b>node design/serve.js 5173 /design/screens/mobile/</b> · <b>node design/serve.js 5174 /design/screens/pc/</b></p>
+</div>
+</body>
+</html>

@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<!-- 단독 실행형 스냅샷 (자동 생성) — 원본: design/screens/pc/index.html · 수정은 원본에서 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>찍으면 끝 — 분석 대시보드</title>
+<style>
+/* ============================================================
+   SK 룩앤필 공통 토큰 — "찍으면 끝" 모바일/PC 공용
+   SK CI: SK Red #EA002C · SK Orange #F47725 (행복날개)
+   차트 카테고리 팔레트는 dataviz 검증 통과본 (light/dark PASS):
+   #EA002C, #2563EB, #D96414, #0E9F6E, #8B5CF6
+   ============================================================ */
+:root {
+  --sk-red: #EA002C;
+  --sk-red-dark: #C50025;
+  --sk-orange: #F47725;
+  --sk-orange-deep: #D96414;
+  --sk-grad: linear-gradient(135deg, #EA002C 0%, #F47725 100%);
+
+  /* 잉크/서피스 */
+  --ink: #1A1C22;
+  --ink-2: #4B5160;
+  --ink-3: #8A90A0;
+  --surface: #F5F6F8;
+  --card: #FFFFFF;
+  --line: #E6E8EE;
+
+  /* 상태 (상태색은 시리즈색으로 재사용하지 않음) */
+  --ok: #0E9F6E;
+  --warn: #B45309;
+  --danger: #D80028;
+  --ok-bg: #E7F6EF;
+  --warn-bg: #FDF3E3;
+  --danger-bg: #FDE8EC;
+
+  /* 카테고리(계정과목) — 엔티티 고정 매핑, 순환 금지 */
+  --c-travel-meal: #EA002C;      /* 출장-식대 */
+  --c-travel-transport: #2563EB; /* 출장-교통 */
+  --c-welfare-ai: #D96414;       /* 복지-AI구독 */
+  --c-snack: #0E9F6E;            /* 간식비 */
+  --c-etc: #8B5CF6;              /* 판관비·기타 */
+
+  --radius: 14px;
+  --shadow: 0 1px 3px rgba(26,28,34,.06), 0 4px 14px rgba(26,28,34,.05);
+  --font: "Pretendard", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ---- SK 윙 로고 (행복날개 모티프) ---- */
+.sk-logo { display: inline-flex; align-items: center; gap: 8px; }
+.sk-logo svg { display: block; }
+.sk-logo .brand { font-weight: 800; letter-spacing: -.02em; }
+.sk-logo .brand em { font-style: normal; color: var(--sk-red); }
+
+/* ---- 카드 ---- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.card + .card { margin-top: 12px; }
+.card-title {
+  font-size: 13px; font-weight: 700; color: var(--ink-2);
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; letter-spacing: -.01em;
+}
+.card-title .more { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+
+/* ---- 배지 ---- */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; line-height: 1;
+  padding: 4px 8px; border-radius: 999px; white-space: nowrap;
+}
+.badge.ok      { background: var(--ok-bg);     color: #0B7A55; }
+.badge.warn    { background: var(--warn-bg);   color: var(--warn); }
+.badge.danger  { background: var(--danger-bg); color: var(--danger); }
+.badge.info    { background: #E8EFFD;          color: #1D4ED8; }
+.badge.neutral { background: #EEF0F4;          color: var(--ink-2); }
+.badge.brand   { background: var(--sk-grad);   color: #fff; }
+
+/* 카테고리 도트 — 색+텍스트로 이중 표기 */
+.cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.cat i { width: 8px; height: 8px; border-radius: 3px; flex: 0 0 auto; }
+
+/* ---- 게이지(예산 소진) ---- */
+.gauge { margin-top: 6px; }
+.gauge .g-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; gap: 8px; }
+.gauge .g-head b { color: var(--ink); font-size: 13px; }
+.gauge .g-track { height: 8px; background: #ECEEF3; border-radius: 999px; overflow: hidden; position: relative; }
+.gauge .g-fill  { height: 100%; border-radius: 999px; background: var(--sk-grad); min-width: 4px; transition: width .6s ease; }
+.gauge.over .g-fill { background: var(--danger); }
+.gauge .g-foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+
+/* ---- 버튼 ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  font-size: 14px; font-weight: 700; border-radius: 12px; padding: 11px 16px;
+}
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--sk-grad); border: none; color: #fff; box-shadow: 0 4px 12px rgba(234,0,44,.25); }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* ---- 칩 (필터/프리셋) ---- */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 999px;
+}
+.chip.on { background: #1A1C22; border-color: #1A1C22; color: #fff; }
+.chip.on.brand { background: var(--sk-grad); border-color: transparent; }
+
+/* ---- 폼 ---- */
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; }
+.field input, .field select {
+  width: 100%; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; font-size: 14px; background: var(--card); color: var(--ink);
+}
+.field input:focus, .field select:focus { outline: 2px solid rgba(234,0,44,.25); border-color: var(--sk-red); }
+.field .hint { font-size: 11.5px; color: var(--ink-3); margin-top: 4px; }
+
+/* ---- 공용 리스트 행 ---- */
+.rcpt-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.rcpt-row:last-child { border-bottom: none; }
+.rcpt-thumb {
+  width: 42px; height: 42px; border-radius: 10px; flex: 0 0 auto;
+  background: #EEF0F4; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; overflow: hidden; border: 1px solid var(--line);
+}
+.rcpt-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.rcpt-main { flex: 1; min-width: 0; }
+.rcpt-main .m1 { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rcpt-main .m2 { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rcpt-amt { text-align: right; flex: 0 0 auto; }
+.rcpt-amt .a1 { font-size: 14px; font-weight: 800; }
+.rcpt-amt .a2 { font-size: 11px; color: var(--ink-3); }
+
+/* ---- 툴팁 (차트 호버) ---- */
+.viz-tip {
+  position: fixed; z-index: 90; pointer-events: none; display: none;
+  background: #1A1C22; color: #fff; font-size: 12px; line-height: 1.45;
+  padding: 8px 10px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  max-width: 240px;
+}
+.viz-tip b { font-size: 12.5px; }
+.viz-tip .tl { color: #C6CAD4; }
+
+.muted { color: var(--ink-3); font-size: 12px; }
+.num { font-variant-numeric: tabular-nums; }
+
+</style>
+<style>
+/* ============================================================
+   PC 솔루션 크롬 — 찍으면 끝 Web (SK 룩앤필)
+   ============================================================ */
+body.pc { min-width: 1024px; }
+
+/* ---- 상단 바 ---- */
+.topbar {
+  background: #fff; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 40;
+}
+.topbar .tb-in {
+  max-width: 1280px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; gap: 28px; height: 58px;
+}
+.topbar .sk-logo { font-size: 17px; }
+.topbar .sk-logo .brand em { color: var(--sk-red); }
+.topbar nav { display: flex; gap: 4px; flex: 1; }
+.topbar nav a {
+  padding: 8px 14px; border-radius: 9px; font-size: 13.5px; font-weight: 700; color: var(--ink-2);
+}
+.topbar nav a:hover { background: var(--surface); }
+.topbar nav a.on { color: var(--sk-red); background: #FDECEF; }
+.topbar .tb-user { font-size: 12px; color: var(--ink-3); text-align: right; line-height: 1.35; }
+.topbar .tb-avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--sk-grad);
+  color: #fff; font-weight: 800; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.gradbar { height: 3px; background: var(--sk-grad); }
+
+/* ---- 페이지 ---- */
+.page { max-width: 1280px; margin: 0 auto; padding: 24px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
+.page-head h1 { font-size: 21px; letter-spacing: -.02em; }
+.page-head .desc { font-size: 13px; color: var(--ink-3); margin-top: 3px; }
+
+/* ---- 그리드 ---- */
+.grid { display: grid; gap: 16px; }
+.grid.kpi4 { grid-template-columns: repeat(4, 1fr); }
+.grid.c2 { grid-template-columns: 1.15fr .85fr; align-items: start; }
+.grid.c2e { grid-template-columns: 1fr 1fr; align-items: start; }
+.card { margin: 0; }
+
+/* KPI 타일 */
+.kpi { padding: 16px 18px; }
+.kpi .k-label { font-size: 12px; font-weight: 700; color: var(--ink-3); display: flex; justify-content: space-between; align-items: center; }
+.kpi .k-val { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin-top: 6px; }
+.kpi .k-sub { font-size: 12px; color: var(--ink-3); margin-top: 3px; }
+.kpi.accent { background: var(--sk-grad); border: none; color: #fff; }
+.kpi.accent .k-label, .kpi.accent .k-sub { color: rgba(255,255,255,.85); }
+
+/* ---- 차트 공통 ---- */
+.chart-note { font-size: 11.5px; color: var(--ink-3); margin-top: 10px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 12px; }
+.legend .cat i { width: 9px; height: 9px; }
+
+/* 도넛 + 사이드 목록 */
+.donut-wrap { display: flex; gap: 22px; align-items: center; }
+.donut-wrap svg { flex: 0 0 auto; }
+.donut-center { font-size: 12px; fill: var(--ink-3); }
+.donut-list { flex: 1; min-width: 0; }
+.donut-list .row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.donut-list .row:last-child { border-bottom: none; }
+.donut-list .row .nm { flex: 1; font-weight: 600; color: var(--ink-2); }
+.donut-list .row .pct { color: var(--ink-3); font-size: 12px; width: 44px; text-align: right; }
+.donut-list .row b { width: 88px; text-align: right; }
+.donut-list .subs { font-size: 11.5px; color: var(--ink-3); padding: 0 0 7px 17px; border-bottom: 1px solid var(--line); }
+.donut-list .subs:last-child { border-bottom: none; }
+
+/* 월별 막대 */
+.bars { display: flex; align-items: flex-end; gap: 18px; height: 190px; padding: 8px 6px 0; }
+.bars .bcol { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.bars .stack { width: 34px; display: flex; flex-direction: column-reverse; gap: 2px; }   /* 2px 스페이서 */
+.bars .seg { border-radius: 4px 4px 0 0; min-height: 3px; }
+.bars .seg:first-child { border-radius: 0 0 0 0; }
+.bars .seg:last-child { border-radius: 4px 4px 0 0; }
+.bars .bl { font-size: 11px; color: var(--ink-3); }
+.bars .bv { font-size: 11px; font-weight: 700; color: var(--ink-2); }
+.bars .stack:hover .seg { filter: brightness(1.08); }
+
+/* ---- 테이블 ---- */
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.tbl th {
+  text-align: left; font-size: 11.5px; color: var(--ink-3); font-weight: 700;
+  border-bottom: 1px solid var(--line); padding: 8px 10px; white-space: nowrap;
+  background: #FAFBFC;
+}
+table.tbl td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.tbl tr:hover td { background: #FBF6F4; }
+table.tbl tr.sel td { background: #FDECEF; }
+table.tbl .num { text-align: right; font-weight: 700; }
+table.tbl .thumb { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; border: 1px solid var(--line); display: block; }
+table.tbl .thumb-ph { width: 34px; height: 34px; border-radius: 8px; background: #EEF0F4; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+table.tbl tr.dup td { opacity: .55; }
+
+/* ---- 필터 툴바 ---- */
+.toolbar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 14px; box-shadow: var(--shadow);
+}
+.toolbar input[type="search"] {
+  flex: 1; min-width: 220px; border: 1px solid var(--line); border-radius: 9px;
+  padding: 9px 12px 9px 34px; font-size: 13.5px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="%238A90A0" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>') no-repeat 11px center #fff;
+}
+.toolbar select, .toolbar input[type="date"] {
+  border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; font-size: 13px; background: #fff; color: var(--ink);
+}
+.toolbar .sep { width: 1px; height: 24px; background: var(--line); }
+
+/* ---- 상세 패널 ---- */
+.drawer {
+  position: fixed; top: 0; right: -420px; width: 400px; height: 100vh; z-index: 60;
+  background: #fff; box-shadow: -12px 0 40px rgba(26,28,34,.18);
+  transition: right .25s ease; display: flex; flex-direction: column;
+}
+.drawer.open { right: 0; }
+.drawer .d-head { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.drawer .d-body { flex: 1; overflow-y: auto; padding: 18px 20px; }
+.drawer .d-img { width: 100%; border-radius: 12px; border: 1px solid var(--line); background: #14161B; }
+.drawer dl { display: grid; grid-template-columns: 96px 1fr; row-gap: 8px; font-size: 13px; margin-top: 14px; }
+.drawer dt { color: var(--ink-3); }
+.drawer dd { font-weight: 600; }
+.scrim { position: fixed; inset: 0; background: rgba(20,22,27,.35); z-index: 55; display: none; }
+.scrim.on { display: block; }
+
+/* ---- 업로드 ---- */
+.dropzone {
+  border: 2px dashed #E3B8B8; border-radius: 18px; background: #FFFDFC;
+  padding: 56px 20px; text-align: center; transition: all .15s;
+}
+.dropzone.over { border-color: var(--sk-red); background: #FDECEF; }
+.dropzone .dz-icon { font-size: 40px; }
+.dropzone h3 { margin: 10px 0 4px; font-size: 16px; }
+.pipeline { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-3); flex-wrap: nowrap; }
+.pipeline b { color: var(--ink-2); }
+.pipeline .arrow { color: #C8CCD6; }
+.pipeline .badge { font-size: 10px; }
+
+/* ---- 매칭/정산 ---- */
+.match-row { display: grid; grid-template-columns: 1fr 96px 1fr; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.match-row:last-child { border-bottom: none; }
+.match-cell { background: #FAFBFC; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 12.5px; }
+.match-cell .t { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.match-cell .s { color: var(--ink-3); font-size: 11.5px; margin-top: 1px; }
+.match-link { text-align: center; }
+.score-pill { display: inline-block; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+.score-hi { background: var(--ok-bg); color: #0B7A55; }
+.score-mid { background: var(--warn-bg); color: var(--warn); }
+.score-none { background: #EEF0F4; color: var(--ink-3); }
+.match-line { height: 2px; background: var(--line); margin: 4px 6px 0; position: relative; }
+.match-line.hi { background: var(--ok); }
+.match-line.mid { background: repeating-linear-gradient(90deg, var(--warn) 0 6px, transparent 6px 11px); }
+
+.voucher-line { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.voucher-line:last-child { border-bottom: none; }
+.approval { display: flex; align-items: center; gap: 8px; font-size: 12.5px; flex-wrap: wrap; }
+.approval .ap {
+  background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-weight: 700;
+}
+.approval .ap.me { background: var(--sk-grad); color: #fff; border: none; }
+.approval .arr { color: var(--ink-3); }
+
+</style>
+</head>
+<body class="pc">
+<header class="topbar"></header>
+
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1>분석 · 통계 대시보드</h1>
+      <div class="desc">모바일 앱과 PC에서 등록된 모든 지출을 대분류 → 세부비목으로 분석합니다 · 카드 단위 내역은 <a href="pc-expenses.html" style="color:var(--sk-red);font-weight:700">사용내역</a>에서 확인</div>
+    </div>
+    <a class="btn primary" href="pc-upload.html">+ 영수증 업로드</a>
+  </div>
+
+  <!-- KPI -->
+  <div class="grid kpi4" id="kpis" style="margin-bottom:16px"></div>
+
+  <div class="grid c2" style="margin-bottom:16px">
+    <!-- 대분류 도넛 + 세부비목 -->
+    <section class="card">
+      <div class="card-title">카테고리별 사용 구성 <span class="more">전체 누적 · 세부비목 포함</span></div>
+      <div class="donut-wrap">
+        <svg id="donut" width="210" height="210" viewBox="0 0 210 210" role="img" aria-label="대분류별 사용 구성 도넛 차트"></svg>
+        <div class="donut-list" id="donutList"></div>
+      </div>
+      <div class="legend" id="donutLegend"></div>
+    </section>
+
+    <!-- 월별 추이 -->
+    <section class="card">
+      <div class="card-title">월별 사용 추이 <span class="more">대분류 누적 · 단위 천원</span></div>
+      <div class="bars" id="bars"></div>
+      <div class="legend" id="barsLegend"></div>
+      <div class="chart-note">막대에 마우스를 올리면 월별 상세 금액이 표시됩니다</div>
+    </section>
+  </div>
+
+  <div class="grid c2e" style="margin-bottom:16px">
+    <!-- 출장비 기준 대비 -->
+    <section class="card">
+      <div class="card-title">출장비 기준 대비 사용 현황 <span class="more">기준 금액이 설정된 출장</span></div>
+      <div id="tripGauges"></div>
+    </section>
+
+    <!-- 예산·제도 한도 -->
+    <section class="card">
+      <div class="card-title">한도·예산 현황 <span class="more">AI Tool은 정산 제도별 상한 적용</span></div>
+      <div id="budgets"></div>
+    </section>
+  </div>
+
+  <div class="grid c2e">
+    <!-- 분류 판정 가이드라인 -->
+    <section class="card">
+      <div class="card-title">자동 분류 판정 가이드라인 <span class="more">왜 이렇게 분류됐나요?</span></div>
+      <div id="rules"></div>
+    </section>
+
+    <!-- 최근 업로드 -->
+    <section class="card">
+      <div class="card-title">최근 등록 영수증 <a class="more" href="pc-expenses.html">전체보기 ›</a></div>
+      <table class="tbl" id="recentTbl"></table>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   찍으면 끝 — 화면용 샘플 데이터 (data_sample/ · fixtures/ 기반)
+   - 영수증: data_sample/expected/*.json 10건 + 계약서 예시(스시로) 1건
+   - 환율: 데모 규칙 USD 1,500 고정 · JPY 9.0 (data_sample/README)
+   - 오늘 날짜(데모 기준): 2026-07-22
+   ============================================================ */
+window.SKD = (function () {
+  const TODAY = "2026-07-22";
+
+  const USER = { name: "홍길동", team: "전력사업기획팀", office: "서울 종로 (SK서린빌딩)" };
+
+  /* 대분류(그룹) — 도넛 세그먼트 순서는 검증된 인접 순서(red·blue·orange·green) 고정 */
+  const GROUPS = {
+    domestic: { name: "국내출장",  hex: "#EA002C" },
+    ai:       { name: "AI구독",    hex: "#2563EB" },
+    foreign:  { name: "해외출장",  hex: "#D96414" },
+    general:  { name: "일반",      hex: "#0E9F6E" }
+  };
+  const GROUP_ORDER = ["domestic", "ai", "foreign", "general"];
+
+  /* 계정과목 → 세부비목(sub) 매핑. TRAVEL_*는 출장 유형에 따라 국내/해외 그룹 결정 */
+  const CATEGORIES = {
+    TRAVEL_MEAL:      { name: "출장-식대",   sub: "식음료비",   group: "trip" },
+    TRAVEL_TRANSPORT: { name: "출장-교통",   sub: "교통비",     group: "trip" },
+    TRAVEL_LODGING:   { name: "출장-숙박",   sub: "숙박비",     group: "trip" },
+    WELFARE_AI:       { name: "복지-AI구독", sub: "구독료",     group: "ai" },
+    WELFARE_BOOK:     { name: "복지-도서",   sub: "도서비",     group: "general" },
+    SNACK:            { name: "간식비",      sub: "의욕관리비", group: "general" },
+    SGA_MEETING:      { name: "경상회의비",  sub: "경상회의비", group: "general" },
+    SGA_POSTAGE:      { name: "판관비-우편", sub: "판관비",     group: "general" }
+  };
+
+  /* ---- 일정(출장) — 유형별 최대 2건 사전 등록, 건별로 정산 분리 ---- */
+  const TRIP_MAX_PER_TYPE = 2;
+  const TRIPS = [
+    {
+      id: "trip_busan", type: "domestic", title: "부산·울산 당일 출장",
+      route: ["서울", "부산", "울산", "서울"], country: "KR",
+      startDate: "2026-04-15", endDate: "2026-04-15", members: 1,
+      mealCapPerDayKRW: 35000, capNote: "국내 일일 식대 35,000원 (VAT별도) × 일수",
+      status: "done"
+    },
+    {
+      id: "trip_daejeon", type: "domestic", title: "대전 연구원 방문",
+      route: ["서울", "대전", "서울"], country: "KR",
+      startDate: "2026-07-28", endDate: "2026-07-29", members: 1,
+      mealCapPerDayKRW: 35000, capNote: "국내 일일 식대 35,000원 (VAT별도) × 일수",
+      status: "planned"
+    },
+    {
+      id: "trip_tokyo", type: "foreign", title: "도쿄 파트너사 미팅",
+      route: ["서울", "도쿄", "서울"], country: "JP",
+      startDate: "2026-07-20", endDate: "2026-07-23", members: 2,
+      dailyCapPerPersonKRW: 100000, dailyCapKRW: 200000,
+      capNote: "해외 일일 Cap 100,000원/인 × 2명 (환율 반영)",
+      status: "active"
+    }
+  ];
+
+  /* ---- 영수증 (환산: amountKRW = round(amount × fxRate)) ---- */
+  const RECEIPTS = [
+    { id: "r_paris",  merchant: "파리크라상 서울역점", amount: 10300, currency: "KRW", fxRate: 1, amountKRW: 10300,
+      paidAt: "2026-04-15T07:47", serviceDate: "2026-04-15", category: "TRAVEL_MEAL", tripId: "trip_busan",
+      source: "photo", img: "서울역사파리크로와상영수증.jpg", status: "matched",
+      why: "결제일이 출장 기간(4/15) 내 → 출장-식대. 11분 뒤 부산행 KTX 탑승" },
+    { id: "r_ktx1", merchant: "한국철도공사 KTX 015 서울→부산", amount: 59800, currency: "KRW", fxRate: 1, amountKRW: 59800,
+      paidAt: "2026-04-09T00:00", serviceDate: "2026-04-15", category: "TRAVEL_TRANSPORT", tripId: "trip_busan",
+      source: "photo", img: "ktx영수증_서울부산.jpg", status: "matched",
+      why: "사전결제(철도)는 결제일이 아닌 탑승일(4/15) 기준으로 출장 기간 판정" },
+    { id: "r_gukbap", merchant: "백세촌24시순대돼지국밥", amount: 12000, currency: "KRW", fxRate: 1, amountKRW: 12000,
+      paidAt: "2026-04-15T12:47", serviceDate: "2026-04-15", category: "TRAVEL_MEAL", tripId: "trip_busan",
+      source: "photo", img: null, status: "matched",
+      why: "출장 기간 내 식사 → 출장-식대 (삼성페이·법인카드 승인정보로 매칭)" },
+    { id: "r_ktx2", merchant: "한국철도공사 KTX 062 울산→서울", amount: 53500, currency: "KRW", fxRate: 1, amountKRW: 53500,
+      paidAt: "2026-04-13T00:00", serviceDate: "2026-04-15", category: "TRAVEL_TRANSPORT", tripId: "trip_busan",
+      source: "photo", img: null, status: "matched",
+      why: "귀환편(울산→서울) — 복수 지역 경로 출장. 탑승일 기준 판정" },
+    { id: "r_story", merchant: "StoryWay 부산역점", amount: 14400, currency: "KRW", fxRate: 1, amountKRW: 14400,
+      paidAt: "2025-06-18T16:02", serviceDate: "2025-06-18", category: "TRAVEL_MEAL", tripId: null,
+      source: "photo", img: "부산역(KTX역)스토리웨이편의점영수증.jpg", status: "review",
+      why: "부산 390km·행정구역 변경 — 출장 일정 미등록 건, 확인 필요" },
+    { id: "r_pluto", merchant: "플루토커피 (부산 기장)", amount: 14000, currency: "KRW", fxRate: 1, amountKRW: 14000,
+      paidAt: "2025-07-02T12:49", serviceDate: "2025-07-02", category: "TRAVEL_MEAL", tripId: null,
+      source: "photo", img: "플루토커피카페영수증.jpg", status: "review",
+      why: "부산 기장 400km — 출장 일정 미등록 건, 확인 필요" },
+    { id: "r_herman", merchant: "카페 헤르만의정원 D타워점", amount: 17400, currency: "KRW", fxRate: 1, amountKRW: 17400,
+      paidAt: "2026-03-06T12:58", serviceDate: "2026-03-06", category: "SNACK", tripId: null,
+      source: "photo", img: "카페헤르만의정원영수증.jpg", status: "matched",
+      why: "근무지(종로 0.2km) — 거리 30km 미달 → 일반 간식비" },
+    { id: "r_sbux", merchant: "스타벅스 광화문점 (팀 회의)", amount: 26000, currency: "KRW", fxRate: 1, amountKRW: 26000,
+      paidAt: "2026-07-16T14:10", serviceDate: "2026-07-16", category: "SGA_MEETING", tripId: null,
+      source: "photo", img: null, status: "matched",
+      why: "근무지 인근 · 회의 목적 → 일반 > 경상회의비" },
+    { id: "r_post", merchant: "광화문우체국 (등기)", amount: 4110, currency: "KRW", fxRate: 1, amountKRW: 4110,
+      paidAt: "2026-07-02T15:34", serviceDate: "2026-07-02", category: "SGA_POSTAGE", tripId: null,
+      source: "photo", img: "우체국등기영수증.jpg", status: "review",
+      why: "판관비-우편 — 계정과목 코드 신설 필요 건" },
+    { id: "r_gpt", merchant: "OpenAI (ChatGPT 구독)", amount: 22.0, currency: "USD", fxRate: 1500, amountKRW: 33000,
+      paidAt: "2026-07-09T00:00", serviceDate: "2026-07-09", category: "WELFARE_AI", tripId: null,
+      source: "pdf", img: null, status: "matched",
+      why: "프리셋: OpenAI/Anthropic 가맹점 → 복지-AI구독. USD×1,500 환산" },
+    { id: "r_gpt_inv", merchant: "OpenAI 인보이스 (TUNC0J2S-0014)", amount: 22.0, currency: "USD", fxRate: 1500, amountKRW: 33000,
+      paidAt: "2026-07-09T00:00", serviceDate: "2026-07-09", category: "WELFARE_AI", tripId: null,
+      source: "pdf", img: null, status: "duplicate", dupOf: "r_gpt",
+      why: "같은 결제건의 청구서 — invoiceNo 기준 중복 감지, 전표 제외" },
+    { id: "r_claude", merchant: "Anthropic (Claude 구독)", amount: 110.0, currency: "USD", fxRate: 1500, amountKRW: 165000,
+      paidAt: "2026-07-05T00:00", serviceDate: "2026-07-05", category: "WELFARE_AI", tripId: null,
+      source: "pdf", img: null, status: "matched",
+      why: "프리셋: AI구독. 2페이지 PDF(빈 페이지 처리) 케이스" },
+    { id: "r_claude_inv", merchant: "Anthropic 인보이스 (6IBKFSKM-0006)", amount: 110.0, currency: "USD", fxRate: 1500, amountKRW: 165000,
+      paidAt: "2026-07-05T00:00", serviceDate: "2026-07-05", category: "WELFARE_AI", tripId: null,
+      source: "pdf", img: null, status: "duplicate", dupOf: "r_claude",
+      why: "같은 결제건의 청구서 — 중복 감지, 전표 제외" },
+    { id: "r_sushi", merchant: "스시로 신주쿠점 (スシロー)", amount: 8800, currency: "JPY", fxRate: 9.0, amountKRW: 79200,
+      paidAt: "2026-07-21T19:32", serviceDate: "2026-07-21", category: "TRAVEL_MEAL", tripId: "trip_tokyo",
+      source: "photo", img: null, status: "matched",
+      why: "해외출장(도쿄 7/20–7/23) 기간 내 → 해외출장비. ¥8,800 × 9.0 = ₩79,200" }
+  ];
+
+  /* ---- 영수증 부가 정보: 승인번호(매칭 1순위 키) · 부가세 · 예외 플래그 ----
+     vat.basis: stated(표기) | reverse(역산 합계÷11, 오차 가능) | exempt(면세) | missing(미표기)
+     industryMismatch: 업종 미스매치(페이·전자상거래 등) → 반려 대신 "증빙 첨부 요청" */
+  const RECEIPT_EXTRA = {
+    r_paris:  { approvalNo: "84231907", vat: { supply: 9364,  vat: 936,  basis: "stated" } },
+    r_ktx1:   { approvalNo: "00351509", vat: { supply: 54364, vat: 5436, basis: "stated" } },
+    r_gukbap: { approvalNo: "30125478", vat: { supply: 10909, vat: 1091, basis: "stated" },
+                industryMismatch: true, evidenceAttached: true },
+    r_ktx2:   { approvalNo: "00417732", vat: { supply: 48637, vat: 4863, basis: "stated" } },
+    r_story:  { approvalNo: null,       vat: { supply: 13091, vat: 1309, basis: "reverse", needCheck: true } },
+    r_pluto:  { approvalNo: null,       vat: { supply: 12727, vat: 1273, basis: "stated" } },
+    r_herman: { approvalNo: "19402211", vat: { supply: 15818, vat: 1582, basis: "reverse", needCheck: true } },
+    r_sbux:   { approvalNo: "55023918", vat: { supply: 23636, vat: 2364, basis: "stated" } },
+    r_post:   { approvalNo: null,       vat: { supply: 4110,  vat: 0,    basis: "exempt" } },
+    r_gpt:    { approvalNo: null, cardLast4: "9112", vat: { supply: 20.0, vat: 2.0, basis: "stated" } },
+    r_claude: { approvalNo: null,       vat: { basis: "missing", needCheck: true } },
+    r_sushi:  { approvalNo: "71038845", vat: { supply: 8000, vat: 800, basis: "stated" } }
+  };
+  RECEIPTS.forEach(r => Object.assign(r, RECEIPT_EXTRA[r.id] || {}));
+
+  /* ---- 예산 (fixtures/budgets.json 기반 · AI구독은 기본 제도 DIY100 상한 적용) ---- */
+  const BUDGETS = [
+    { category: "WELFARE_AI",   label: "AI구독 · DIY100 예산", limitKRW: 1000000, usedKRW: 318000, vatNote: "VAT별도" },
+    { category: "WELFARE_BOOK", label: "복지비 · 도서",        limitKRW: 200000,  usedKRW: 33000 },
+    { category: "WELFARE_ETC",  label: "복지비 · 기타",        limitKRW: 100000,  usedKRW: 0 }
+  ];
+
+  /* ---- AI Tool 제도별 상한 프리셋 (정산 제도에 따라 상한이 다름 · 기본: DIY100) ---- */
+  const AI_PRESETS = [
+    { id: "diy100",   name: "DIY100 예산 정산",  capKRW: 1000000, note: "연 한도 1,000,000원 (VAT별도) · DIY100 예산 차감" },
+    { id: "dept",     name: "부서 운영비 정산",  capKRW: 150000,  note: "월 한도 · 팀장 승인 필요" },
+    { id: "research", name: "연구개발비 정산",   capKRW: 500000,  note: "과제 예산 · 증빙 인보이스 필수" }
+  ];
+
+  /* ---- 법인카드 승인내역 (정산 매칭용) ---- */
+  const CARD_TX = [
+    { id: "tx_01", merchant: "한국철도공사",       amountKRW: 59800,  approvedAt: "2026-04-09T09:12", receiptId: "r_ktx1",  score: 95 },
+    { id: "tx_02", merchant: "한국철도공사",       amountKRW: 53500,  approvedAt: "2026-04-13T18:40", receiptId: "r_ktx2",  score: 92 },
+    { id: "tx_03", merchant: "파리크라상 서울역",  amountKRW: 10300,  approvedAt: "2026-04-15T07:47", receiptId: "r_paris", score: 98 },
+    { id: "tx_04", merchant: "백세촌순대돼지국밥", amountKRW: 12000,  approvedAt: "2026-04-15T12:47", receiptId: "r_gukbap", score: 97 },
+    { id: "tx_05", merchant: "OPENAI *CHATGPT",    amountKRW: 33000,  approvedAt: "2026-07-09T13:05", receiptId: "r_gpt",   score: 90, fx: "$22.00" },
+    { id: "tx_06", merchant: "ANTHROPIC PBC",      amountKRW: 165000, approvedAt: "2026-07-05T10:22", receiptId: "r_claude", score: 91, fx: "$110.00" },
+    { id: "tx_07", merchant: "SUSHIRO SHINJUKU",   amountKRW: 79200,  approvedAt: "2026-07-21T19:32", receiptId: "r_sushi", score: 88, fx: "¥8,800" },
+    { id: "tx_08", merchant: "광화문우체국",       amountKRW: 4110,   approvedAt: "2026-07-02T15:34", receiptId: "r_post",  score: 82 },
+    { id: "tx_09", merchant: "헤르만의정원",       amountKRW: 17400,  approvedAt: "2026-03-06T12:58", receiptId: "r_herman", score: 96 },
+    { id: "tx_10", merchant: "스토리웨이 부산역",  amountKRW: 14400,  approvedAt: "2025-06-18T16:02", receiptId: "r_story", score: 55 },
+    { id: "tx_11", merchant: "플루토커피",         amountKRW: 14000,  approvedAt: "2025-07-02T12:49", receiptId: "r_pluto", score: 58 },
+    { id: "tx_12", merchant: "GS25 광화문점",      amountKRW: 8700,   approvedAt: "2026-07-18T21:03", receiptId: null,      score: 0 },
+    { id: "tx_13", merchant: "교보문고 광화문",    amountKRW: 28000,  approvedAt: "2026-07-15T12:11", receiptId: null,      score: 0 },
+    { id: "tx_14", merchant: "스타벅스 광화문점",  amountKRW: 26000,  approvedAt: "2026-07-16T14:10", receiptId: "r_sbux",  score: 94 }
+  ];
+  /* 카드사 데이터의 승인번호/카드뒷자리 (승인번호가 매칭 1순위 키) */
+  const TX_EXTRA = {
+    tx_01: { approvalNo: "00351509" }, tx_02: { approvalNo: "00417732" },
+    tx_03: { approvalNo: "84231907" }, tx_04: { approvalNo: "30125478" },
+    tx_05: { cardLast4: "9112" },      tx_07: { approvalNo: "71038845" },
+    tx_09: { approvalNo: "19402211" }, tx_14: { approvalNo: "55023918" }
+  };
+  CARD_TX.forEach(t => Object.assign(t, TX_EXTRA[t.id] || {}));
+
+  /* 매칭 근거: 승인번호 일치 > 금액+일시+카드뒷자리 > 금액+일시 폴백 */
+  function matchBasis(r, tx) {
+    if (!tx) return null;
+    if (r.approvalNo && tx.approvalNo === r.approvalNo) return { label: "승인번호 일치 " + r.approvalNo, rank: 1 };
+    if (r.cardLast4 && tx.cardLast4 === r.cardLast4) return { label: "금액+일시+카드 ****" + r.cardLast4, rank: 2 };
+    return { label: "금액+일시 근접 (승인번호 미인식 → 폴백)", rank: 3 };
+  }
+
+  /* 수동 매칭 후보: 금액 ±3% 승인내역 (모호 매칭 해소용) */
+  function candidatesFor(r) {
+    return CARD_TX.filter(t => Math.abs(t.amountKRW - r.amountKRW) <= r.amountKRW * 0.03)
+      .sort((a, b) => Math.abs(a.amountKRW - r.amountKRW) - Math.abs(b.amountKRW - r.amountKRW));
+  }
+
+  /* 부가세 표기 라벨 */
+  function vatInfo(r) {
+    const v = r.vat;
+    if (!v) return null;
+    const cur = (n) => r.currency === "KRW" ? krw(n) : (r.currency === "USD" ? "$" + n.toFixed(2) : "¥" + fmt(n));
+    if (v.basis === "exempt")  return { text: "면세 — 부가세 없음", badge: "면세", warn: false };
+    if (v.basis === "missing") return { text: "부가세 미표기 — 확인 필요", badge: "확인 필요", warn: true };
+    const t = `공급가액 ${cur(v.supply)} + 부가세 ${cur(v.vat)}`;
+    if (v.basis === "reverse") return { text: t + " (합계÷11 역산)", badge: "역산 · 오차 가능", warn: !!v.needCheck };
+    return { text: t, badge: "영수증 표기", warn: !!v.needCheck };
+  }
+
+  /* ---- 분류 판정 가이드라인 (data_sample/README 확정 규칙 — 화면 노출용) ---- */
+  const RULES = [
+    { t: "출장 판정", d: "편도 30km 이상 AND 행정구역 변경 — 둘 다 충족해야 출장. 아니면 외근(일반경비)" },
+    { t: "기간 규칙", d: "등록된 출장 기간 내 결제는 장소 불문 전부 출장비 (시작일·종료일 포함)" },
+    { t: "사전결제", d: "철도·항공은 탑승일, 숙박은 투숙일 기준으로 기간 판정 (카드 매칭은 승인일)" },
+    { t: "환율", d: "USD 1,500원 고정 (데모). 원본 통화 보존, 환산액(amountKRW)으로 집계·한도 차감" }
+  ];
+
+  /* ---------------- 헬퍼 ---------------- */
+  const fmt = (n) => Math.round(n).toLocaleString("ko-KR");
+  const krw = (n) => "₩" + fmt(n);
+  const money = (r) => r.currency === "KRW" ? krw(r.amount)
+    : (r.currency === "USD" ? "$" + r.amount.toFixed(2) : "¥" + fmt(r.amount));
+  const dateShort = (iso) => { const d = iso.slice(0, 10).split("-"); return `${d[0].slice(2)}.${d[1]}.${d[2]}`; };
+  const dt = (iso) => dateShort(iso) + (iso.length > 10 ? " " + iso.slice(11, 16) : "");
+
+  function tripDays(t) {
+    return Math.round((new Date(t.endDate) - new Date(t.startDate)) / 86400000) + 1;
+  }
+  /* 출장 식대/Cap 총한도: 국내 = 35,000×일수, 해외 = 일일Cap×일수 */
+  function tripCap(t) {
+    return t.type === "domestic" ? t.mealCapPerDayKRW * tripDays(t) : t.dailyCapKRW * tripDays(t);
+  }
+  /* 출장 한도 차감 대상: 국내는 식대만(교통·숙박은 실비), 해외는 전 항목 */
+  function tripSpent(t) {
+    return RECEIPTS.filter(r => r.tripId === t.id && r.status !== "duplicate")
+      .filter(r => t.type === "domestic" ? r.category === "TRAVEL_MEAL" : true)
+      .reduce((s, r) => s + r.amountKRW, 0);
+  }
+  function tripAll(t) {
+    return RECEIPTS.filter(r => r.tripId === t.id && r.status !== "duplicate")
+      .reduce((s, r) => s + r.amountKRW, 0);
+  }
+  /* 대분류 판정: TRAVEL_*는 연결된 출장 유형으로, 미연결 TRAVEL은 국내 추정 */
+  function groupOf(r) {
+    const g = CATEGORIES[r.category].group;
+    if (g !== "trip") return g;
+    const t = TRIPS.find(x => x.id === r.tripId);
+    return t ? (t.type === "foreign" ? "foreign" : "domestic") : "domestic";
+  }
+  const subOf = (r) => CATEGORIES[r.category].sub;
+  /* 그룹 → {sub: 금액} 집계 */
+  function groupTotals(list) {
+    const out = {};
+    GROUP_ORDER.forEach(g => out[g] = { total: 0, subs: {} });
+    (list || valid()).forEach(r => {
+      const g = groupOf(r), s = subOf(r);
+      out[g].total += r.amountKRW;
+      out[g].subs[s] = (out[g].subs[s] || 0) + r.amountKRW;
+    });
+    return out;
+  }
+  const activeTrip = () => TRIPS.find(t => t.status === "active") || null;
+  const valid = () => RECEIPTS.filter(r => r.status !== "duplicate");
+
+  /* 화면 파일(design/screens/모바일|pc/*.html) 기준 상대경로 — 서버 없이 file:// 로 열어도 동작 */
+  function imgUrl(name) { return name ? "../../data_sample/images/" + encodeURIComponent(name) : null; }
+
+  /* 차트 툴팁 */
+  function attachTip() {
+    let tip = document.querySelector(".viz-tip");
+    if (!tip) { tip = document.createElement("div"); tip.className = "viz-tip"; document.body.appendChild(tip); }
+    return {
+      show(html, x, y) {
+        tip.innerHTML = html; tip.style.display = "block";
+        const w = tip.offsetWidth, vw = window.innerWidth;
+        tip.style.left = Math.min(x + 14, vw - w - 10) + "px";
+        tip.style.top = (y + 14) + "px";
+      },
+      hide() { tip.style.display = "none"; }
+    };
+  }
+
+  /* AI구독료 정책 템플릿 (자동 강제 세팅 금지 — 사람이 버튼을 눌러야 적용) */
+  const AI_POLICY = {
+    budgetDept: "전력사업기획팀", account: "복지-AI구독 (DIY100)",
+    reviewer: "현업검토 · 이대리",
+    memo: (tool, who) => `[AI구독료] ${tool}_${who}`
+  };
+
+  return { TODAY, USER, CATEGORIES, GROUPS, GROUP_ORDER, TRIPS, TRIP_MAX_PER_TYPE, RECEIPTS, BUDGETS,
+    AI_PRESETS, AI_POLICY, CARD_TX, RULES, fmt, krw, money, dateShort, dt,
+    tripDays, tripCap, tripSpent, tripAll, groupOf, subOf, groupTotals, activeTrip, valid, imgUrl, attachTip,
+    matchBasis, candidatesFor, vatInfo };
+})();
+
+</script>
+<script>
+/* PC 공통 크롬(상단 바) — SKP.chrome("dashboard"|"expenses"|"upload"|"settlement") */
+window.SKP = (function () {
+  const WING = `
+    <svg width="30" height="22" viewBox="0 0 52 40" aria-hidden="true">
+      <ellipse cx="18" cy="20" rx="16" ry="9" transform="rotate(-24 18 20)" fill="#EA002C" opacity=".92"/>
+      <ellipse cx="36" cy="18" rx="13" ry="7" transform="rotate(18 36 18)" fill="#F47725" opacity=".92"/>
+    </svg>`;
+
+  function chrome(active) {
+    const D = window.SKD;
+    const menus = [
+      ["dashboard", "pc-index.html", "분석 대시보드"],
+      ["expenses", "pc-expenses.html", "사용내역"],
+      ["upload", "pc-upload.html", "영수증 업로드"],
+      ["settlement", "pc-settlement.html", "정산·전표"]
+    ];
+    document.querySelector(".topbar").innerHTML = `
+      <div class="tb-in">
+        <span class="sk-logo">${WING}<span class="brand">찍으면 <em>끝</em> <span style="font-weight:600;color:var(--ink-3);font-size:12px">| SK 출장·경비 자동정산</span></span></span>
+        <nav>${menus.map(([k, href, label]) =>
+          `<a href="${href}" class="${active === k ? "on" : ""}">${label}</a>`).join("")}</nav>
+        <div class="tb-user">${D.USER.name} · ${D.USER.team}<br>${D.TODAY.replace(/-/g, ".")} 기준</div>
+        <div class="tb-avatar">홍</div>
+      </div>
+      <div class="gradbar"></div>`;
+  }
+
+  return { chrome, WING };
+})();
+
+</script>
+<script>
+const D = SKD;
+SKP.chrome("dashboard");
+const tip = D.attachTip();
+
+const all = D.valid();
+const GT = D.groupTotals();
+const grand = Object.values(GT).reduce((s, g) => s + g.total, 0);
+const july = all.filter(r => r.paidAt.startsWith("2026-07"));
+const julyTotal = july.reduce((s, r) => s + r.amountKRW, 0);
+const reviewN = all.filter(r => r.status === "review").length;
+const dupN = D.RECEIPTS.filter(r => r.status === "duplicate").length;
+const aiB = D.BUDGETS[0];
+
+/* ---- KPI ---- */
+document.getElementById("kpis").innerHTML = `
+  <div class="card kpi accent">
+    <div class="k-label">사용 총액 (전체 누적)</div>
+    <div class="k-val num">${D.krw(grand)}</div>
+    <div class="k-sub">영수증 ${all.length}건 · 외화 자동 환산 포함</div>
+  </div>
+  <div class="card kpi">
+    <div class="k-label">이번 달 사용 <span class="badge neutral">2026.07</span></div>
+    <div class="k-val num">${D.krw(julyTotal)}</div>
+    <div class="k-sub">${july.length}건 · 해외출장 진행중</div>
+  </div>
+  <div class="card kpi">
+    <div class="k-label">확인 필요 <span class="badge warn">${reviewN}건</span></div>
+    <div class="k-val num">${reviewN}<span style="font-size:14px;color:var(--ink-3)"> 건</span></div>
+    <div class="k-sub">중복 인보이스 ${dupN}건 자동 제외됨</div>
+  </div>
+  <div class="card kpi">
+    <div class="k-label">AI구독 한도 (DIY100) <span class="badge ${aiB.usedKRW > aiB.limitKRW ? "danger" : "ok"}">${aiB.usedKRW > aiB.limitKRW ? "초과" : "이내"}</span></div>
+    <div class="k-val num" style="color:${aiB.usedKRW > aiB.limitKRW ? "var(--danger)" : "var(--ink)"}">${D.krw(Math.abs(aiB.limitKRW - aiB.usedKRW))}</div>
+    <div class="k-sub">${aiB.usedKRW > aiB.limitKRW ? "DIY100 예산 기준 초과분 · 제도 변경 검토" : "DIY100 연 100만원(VAT별도) 기준 잔여"}</div>
+  </div>`;
+
+/* ---- 도넛 (대분류) ---- */
+(function donut() {
+  const cx = 105, cy = 105, R = 88, r = 56;
+  let a0 = -Math.PI / 2;
+  const svg = document.getElementById("donut");
+  const segs = D.GROUP_ORDER.filter(g => GT[g].total > 0);
+  svg.innerHTML = segs.map(g => {
+    const v = GT[g].total, frac = v / grand;
+    const a1 = a0 + frac * Math.PI * 2;
+    /* 2px 간격: 각도 여백 */
+    const pad = 0.018;
+    const s = a0 + pad, e = a1 - pad;
+    const large = (e - s) > Math.PI ? 1 : 0;
+    const p = (a, rad) => `${cx + rad * Math.cos(a)},${cy + rad * Math.sin(a)}`;
+    const d = `M ${p(s, R)} A ${R} ${R} 0 ${large} 1 ${p(e, R)} L ${p(e, r)} A ${r} ${r} 0 ${large} 0 ${p(s, r)} Z`;
+    a0 = a1;
+    return `<path d="${d}" fill="${D.GROUPS[g].hex}" data-g="${g}" style="cursor:pointer"></path>`;
+  }).join("") + `
+    <text x="${cx}" y="${cy - 6}" text-anchor="middle" class="donut-center">사용 총액</text>
+    <text x="${cx}" y="${cy + 16}" text-anchor="middle" style="font-size:16px;font-weight:800;fill:var(--ink)">${D.fmt(grand / 10000)}만원</text>`;
+
+  svg.querySelectorAll("path").forEach(pth => {
+    pth.addEventListener("mousemove", (e) => {
+      const g = pth.dataset.g, t = GT[g];
+      const subs = Object.entries(t.subs).map(([s, v]) => `<span class="tl">${s}</span> ${D.krw(v)}`).join("<br>");
+      tip.show(`<b>${D.GROUPS[g].name}</b> · ${D.krw(t.total)} (${Math.round(t.total / grand * 100)}%)<br>${subs}`, e.clientX, e.clientY);
+    });
+    pth.addEventListener("mouseleave", tip.hide);
+  });
+
+  document.getElementById("donutList").innerHTML = segs.map(g => {
+    const t = GT[g];
+    const subs = Object.entries(t.subs).sort((a, b) => b[1] - a[1])
+      .map(([s, v]) => `${s} ${D.fmt(v / 1000)}k`).join(" · ");
+    return `
+      <div class="row"><span class="cat"><i style="background:${D.GROUPS[g].hex}"></i></span>
+        <span class="nm">${D.GROUPS[g].name}</span>
+        <span class="pct">${Math.round(t.total / grand * 100)}%</span>
+        <b class="num">${D.krw(t.total)}</b></div>
+      <div class="subs">${subs}</div>`;
+  }).join("");
+  document.getElementById("donutLegend").innerHTML = segs.map(g =>
+    `<span class="cat"><i style="background:${D.GROUPS[g].hex}"></i>${D.GROUPS[g].name}</span>`).join("");
+})();
+
+/* ---- 월별 스택 막대 ---- */
+(function bars() {
+  const months = [...new Set(all.map(r => r.paidAt.slice(0, 7)))].sort();
+  const byM = months.map(m => {
+    const rows = all.filter(r => r.paidAt.startsWith(m));
+    const per = {}; let tot = 0;
+    D.GROUP_ORDER.forEach(g => per[g] = 0);
+    rows.forEach(r => { per[D.groupOf(r)] += r.amountKRW; tot += r.amountKRW; });
+    return { m, per, tot };
+  });
+  const max = Math.max(...byM.map(x => x.tot));
+  const H = 150;
+  document.getElementById("bars").innerHTML = byM.map(x => `
+    <div class="bcol">
+      <span class="bv num">${D.fmt(x.tot / 1000)}k</span>
+      <div class="stack" data-m="${x.m}" style="height:${Math.max(4, x.tot / max * H)}px">
+        ${D.GROUP_ORDER.filter(g => x.per[g] > 0).map(g =>
+          `<div class="seg" style="flex:${x.per[g]};background:${D.GROUPS[g].hex}"></div>`).join("")}
+      </div>
+      <span class="bl">${x.m.slice(2).replace("-", ".")}</span>
+    </div>`).join("");
+  document.querySelectorAll(".stack").forEach(st => {
+    const x = byM.find(b => b.m === st.dataset.m);
+    st.addEventListener("mousemove", (e) => {
+      const lines = D.GROUP_ORDER.filter(g => x.per[g] > 0)
+        .map(g => `<span class="tl">${D.GROUPS[g].name}</span> ${D.krw(x.per[g])}`).join("<br>");
+      tip.show(`<b>${x.m.replace("-", "년 ")}월</b> · ${D.krw(x.tot)}<br>${lines}`, e.clientX, e.clientY);
+    });
+    st.addEventListener("mouseleave", tip.hide);
+  });
+  document.getElementById("barsLegend").innerHTML = D.GROUP_ORDER.map(g =>
+    `<span class="cat"><i style="background:${D.GROUPS[g].hex}"></i>${D.GROUPS[g].name}</span>`).join("");
+})();
+
+/* ---- 출장 기준 게이지 + 일당 잔액 트래커(일자별 차감) ---- */
+document.getElementById("tripGauges").innerHTML = D.TRIPS.map(t => {
+  const cap = D.tripCap(t), spent = D.tripSpent(t);
+  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
+  const st = t.status === "active" ? '<span class="badge brand">진행중</span>'
+    : t.status === "planned" ? '<span class="badge info">예정</span>' : '<span class="badge neutral">완료</span>';
+
+  /* 일자별 사용액: 국내는 식대만, 해외는 전 항목. 사전결제 건은 이용일(serviceDate) 기준 */
+  let dayRows = "";
+  if (t.status !== "planned") {
+    const dailyCap = t.type === "domestic" ? t.mealCapPerDayKRW : t.dailyCapKRW;
+    const days = [];
+    for (let d = new Date(t.startDate); d <= new Date(t.endDate); d.setDate(d.getDate() + 1))
+      days.push(d.toISOString().slice(0, 10));
+    dayRows = `<div style="margin:8px 0 2px;display:grid;gap:4px">` + days.map(day => {
+      const used = D.RECEIPTS.filter(r => r.tripId === t.id && r.status !== "duplicate" && r.serviceDate === day)
+        .filter(r => t.type === "domestic" ? r.category === "TRAVEL_MEAL" : true)
+        .reduce((s, r) => s + r.amountKRW, 0);
+      const future = day > D.TODAY;
+      const dOver = used > dailyCap;
+      return `
+      <div style="display:flex;align-items:center;gap:8px;font-size:11px">
+        <span style="width:44px;color:var(--ink-3)" class="num">${day.slice(5).replace("-", "/")}${day === D.TODAY ? " ●" : ""}</span>
+        <div style="flex:1;height:5px;background:#ECEEF3;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(100, used / dailyCap * 100)}%;background:${dOver ? "var(--danger)" : "var(--sk-orange)"};border-radius:99px"></div>
+        </div>
+        <span class="num" style="width:150px;text-align:right;color:${future ? "var(--ink-3)" : dOver ? "var(--danger)" : "var(--ink-2)"}">
+          ${future ? "예정" : `${D.krw(used)} · 잔여 ${D.krw(Math.max(0, dailyCap - used))}`}</span>
+      </div>`;
+    }).join("") + `</div>`;
+  }
+
+  return `
+  <div class="gauge ${over ? "over" : ""}" style="margin-bottom:18px">
+    <div class="g-head">
+      <span>${t.type === "domestic" ? "🚄" : "✈"} <b>${t.title}</b> ${st}
+        <span class="muted" style="margin-left:4px">${D.dateShort(t.startDate)}~${D.dateShort(t.endDate)} · ${t.members}명 · 정산단위 분리</span></span>
+      <b class="num">${D.krw(spent)} / ${D.krw(cap)}</b>
+    </div>
+    <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+    <div class="g-foot"><span>${t.capNote}</span>
+      <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">
+        ${t.status === "planned" ? "시작 전" : over ? "기준 초과 " + D.krw(spent - cap) : "기준 이내 ✓ 잔여 " + D.krw(cap - spent)}</span></div>
+    ${dayRows}
+  </div>`;
+}).join("");
+
+/* ---- 예산·제도 ---- */
+document.getElementById("budgets").innerHTML =
+  D.BUDGETS.map(b => {
+    const pct = Math.min(100, b.usedKRW / b.limitKRW * 100), over = b.usedKRW > b.limitKRW;
+    return `
+    <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+      <div class="g-head"><span>${b.label}</span><b class="num">${D.krw(b.usedKRW)} / ${D.krw(b.limitKRW)}</b></div>
+      <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+      <div class="g-foot"><span>${Math.round(pct)}% 소진</span>
+        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "⚠ 초과 " + D.krw(b.usedKRW - b.limitKRW) : "잔여 " + D.krw(b.limitKRW - b.usedKRW)}</span></div>
+    </div>`;
+  }).join("") +
+  `<div style="border-top:1px dashed var(--line);padding-top:12px;font-size:12.5px">
+    <b style="font-size:12px;color:var(--ink-2)">AI Tool 정산 제도별 상한</b>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      ${D.AI_PRESETS.map(p => {
+        const over = D.BUDGETS[0].usedKRW > p.capKRW;
+        return `<span class="badge ${over ? "danger" : "ok"}" style="font-size:11.5px;padding:6px 10px">${p.name} ${D.krw(p.capKRW)} ${over ? "초과" : "이내"}</span>`;
+      }).join("")}
+    </div>
+    <p class="muted" style="margin-top:8px">현재 사용액 ${D.krw(D.BUDGETS[0].usedKRW)} · 기본 제도: DIY100 예산 정산 (연 1,000,000원 · VAT별도)</p>
+  </div>`;
+
+/* ---- 가이드라인 ---- */
+document.getElementById("rules").innerHTML = D.RULES.map((r, i) => `
+  <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);${i === D.RULES.length - 1 ? "border-bottom:none" : ""}">
+    <span style="flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:var(--sk-grad);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span>
+    <div style="font-size:13px"><b>${r.t}</b><div class="muted" style="margin-top:2px;line-height:1.5">${r.d}</div></div>
+  </div>`).join("");
+
+/* ---- 최근 테이블 ---- */
+document.getElementById("recentTbl").innerHTML = `
+  <thead><tr><th>가맹점</th><th>분류</th><th>일시</th><th style="text-align:right">금액</th></tr></thead>
+  <tbody>${all.slice().sort((a, b) => b.paidAt.localeCompare(a.paidAt)).slice(0, 6).map(r => {
+    const G = D.GROUPS[D.groupOf(r)];
+    return `<tr>
+      <td style="font-weight:700">${r.merchant}</td>
+      <td><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span></td>
+      <td class="muted">${D.dt(r.paidAt)}</td>
+      <td class="num">${D.krw(r.amountKRW)}</td></tr>`;
+  }).join("")}</tbody>`;
+</script>
+</body>
+</html>
