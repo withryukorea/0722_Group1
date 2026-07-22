@@ -19,6 +19,8 @@
 | 법인카드 > 법인카드 정산 | `card-settlement.html` | 카드내역 조회(GET /api/transactions), 전표작성 및 미리보기 |
 | 나의 문서함 > 결재/기안문서 조회 | `mydocs-all.html` | 상신된 전표 조회(GET /api/vouchers), 검색·결재 데모 |
 | 법인카드전표 미리보기(기안) 팝업 | `voucher-preview.html` | 카드내역·상세정산·기안(POST /api/vouchers) 연동 |
+| 전불/출장비 > 국내출장비 정산 | `travel-domestic.html` | 직급별 일당·숙박·교통비 지급기준(GET /api/travel-policy) 연동 |
+| 전불/출장비 > 해외출장비 정산 | `travel-foreign.html` | 직급·국가별 지급기준과 환율(GET /api/travel-policy, GET /api/fx) 연동 |
 
 ## 역할 구분 (server/public 관리자 화면과의 관계)
 
@@ -34,6 +36,8 @@
 - `css/voucher-preview.css` — 전표 미리보기 팝업 전용 UI. 소유: Codex
 - `js/mydocs.js` — 문서함 API 연동·검색·결재 데모 로직. 소유: Codex
 - `js/voucher-preview.js` — 카드·정산 라인 렌더링과 전표 기안 로직. 소유: Codex
+- `js/travel-policy.js` — 출장비 기준의 오프라인 폴백과 한도 계산 로직. 서버 원본: `fixtures/travel-policy.json`
+- `css/travel-policy.css` — 국내·해외 출장비 기준 안내와 직급 선택 UI
 
 ## 새 화면 추가하는 법 (3단계)
 

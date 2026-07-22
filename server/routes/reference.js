@@ -37,4 +37,9 @@ router.get("/accounts", (req, res) => {
   res.json(db.accounts);
 });
 
+// GET /api/travel-policy — 국내·해외 출장비 지급 기준
+router.get("/travel-policy", (req, res) => {
+  res.json(db.travelPolicy);
+});
+
 module.exports = router;

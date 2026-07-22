@@ -23,7 +23,7 @@
 | 거래 매칭 라우트 | `server/routes/match.js` | 영수증 ↔ 카드내역 매칭 (기존 유지, Preset과 무관) |
 | 전표 라우트 | `server/routes/vouchers.js` | 전표 초안 생성, 상신, 목록 (Preset 반영하도록 확장) |
 | Preset 라우트 (신규) | `server/routes/presets.js` | Preset CRUD, 활성 목록 조회 |
-| 참조 데이터 라우트 | `server/routes/reference.js` | 계정과목, 환율, 전결규정(fallback) |
+| 참조 데이터 라우트 | `server/routes/reference.js` | 계정과목, 환율, 전결규정(fallback), 출장비 지급기준 |
 | 관리자 콘솔 | `server/public/index.html`, `admin.js`, `admin.css` | 카드내역/전표/Preset 화면 |
 | 모바일 웹앱 | `/app` (예정) | 촬영, 리뷰(Preset/비목/부가세), 정산하기, 상신 |
 | ~~출장 라우트~~ | ~~`server/routes/trips.js`~~ | **제거** — `Preset(type=TRIP)`으로 흡수 |
@@ -108,7 +108,7 @@ AI구독료 같은 단일 비목 Preset은 `allowedAccountCodes: ["WELFARE_AI"]`
 
 ### 유지되는 엔티티 (변경 없음)
 
-CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accounts — `docs/02-API-CONTRACT.md` 정의 그대로.
+CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accounts — `docs/02-API-CONTRACT.md` 정의 그대로. 출장비 지급기준은 `fixtures/travel-policy.json`을 단일 서버 원본으로 두고 `/api/travel-policy`로 제공한다.
 
 ## Storage
 
