@@ -264,7 +264,8 @@ renderChrome({
   breadcrumb: ['메뉴', '전불/출장비', '해외출장비 정산'],
 });
 
-/* ── 데모 출장(도쿄) — /api/trips 는 P5 구현 전이라 폴백 사용 ── */
+/* ── 오프라인 폴백용 데모 출장(도쿄) — 서버(/api/trips) 미연결 시에만 사용.
+      정상 경로에서는 서버 TRIP 프리셋을 조회해 선택 건으로 자동 채운다. ── */
 const DEMO_TRIP = {
   id: 'trip_001', period: '2026.07.14 ~ 2026.07.17', from: '2026-07-14', to: '2026-07-17',
   country: '일본', city: '도쿄', purpose: '전력사업 해외 파트너 협력 미팅', status: '미작성',
@@ -293,19 +294,39 @@ let cardLines = [];   // {id, type, detail, merchant, fx, krw, payAt, budgetDept
 let cashLines = [];   // {type, detail, local, cur, rate, krw, budgetDept, memo, user, date}
 let selCard = -1;
 
-/* ── 팝업 ── */
+/* 국가코드(서버 TRIP 프리셋) → 출장지 select 라벨 매핑 */
+const COUNTRY_LABEL = { KR: '국내', JP: '일본', CN: '중국', US: '미국', EU: '유럽', SEA: '동남아' };
+function setCountry(label) {
+  const sel = document.getElementById('t-country');
+  const opt = [...sel.options].find(o => o.value === label || o.text === label);
+  sel.value = opt ? opt.value : (label || '');
+}
+
+/* ── 팝업: 출장 목록은 서버 TRIP 프리셋(/api/trips)에서 조회 (해외건만) ── */
 let tripFound = false, tripChecked = false;
+let tripRows = [];   // 조회 결과(정규화) — startSlip 이 선택 인덱스로 참조
 async function searchTrips() {
-  // P5의 /api/trips 가 구현되면 서버 데이터, 아직이면 데모 출장 1건
   const trips = await eaccApi('/api/trips');
-  const list = Array.isArray(trips) && trips.length
-    ? trips.map(t => ({ period: `${t.startDate} ~ ${t.endDate}`.replaceAll('-', '.'), dest: `${t.country} - ${t.destination}`, status: '미작성' }))
-    : [{ period: DEMO_TRIP.period, dest: `${DEMO_TRIP.country} - ${DEMO_TRIP.city}`, status: DEMO_TRIP.status }];
+  const foreign = (Array.isArray(trips) ? trips : []).filter(t => (t.country || 'KR') !== 'KR');
+  tripRows = foreign.length
+    ? foreign.map(t => ({
+        id: t.id, from: t.startDate, to: t.endDate,
+        country: COUNTRY_LABEL[t.country] || t.country || '',
+        city: t.destination || '', purpose: t.purpose || t.name || `${t.destination || ''} 출장`,
+        rank: t.rank || null,
+        period: `${t.startDate} ~ ${t.endDate}`.replaceAll('-', '.'),
+        dest: `${COUNTRY_LABEL[t.country] || t.country || ''} - ${t.destination || ''}`,
+        status: '미작성', source: 'server',
+      }))
+    : [{ id: DEMO_TRIP.id, from: DEMO_TRIP.from, to: DEMO_TRIP.to, country: DEMO_TRIP.country,
+         city: DEMO_TRIP.city, purpose: DEMO_TRIP.purpose, rank: null,
+         period: DEMO_TRIP.period, dest: `${DEMO_TRIP.country} - ${DEMO_TRIP.city}`,
+         status: DEMO_TRIP.status, source: 'demo' }];
   tripFound = true;
-  document.getElementById('trip-total').textContent = list.length;
+  document.getElementById('trip-total').textContent = tripRows.length;
   document.getElementById('trip-none').style.display = 'none';
-  document.getElementById('trip-body').innerHTML = list.map((t, i) => `
-    <tr><td>${i + 1}</td><td><input type="radio" name="trip-sel" ${i === 0 ? 'checked' : ''} onclick="tripChecked=true"></td>
+  document.getElementById('trip-body').innerHTML = tripRows.map((t, i) => `
+    <tr><td>${i + 1}</td><td><input type="radio" name="trip-sel" value="${i}" ${i === 0 ? 'checked' : ''} onclick="tripChecked=true"></td>
     <td>${t.period}</td><td class="l">${t.dest}</td><td>${t.status}</td></tr>`).join('');
   tripChecked = true;
 }
@@ -313,27 +334,32 @@ function closeTripModal() { document.getElementById('trip-modal').style.display 
 
 async function startSlip() {
   closeTripModal();
-  if (!tripFound || !tripChecked) return;   // 새출장 개요 작성 → 빈 양식에서 직접 입력
-  // 선택한 출장 개요로 자동 채움
-  document.getElementById('t-from').value = DEMO_TRIP.from;
-  document.getElementById('t-to').value = DEMO_TRIP.to;
-  document.getElementById('t-country').value = DEMO_TRIP.country;
-  document.getElementById('t-city').value = DEMO_TRIP.city;
-  document.getElementById('t-purpose').value = DEMO_TRIP.purpose;
+  if (!tripFound || !tripChecked || !tripRows.length) return;   // 새출장 개요 작성 → 빈 양식에서 직접 입력
+  const sel = document.querySelector('input[name="trip-sel"]:checked');
+  const trip = tripRows[sel ? Number(sel.value) : 0];
+  if (!trip) return;
+  // 선택한 출장 개요(서버 TRIP 프리셋)로 자동 채움
+  document.getElementById('t-from').value = trip.from;
+  document.getElementById('t-to').value = trip.to;
+  setCountry(trip.country);
+  document.getElementById('t-city').value = trip.city;
+  document.getElementById('t-purpose').value = trip.purpose;
+  if (trip.rank && document.querySelector(`#t-rank option[value="${trip.rank}"]`)) document.getElementById('t-rank').value = trip.rank;
   calcNights();
-  // 출장 기간의 해외 카드사용내역 자동 매칭 (서버 → 폴백)
+  // 선택 출장 기간의 해외 카드사용내역 자동 매칭 (서버 → 오프라인 폴백)
+  // 성공 위장 금지: 서버가 살아있는데 기간 내 해외결제가 없으면 빈 목록 그대로 둔다(데모 도쿄건 주입 금지).
   const txs = await eaccApi('/api/transactions');
   const src = Array.isArray(txs)
     ? txs.filter(t => {
-        const d = t.approvedAt.slice(0, 10);
-        return t.currency !== 'KRW' && d >= DEMO_TRIP.from && d <= DEMO_TRIP.to;  // 출장 기간 내 해외 사용분만
+        const d = (t.approvedAt || '').slice(0, 10);
+        return t.currency && t.currency !== 'KRW' && d >= trip.from && d <= trip.to;  // 출장 기간 내 해외 사용분만
       }).map(t => ({
-        id: t.id, merchant: t.merchant, fx: `${t.currency} ${t.amount.toLocaleString()}`,
+        id: t.id, merchant: t.merchant, fx: `${t.currency} ${Number(t.amount).toLocaleString()}`,
         krw: t.amountKRW, payAt: t.approvedAt.slice(0, 10).replaceAll('-', '.') + ' ' + t.approvedAt.slice(11, 19),
       })).sort((a, b) => a.payAt.localeCompare(b.payAt))
-    : TRIP_TXNS_FALLBACK;
+    : TRIP_TXNS_FALLBACK;   // 서버 미연결일 때만 오프라인 데모(도쿄) 폴백
   cardLines = src.map(t => ({ ...t, type: tripType(t.merchant), detail: t.merchant, budgetDept: '', memo: '' }));
-  selCard = 0;
+  selCard = cardLines.length ? 0 : -1;
   renderAll();
 }
 

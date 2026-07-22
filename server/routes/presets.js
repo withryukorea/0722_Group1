@@ -197,11 +197,14 @@ function suggestPreset(ocr, serviceDate) {
 const tripsAlias = express.Router();
 const toTripShape = (p) => ({
   id: p.id,
+  name: p.name,
   destination: (p.meta && p.meta.destination) || p.name,
+  purpose: (p.meta && p.meta.purpose) || null,
   country: (p.meta && p.meta.country) || "KR",
   startDate: p.period ? p.period.start : null,
   endDate: p.period ? p.period.end : null,
   members: (p.meta && p.meta.members) || 1,
+  rank: (p.meta && p.meta.rank) || null,
   dailyCapKRW: p.rules.limitKRW,
   spentByDay: p.usage.byDay,
   policyBasis: (p.meta && p.meta.policyBasis) || null,

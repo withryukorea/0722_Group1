@@ -236,7 +236,7 @@
       </div>
 
       <div style="display:flex; justify-content:center; gap:8px; margin-top:18px;">
-        <button class="btn btn-dark" onclick="closeTripModal()">전표작성</button>
+        <button class="btn btn-dark" onclick="startSlip()">전표작성</button>
         <button class="btn btn-line" onclick="closeTripModal()">취소</button>
       </div>
     </div>
@@ -257,12 +257,48 @@ renderChrome({
 
 let cashLines = [];   // {type, detail, amount, budgetDept, memo, user, date}
 
-/* ── 팝업 (국내는 기존 출장 개요가 없어 새출장 작성 흐름) ── */
-function searchTrips() {
-  document.getElementById('trip-total').textContent = '0';
-  document.getElementById('trip-none').textContent = '조회된 데이터가 없습니다.';
+/* ── 팝업: 국내 출장 목록도 서버 TRIP 프리셋(/api/trips)에서 조회 (국내건만).
+      조회 결과가 없으면 새출장 개요를 직접 작성하는 흐름으로 둔다. ── */
+let tripFound = false, tripChecked = false, tripRows = [];
+async function searchTrips() {
+  const trips = await eaccApi('/api/trips');
+  const domestic = (Array.isArray(trips) ? trips : []).filter(t => (t.country || 'KR') === 'KR');
+  tripRows = domestic.map(t => ({
+    id: t.id, from: t.startDate, to: t.endDate,
+    city: t.destination || '', purpose: t.purpose || t.name || `${t.destination || ''} 출장`,
+    rank: t.rank || null,
+    period: `${t.startDate} ~ ${t.endDate}`.replaceAll('-', '.'),
+    dest: t.destination || '', status: '미작성',
+  }));
+  const none = document.getElementById('trip-none');
+  document.getElementById('trip-total').textContent = tripRows.length;
+  tripFound = true;
+  if (!tripRows.length) {
+    none.style.display = ''; none.textContent = '조회된 데이터가 없습니다.';
+    document.getElementById('trip-body').innerHTML = '';
+    tripChecked = false;
+    return;
+  }
+  none.style.display = 'none';
+  document.getElementById('trip-body').innerHTML = tripRows.map((t, i) => `
+    <tr><td>${i + 1}</td><td><input type="radio" name="trip-sel" value="${i}" ${i === 0 ? 'checked' : ''} onclick="tripChecked=true"></td>
+    <td>${t.period}</td><td class="l">${t.dest}</td><td>${t.status}</td></tr>`).join('');
+  tripChecked = true;
 }
 function closeTripModal() { document.getElementById('trip-modal').style.display = 'none'; }
+function startSlip() {
+  closeTripModal();
+  if (!tripFound || !tripChecked || !tripRows.length) return;   // 새출장 개요 작성 → 빈 양식 직접 입력
+  const sel = document.querySelector('input[name="trip-sel"]:checked');
+  const trip = tripRows[sel ? Number(sel.value) : 0];
+  if (!trip) return;
+  document.getElementById('t-from').value = trip.from;
+  document.getElementById('t-to').value = trip.to;
+  document.getElementById('t-city').value = trip.city;
+  document.getElementById('t-purpose').value = trip.purpose;
+  if (trip.rank && document.querySelector(`#t-rank option[value="${trip.rank}"]`)) document.getElementById('t-rank').value = trip.rank;
+  calcNights();
+}
 
 /* ── 출장개요 ── */
 function calcNights() {
@@ -424,8 +460,10 @@ renderCashLines();
 renderSummary();
 syncTravelPolicy();
 
-/* 미리보기 편의: ?demo=1 이면 팝업 닫힌 상태로 시작 */
-if (location.search.includes('demo')) closeTripModal();
+/* 미리보기 편의: ?demo=1 이면 출장 조회+선택까지 자동 진행(국내 출장 프리셋 있으면 자동 채움) */
+if (location.search.includes('demo')) {
+  (async () => { await searchTrips(); startSlip(); })();
+}
 </script>
 </body>
 </html>
