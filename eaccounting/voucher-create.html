@@ -78,7 +78,9 @@
       </table>
 
       <h3 style="margin-top:26px;">예산정보</h3>
-      <div class="info-bar" style="margin-top:10px;">ⓘ 예산부서를 선택하세요.</div>
+      <div id="budget-info" style="margin-top:10px;">
+        <div class="info-bar">ⓘ 예산부서를 선택하세요.</div>
+      </div>
     </section>
 
     <!-- 카드이용내역 + 정산 및 지급내역 -->
@@ -165,7 +167,29 @@
   </div>
 </div>
 
+<!-- 계정과목 선택 팝업 -->
+<div class="modal-back" id="acct-modal" style="display:none;">
+  <div class="modal" style="width:640px;">
+    <div class="modal-head">
+      <span class="x" onclick="document.getElementById('acct-modal').style.display='none'">✕</span>
+      계정과목 조회
+    </div>
+    <div class="modal-body">
+      <input type="text" id="acct-search" placeholder="계정번호 또는 계정명 검색"
+        oninput="renderAcctList(this.value)"
+        style="width:100%; height:36px; border:1px solid #cdd3dc; border-radius:5px; padding:0 10px; margin-bottom:14px;">
+      <div style="max-height:420px; overflow-y:auto; border:1px solid var(--line);">
+        <table class="acct-table" style="border:none;">
+          <thead><tr><th style="width:100px;">계정</th><th>계정명</th><th style="width:150px;">계획원가(예산)</th></tr></thead>
+          <tbody id="acct-list"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="js/layout.js"></script>
+<script src="js/accounts-data.js"></script>
 <script>
 renderChrome({
   top: '법인카드',
@@ -201,20 +225,6 @@ const SLIP_TYPES = [
     accounts: [['279201', '무형자산-회원권']],
   },
 ];
-
-/* 업종 → 계정과목 자동 추천 (🔍/일괄적용에서 사용) */
-const ACCT_SUGGEST = [
-  [/커피숍|편의점|베이커리/, '[705918] 복리후생-음료대'],
-  [/일반주점|일반음식점|식당/, '[735901] 회의비-경상회의비'],
-  [/택시|교통/, '[706201] 여비교통비-시내교통'],
-  [/컴퓨터소프트웨어/, '[726350] 수수료-기타'],
-  [/사무용품/, '[710301] 소모품비-사무용품'],
-  [/서적|도서/, '[710203] 도서-일반도서구입비'],
-];
-function suggestAcct(biz) {
-  const hit = ACCT_SUGGEST.find(([re]) => re.test(biz));
-  return hit ? hit[1] : '[743950] 기타판매비와관리비';
-}
 
 /* ── 법인카드 정산 화면에서 넘어온 선택 내역 ── */
 let draft = JSON.parse(sessionStorage.getItem('voucherDraft') || 'null');
@@ -284,8 +294,11 @@ function renderLines() {
       <td><div class="acct-input"><input value="${l.acct}" onchange="lines[${i}].acct=this.value" onclick="event.stopPropagation()">
           <span class="mag" onclick="event.stopPropagation(); pickAcct(${i})">🔍</span></div></td>
       <td class="r">${l.supply.toLocaleString('ko-KR')}</td>
-      <td><input value="${l.budgetDept}" onchange="lines[${i}].budgetDept=this.value" onclick="event.stopPropagation()"
-          style="width:100%; height:30px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px; font-size:12.5px;"></td>
+      <td><select onchange="lines[${i}].budgetDept=this.value; renderBudget();" onclick="event.stopPropagation()"
+          style="width:100%; height:30px; border:1px solid #cdd3dc; border-radius:4px; font-size:12.5px;">
+          <option value=""></option>
+          ${BUDGET_DEPTS.map(d => `<option value="[${d.code}]${d.name}" ${l.budgetDept === `[${d.code}]${d.name}` ? 'selected' : ''}>[${d.code}]${d.name}</option>`).join('')}
+        </select></td>
       <td><input value="${l.memo}" onchange="lines[${i}].memo=this.value" onclick="event.stopPropagation()"
           style="width:100%; height:30px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px; font-size:12.5px;"></td>
       <td><button class="btn btn-line" style="height:28px; padding:0 12px;" onclick="event.stopPropagation(); alert('데모 버전에서는 행추가를 지원하지 않습니다.')">행추가</button></td>
@@ -295,25 +308,76 @@ function renderLines() {
 function selectLine(i) { selLine = i; renderLines(); renderCardDetail(); }
 function toggleAll(m) { document.querySelectorAll('.row-chk').forEach(c => { c.checked = m.checked; }); }
 
+/* ── 계정과목 선택 팝업 ── */
+let acctTarget = -1;
 function pickAcct(i) {
-  lines[i].acct = suggestAcct(lines[i].biz);
-  lines[i].memo = lines[i].memo || `${lines[i].merchant}`;
-  renderLines();
+  acctTarget = i;
+  document.getElementById('acct-search').value = '';
+  renderAcctList('');
+  document.getElementById('acct-modal').style.display = 'flex';
 }
+function renderAcctList(q) {
+  const list = ACCOUNTS.filter(a => !q || a.code.includes(q) || a.name.includes(q));
+  document.getElementById('acct-list').innerHTML = list.map(a => `
+    <tr style="cursor:pointer;" onclick="applyAcct('${a.code}')">
+      <td class="code">${a.code}</td><td>${a.name}</td>
+      <td style="text-align:right;">${a.budget.toLocaleString('ko-KR')}</td>
+    </tr>`).join('');
+}
+function applyAcct(code) {
+  const l = lines[acctTarget];
+  l.acct = fmtAcct(code);
+  l.budgetDept = l.budgetDept || fmtDept('AQ131');
+  l.memo = `${l.useDate}_${acctShort(l.acct)}`;
+  document.getElementById('acct-modal').style.display = 'none';
+  renderLines(); renderBudget();
+}
+
+/* 일괄적용: 첫 행의 계정과목·예산부서를 전체 행에 적용, 적요는 '사용일자_계정명' 자동 생성 */
 function bulkApply() {
+  const first = lines.find(l => l.acct);
   lines.forEach(l => {
-    l.acct = l.acct || suggestAcct(l.biz);
-    l.budgetDept = l.budgetDept || '전력사업기획팀';
-    l.memo = l.memo || l.merchant;
+    l.acct = first ? first.acct : fmtAcct(suggestAcctCode(l.biz));
+    l.budgetDept = first && first.budgetDept ? first.budgetDept : (l.budgetDept || fmtDept('AQ131'));
+    l.memo = `${l.useDate}_${acctShort(l.acct)}`;
   });
-  renderLines();
+  renderLines(); renderBudget();
 }
 function deleteRows() {
   const del = [...document.querySelectorAll('.row-chk:checked')].map(c => Number(c.value));
   if (!del.length) { alert('삭제할 행을 선택해 주세요.'); return; }
   for (const i of del.sort((a, b) => b - a)) lines.splice(i, 1);
   if (!lines.length) { location.href = 'card-settlement.html'; return; }
-  selLine = 0; renderLines(); renderCardDetail();
+  selLine = 0; renderLines(); renderCardDetail(); renderBudget();
+}
+
+/* ── 예산정보: 사용한 계정과목별 예산/잔액 표시 ── */
+function renderBudget() {
+  const el = document.getElementById('budget-info');
+  const used = lines.filter(l => l.acct);
+  if (!used.length) {
+    el.innerHTML = '<div class="info-bar">ⓘ 예산부서를 선택하세요.</div>';
+    return;
+  }
+  const byCode = {};
+  used.forEach(l => {
+    const code = acctCode(l.acct);
+    if (!byCode[code]) byCode[code] = { dept: l.budgetDept || fmtDept('AQ131'), sum: 0 };
+    byCode[code].sum += l.supply;
+  });
+  el.innerHTML = `<table class="grid" style="border:1px solid var(--line);">
+    <thead><tr><th>예산부서</th><th>계정과목</th><th>예산(계획원가)</th><th>기사용액</th><th>금번 정산액</th><th>잔액</th></tr></thead>
+    <tbody>${Object.entries(byCode).map(([code, v]) => {
+      const a = acctByCode(code);
+      const budget = a ? a.budget : 0;
+      const usedAmt = Math.round(budget * 0.4 / 1000) * 1000;   // 기사용액(데모): 예산의 40%
+      const remain = budget - usedAmt - v.sum;
+      return `<tr><td>${v.dept}</td><td class="l">${fmtAcct(code)}</td>
+        <td class="r">${budget.toLocaleString('ko-KR')}</td>
+        <td class="r">${usedAmt.toLocaleString('ko-KR')}</td>
+        <td class="r">${v.sum.toLocaleString('ko-KR')}</td>
+        <td class="r" style="${remain < 0 ? 'color:var(--red); font-weight:700;' : 'color:var(--blue);'}">${remain.toLocaleString('ko-KR')}</td></tr>`;
+    }).join('')}</tbody></table>`;
 }
 
 /* ── 첨부파일 ── */
@@ -373,9 +437,10 @@ renderSlipDetail(0);
 document.getElementById('slip-modal').addEventListener('click', e => {
   if (e.target.id === 'slip-modal') history.back();
 });
-// 미리보기 편의: ?type=0~3 이면 해당 유형을 자동 선택하고 시작
+// 미리보기 편의: ?type=0~3 이면 해당 유형을 자동 선택하고 시작, &fill=1 이면 일괄적용까지 실행
 const typeParam = new URLSearchParams(location.search).get('type');
 if (typeParam !== null) chooseSlipType(Number(typeParam));
+if (location.search.includes('fill=1')) { lines[0].acct = fmtAcct('735901'); bulkApply(); }
 
 /* ── 탭: 클릭 시 해당 섹션으로, 스크롤 시 활성 탭 자동 변경 ── */
 const tabs = [...document.querySelectorAll('.tab')];
@@ -397,7 +462,7 @@ async function submitVoucher() {
   const voucher = await eaccApi('/api/vouchers', {
     body: {
       title: `${slipType} (${lines[0].merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ''})`,
-      lines: lines.map(l => ({ txId: l.id, accountCode: l.acct, amountKRW: l.amount, description: l.memo || l.merchant })),
+      lines: lines.map(l => ({ txId: l.id, accountCode: acctCode(l.acct) || l.acct, amountKRW: l.amount, description: l.memo || l.merchant })),
       approvalLine: total <= 300000 ? ['김예섭 팀장'] : ['김예섭 팀장', '박정민 부장'],
     },
   });
