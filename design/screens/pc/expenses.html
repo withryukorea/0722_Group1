@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>찍으면 끝 — 사용내역</title>
+<link rel="stylesheet" href="../../components/sk-theme.css">
+<link rel="stylesheet" href="../../components/pc.css">
+</head>
+<body class="pc">
+<header class="topbar"></header>
+
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1>사용내역</h1>
+      <div class="desc">모바일·PC에서 등록된 전체 영수증 — 검색 · 카테고리 · 기간으로 원하는 건만 조회하세요</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn sm" id="btnCsv">⬇ CSV 내보내기</button>
+      <a class="btn sm primary" href="settlement.html">정산 진행 ›</a>
+    </div>
+  </div>
+
+  <!-- 검색/필터 툴바 -->
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="가맹점·품목·메모 검색 (예: KTX, 커피, OpenAI)">
+    <span class="sep"></span>
+    <select id="fGroup"><option value="">대분류 전체</option></select>
+    <select id="fSub"><option value="">세부비목 전체</option></select>
+    <select id="fStatus">
+      <option value="">상태 전체</option><option value="matched">매칭 완료</option>
+      <option value="review">확인 필요</option><option value="duplicate">중복 감지</option>
+    </select>
+    <select id="fCur"><option value="">통화 전체</option><option>KRW</option><option>USD</option><option>JPY</option></select>
+    <span class="sep"></span>
+    <input type="date" id="fFrom" title="시작일"> ~ <input type="date" id="fTo" title="종료일">
+    <button class="btn sm ghost" id="btnReset">초기화</button>
+  </div>
+
+  <!-- 요약 스트립 -->
+  <div class="grid kpi4" id="strip" style="margin-bottom:14px"></div>
+
+  <!-- 다중 선택 일괄 적용 바 -->
+  <div class="toolbar" id="bulkBar" style="display:none;border-color:#F3B8C4;background:#FFF8F9">
+    <b style="font-size:13px"><span id="bulkCount">0</span>건 선택됨</b>
+    <span class="sep"></span>
+    <select id="bulkCat"><option value="">계정과목 선택</option></select>
+    <select id="bulkDept">
+      <option value="">예산부서 선택</option>
+      <option>전력사업기획팀</option><option>경영지원팀</option><option>연구개발팀</option>
+    </select>
+    <button class="btn sm primary" id="bulkApply">일괄 적용</button>
+    <button class="btn sm ghost" id="bulkClear">선택 해제</button>
+    <span class="muted" id="bulkMsg"></span>
+  </div>
+
+  <section class="card" style="padding:0;overflow:hidden">
+    <table class="tbl" id="tbl"></table>
+    <div id="empty" class="muted" style="display:none;text-align:center;padding:48px 0">조건에 맞는 내역이 없습니다</div>
+  </section>
+  <p class="chart-note">행을 클릭하면 상세 정보(원본 이미지 · 분류 근거)가 열립니다 · 중복 인보이스는 합계에서 자동 제외됩니다</p>
+</div>
+
+<!-- 상세 드로어 -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <div class="d-head"><b id="dTitle"></b><button class="btn sm ghost" id="dClose">✕ 닫기</button></div>
+  <div class="d-body" id="dBody"></div>
+</aside>
+
+<script src="../../components/data.js"></script>
+<script src="../../components/pc.js"></script>
+<script>
+const D = SKD;
+SKP.chrome("expenses");
+const $ = (id) => document.getElementById(id);
+
+/* 필터 옵션 채우기 */
+D.GROUP_ORDER.forEach(g => $("fGroup").insertAdjacentHTML("beforeend", `<option value="${g}">${D.GROUPS[g].name}</option>`));
+[...new Set(Object.values(D.CATEGORIES).map(c => c.sub))].forEach(s =>
+  $("fSub").insertAdjacentHTML("beforeend", `<option>${s}</option>`));
+
+const STATUS_BADGE = {
+  matched: '<span class="badge ok">매칭 완료</span>',
+  review: '<span class="badge warn">확인 필요</span>',
+  duplicate: '<span class="badge danger">중복 감지</span>'
+};
+
+function filtered() {
+  const q = $("q").value.trim().toLowerCase();
+  const g = $("fGroup").value, s = $("fSub").value, st = $("fStatus").value, cur = $("fCur").value;
+  const from = $("fFrom").value, to = $("fTo").value;
+  return D.RECEIPTS.filter(r => {
+    if (q && !(r.merchant + (r.why || "")).toLowerCase().includes(q)) return false;
+    if (g && D.groupOf(r) !== g) return false;
+    if (s && D.subOf(r) !== s) return false;
+    if (st && r.status !== st) return false;
+    if (cur && r.currency !== cur) return false;
+    const d = r.paidAt.slice(0, 10);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  }).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+}
+
+function render() {
+  const rows = filtered();
+  const real = rows.filter(r => r.status !== "duplicate");
+  const total = real.reduce((s, r) => s + r.amountKRW, 0);
+
+  $("strip").innerHTML = `
+    <div class="card kpi"><div class="k-label">조회 건수</div><div class="k-val num">${rows.length}건</div>
+      <div class="k-sub">중복 제외 ${real.length}건</div></div>
+    <div class="card kpi"><div class="k-label">조회 합계 (환산)</div><div class="k-val num">${D.krw(total)}</div>
+      <div class="k-sub">외화는 결제 시점 환율로 환산</div></div>
+    <div class="card kpi"><div class="k-label">확인 필요</div><div class="k-val num">${rows.filter(r => r.status === "review").length}건</div>
+      <div class="k-sub">출장 일정 미연결 등</div></div>
+    <div class="card kpi"><div class="k-label">출장 연결</div><div class="k-val num">${real.filter(r => r.tripId).length}건</div>
+      <div class="k-sub">일정 등록으로 자동 분류됨</div></div>`;
+
+  $("tbl").innerHTML = `
+    <thead><tr>
+      <th><input type="checkbox" id="selAll" title="전체 선택"></th>
+      <th></th><th>가맹점</th><th>대분류 · 세부비목</th><th>결제일시</th><th>이용일</th>
+      <th style="text-align:right">결제금액</th><th style="text-align:right">환산(₩)</th>
+      <th>출장/정산단위</th><th>예산부서</th><th>출처</th><th>상태</th>
+    </tr></thead>
+    <tbody>${rows.map(r => {
+      const G = D.GROUPS[D.groupOf(r)];
+      const t = r.tripId ? D.TRIPS.find(x => x.id === r.tripId) : null;
+      const url = D.imgUrl(r.img);
+      const flags =
+        (r.industryMismatch ? (r.evidenceAttached
+          ? ' <span class="badge ok" title="업종 미스매치 — 증빙 첨부 완료">증빙 첨부됨</span>'
+          : ' <span class="badge warn" title="업종 미스매치 — 반려 대신 증빙 첨부 요청">증빙 요청</span>') : "") +
+        (r.splitNeeded ? ' <span class="badge warn">항목 분리 필요</span>' : "") +
+        (r.vat && r.vat.needCheck ? ' <span class="badge warn">부가세 확인</span>' : "");
+      return `<tr data-id="${r.id}" class="${r.status === "duplicate" ? "dup" : ""}" style="cursor:pointer">
+        <td><input type="checkbox" class="rowSel" data-id="${r.id}" ${selected.has(r.id) ? "checked" : ""}></td>
+        <td>${url ? `<img class="thumb" src="${url}" alt="">` : `<span class="thumb-ph">${r.source === "pdf" ? "📄" : "🧾"}</span>`}</td>
+        <td style="font-weight:700">${r.merchant}</td>
+        <td><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span></td>
+        <td class="muted">${D.dt(r.paidAt)}</td>
+        <td class="muted">${r.serviceDate !== r.paidAt.slice(0, 10) ? `<b style="color:var(--warn)">${D.dateShort(r.serviceDate)}</b>` : D.dateShort(r.serviceDate)}</td>
+        <td class="num">${D.money(r)}</td>
+        <td class="num">${D.krw(r.amountKRW)}</td>
+        <td>${t ? `<span class="badge neutral">${t.title}</span>` : '<span class="muted">—</span>'}</td>
+        <td class="muted">${r.budgetDept || "—"}</td>
+        <td class="muted">${r.source === "pdf" ? "PDF 파싱" : "사진 OCR"}</td>
+        <td>${STATUS_BADGE[r.status]}${flags}</td>
+      </tr>`;
+    }).join("")}</tbody>`;
+  $("empty").style.display = rows.length ? "none" : "";
+
+  document.querySelectorAll("#tbl tbody tr").forEach(tr => tr.onclick = () => openDrawer(tr.dataset.id));
+  document.querySelectorAll(".rowSel").forEach(cb => {
+    cb.onclick = (e) => { e.stopPropagation(); cb.checked ? selected.add(cb.dataset.id) : selected.delete(cb.dataset.id); syncBulk(); };
+  });
+  const selAll = $("selAll");
+  if (selAll) selAll.onclick = (e) => {
+    e.stopPropagation();
+    rows.forEach(r => selAll.checked ? selected.add(r.id) : selected.delete(r.id));
+    render();
+  };
+  syncBulk();
+}
+
+/* ---- 다중 선택 → 계정/예산부서 일괄 적용 ---- */
+const selected = new Set();
+function syncBulk() {
+  $("bulkBar").style.display = selected.size ? "" : "none";
+  $("bulkCount").textContent = selected.size;
+}
+Object.entries(D.CATEGORIES).forEach(([k, c]) =>
+  $("bulkCat").insertAdjacentHTML("beforeend", `<option value="${k}">${c.name} (${c.sub})</option>`));
+$("bulkApply").onclick = () => {
+  const cat = $("bulkCat").value, dept = $("bulkDept").value;
+  if (!cat && !dept) { $("bulkMsg").textContent = "적용할 계정과목 또는 예산부서를 선택하세요"; return; }
+  let n = 0;
+  selected.forEach(id => {
+    const r = D.RECEIPTS.find(x => x.id === id);
+    if (!r) return;
+    if (cat) r.category = cat;
+    if (dept) r.budgetDept = dept;
+    n++;
+  });
+  $("bulkMsg").textContent = `✓ ${n}건에 일괄 적용 완료`;
+  render();
+};
+$("bulkClear").onclick = () => { selected.clear(); render(); };
+
+/* 상세 드로어 */
+function openDrawer(id) {
+  const r = D.RECEIPTS.find(x => x.id === id);
+  const G = D.GROUPS[D.groupOf(r)];
+  const t = r.tripId ? D.TRIPS.find(x => x.id === r.tripId) : null;
+  const url = D.imgUrl(r.img);
+  $("dTitle").textContent = r.merchant;
+  $("dBody").innerHTML = `
+    ${url ? `<img class="d-img" src="${url}" alt="영수증 원본">` : `<div class="d-img" style="padding:44px 0;text-align:center;color:#8A90A0;font-size:38px">${r.source === "pdf" ? "📄 PDF 원본" : "🧾"}</div>`}
+    <dl>
+      <dt>결제금액</dt><dd class="num">${D.money(r)}${r.currency !== "KRW" ? ` (환율 ${r.fxRate} → ${D.krw(r.amountKRW)})` : ""}</dd>
+      <dt>결제일시</dt><dd>${D.dt(r.paidAt)}</dd>
+      <dt>이용일</dt><dd>${D.dateShort(r.serviceDate)}${r.serviceDate !== r.paidAt.slice(0, 10) ? ' <span class="badge warn">사전결제 — 이용일 기준 판정</span>' : ""}</dd>
+      <dt>분류</dt><dd><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span> <span class="muted">(${D.CATEGORIES[r.category].name})</span></dd>
+      <dt>출장 연결</dt><dd>${t ? `${t.title} (${D.dateShort(t.startDate)}~${D.dateShort(t.endDate)})` : "없음"}</dd>
+      <dt>출처</dt><dd>${r.source === "pdf" ? "PDF 업로드 (텍스트 파싱)" : "사진 촬영/업로드 (Vision OCR)"}</dd>
+      ${(() => { const v = D.vatInfo(r); return v ? `<dt>부가세</dt><dd style="font-weight:600;line-height:1.5">${v.text}<br>
+        <span class="badge ${v.warn ? "warn" : "neutral"}">${v.warn ? "⚠ " : ""}${v.badge}</span></dd>` : ""; })()}
+      ${(() => {
+        const tx = D.CARD_TX.find(t => t.receiptId === r.id);
+        const b = D.matchBasis(r, tx);
+        return `<dt>승인번호</dt><dd class="num">${r.approvalNo || '<span class="muted">미인식</span>'}</dd>
+          ${b ? `<dt>매칭 근거</dt><dd style="font-weight:600">${b.rank === 1 ? "🥇" : b.rank === 2 ? "🥈" : "🥉"} ${b.label}</dd>` : ""}`;
+      })()}
+      <dt>예산부서</dt><dd>${r.budgetDept || '<span class="muted">미지정</span>'}</dd>
+      <dt>상태</dt><dd>${STATUS_BADGE[r.status]}${r.dupOf ? ` <span class="muted">원본: ${D.RECEIPTS.find(x => x.id === r.dupOf).merchant}</span>` : ""}</dd>
+    </dl>
+    ${r.industryMismatch ? `<div class="preset-why" style="margin-top:12px;background:${r.evidenceAttached ? "var(--ok-bg)" : "var(--warn-bg)"};border-color:${r.evidenceAttached ? "#B5E3D0" : "#EAD3A8"};color:${r.evidenceAttached ? "#0B7A55" : "var(--warn)"}">
+      <b>업종 미스매치</b> — 카드 승인 업종이 '전자상거래/페이'로 잡힌 건입니다. 반려하지 않고 증빙 첨부를 요청합니다.
+      ${r.evidenceAttached ? "<br>✓ 실물 영수증 사진 첨부 완료 — 식대성 경비로 인정" : '<br><button class="btn sm" style="margin-top:6px">증빙 첨부 요청 보내기</button>'}</div>` : ""}
+    ${r.splitNeeded ? `<div class="preset-why" style="margin-top:12px"><b>항목 분리 필요</b> — 복합 영수증(숙박+세탁+조식 등)입니다. 자동 분리하지 않습니다. 검토자가 수동으로 계정을 나눠주세요.</div>` : ""}
+    <div class="preset-why" style="margin-top:14px"><b>자동 분류 근거</b><br>${r.why}</div>
+    ${r.status === "review" ? '<button class="btn primary block" style="margin-top:14px">분류 확정하기</button>' : ""}`;
+  $("drawer").classList.add("open"); $("scrim").classList.add("on");
+}
+$("dClose").onclick = $("scrim").onclick = () => { $("drawer").classList.remove("open"); $("scrim").classList.remove("on"); };
+
+/* 이벤트 */
+["q", "fGroup", "fSub", "fStatus", "fCur", "fFrom", "fTo"].forEach(id => {
+  $(id).addEventListener("input", render);
+});
+$("btnReset").onclick = () => {
+  ["q", "fGroup", "fSub", "fStatus", "fCur", "fFrom", "fTo"].forEach(id => $(id).value = "");
+  render();
+};
+$("btnCsv").onclick = () => {
+  const rows = filtered();
+  const csv = "﻿가맹점,대분류,세부비목,결제일시,이용일,금액,통화,환산KRW,출장,상태\n" + rows.map(r =>
+    [r.merchant, D.GROUPS[D.groupOf(r)].name, D.subOf(r), r.paidAt, r.serviceDate,
+     r.amount, r.currency, r.amountKRW, r.tripId || "", r.status].join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "사용내역.csv"; a.click();
+};
+
+render();
+</script>
+</body>
+</html>

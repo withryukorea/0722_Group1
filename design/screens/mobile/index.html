@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>찍으면 끝 — 홈</title>
+<link rel="stylesheet" href="../../components/sk-theme.css">
+<link rel="stylesheet" href="../../components/mobile.css">
+</head>
+<body class="mobile">
+<div class="app">
+  <header class="app-head"></header>
+  <main class="app-body">
+
+    <!-- 이번 달 사용 총액 -->
+    <section class="hero">
+      <div class="h-label">2026년 7월 사용 총액</div>
+      <div class="h-amount num" id="heroTotal"></div>
+      <div class="h-sub" id="heroSub"></div>
+      <div class="gauge" id="heroTrip"></div>
+    </section>
+
+    <!-- 대분류별 사용 현황 -->
+    <div class="section-title">카테고리별 사용 현황 <span class="muted">전체 누적</span></div>
+    <section class="card" id="groupCards" style="padding:6px 16px"></section>
+
+    <!-- 출장비 기준 대비 -->
+    <div class="section-title">출장비 기준 대비 사용</div>
+    <section class="card" id="tripGauges"></section>
+
+    <!-- AI 구독 한도 -->
+    <div class="section-title">AI Tool 구독 한도 <span class="muted">제도: DIY100 예산 (연 100만원 · VAT별도)</span></div>
+    <section class="card" id="aiBudget"></section>
+
+    <!-- 최근 영수증 -->
+    <div class="section-title">최근 영수증 <a class="muted" href="receipts.html">전체보기 ›</a></div>
+    <section class="card" id="recent" style="padding:4px 16px"></section>
+
+  </main>
+  <nav class="tabbar"></nav>
+</div>
+
+<script src="../../components/data.js"></script>
+<script src="../../components/mobile.js"></script>
+<script>
+const D = SKD;
+SKM.chrome("home", "영수증 사진 한 장으로 정산 끝 — SK 출장·경비 자동정산");
+
+/* ---- 이번 달 총액 ---- */
+const july = D.valid().filter(r => r.paidAt.startsWith("2026-07"));
+const julyTotal = july.reduce((s, r) => s + r.amountKRW, 0);
+document.getElementById("heroTotal").textContent = D.krw(julyTotal);
+document.getElementById("heroSub").textContent =
+  `영수증 ${july.length}건 · 외화 ${july.filter(r => r.currency !== "KRW").length}건 자동 환산 반영`;
+
+/* 진행중 출장 오늘 잔여 Cap */
+const act = D.activeTrip();
+if (act) {
+  const todaySpent = D.RECEIPTS.filter(r => r.tripId === act.id && r.paidAt.startsWith(D.TODAY))
+    .reduce((s, r) => s + r.amountKRW, 0);
+  const remain = act.dailyCapKRW - todaySpent;
+  document.getElementById("heroTrip").innerHTML = `
+    <div class="g-head"><span>✈ ${act.title} · 오늘 잔여 한도</span><b>${D.krw(remain)}</b></div>
+    <div class="g-track"><div class="g-fill" style="width:${Math.min(100, todaySpent / act.dailyCapKRW * 100)}%"></div></div>
+    <div class="g-foot"><span>오늘 사용 ${D.krw(todaySpent)}</span><span>일일 Cap ${D.krw(act.dailyCapKRW)} (2명)</span></div>`;
+}
+
+/* ---- 대분류 → 세부비목 ---- */
+const GT = D.groupTotals();
+const grand = Object.values(GT).reduce((s, g) => s + g.total, 0);
+document.getElementById("groupCards").innerHTML = D.GROUP_ORDER.map(g => {
+  const G = D.GROUPS[g], t = GT[g];
+  if (!t.total) return "";
+  const subs = Object.entries(t.subs).sort((a, b) => b[1] - a[1])
+    .map(([s, v]) => `<span class="muted" style="white-space:nowrap">${s} <b class="num" style="color:var(--ink)">${D.fmt(v / 1000)}k</b></span>`)
+    .join('<span class="muted"> · </span>');
+  return `
+    <div style="padding:11px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="cat" style="font-size:13px"><i style="background:${G.hex}"></i>${G.name}</span>
+        <b class="num" style="font-size:14.5px">${D.krw(t.total)}</b>
+      </div>
+      <div class="g-track" style="height:6px;margin:7px 0 6px"><div class="g-fill" style="width:${t.total / grand * 100}%;background:${G.hex}"></div></div>
+      <div style="display:flex;gap:2px;flex-wrap:wrap;font-size:11.5px">${subs}</div>
+    </div>`;
+}).join("").replace(/border-bottom:1px solid var\(--line\)(?![\s\S]*border-bottom)/, "border-bottom:none");
+
+/* ---- 출장 기준 대비 게이지 ---- */
+document.getElementById("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t => {
+  const cap = D.tripCap(t), spent = D.tripSpent(t);
+  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
+  const label = t.type === "domestic"
+    ? `식대 기준 ${D.krw(t.mealCapPerDayKRW)}/일 × ${D.tripDays(t)}일`
+    : `일일 Cap ${D.krw(t.dailyCapKRW)} × ${D.tripDays(t)}일`;
+  return `
+    <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+      <div class="g-head">
+        <span>${t.type === "domestic" ? "🚄" : "✈"} ${t.title}
+          <span class="badge ${t.status === "active" ? "brand" : "neutral"}" style="margin-left:4px">${t.status === "active" ? "진행중" : "완료"}</span>
+        </span>
+        <b class="num">${D.krw(spent)} / ${D.krw(cap)}</b>
+      </div>
+      <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+      <div class="g-foot"><span>${label}</span>
+        <span class="${over ? "" : ""}" style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">
+          ${over ? "기준 초과 " + D.krw(spent - cap) : "기준 이내 · 잔여 " + D.krw(cap - spent)}</span></div>
+    </div>`;
+}).join("") + `<p class="muted" style="line-height:1.5">국내 출장 식대는 일수 합산 기준으로 판정합니다. 예: 3일 출장 = 35,000원 × 3일 = 105,000원 이내</p>`;
+
+/* ---- AI 구독 한도 (한도 초과 경고 시나리오) ---- */
+const ai = D.BUDGETS[0];
+const aiPct = ai.usedKRW / ai.limitKRW * 100, aiOver = ai.usedKRW > ai.limitKRW;
+document.getElementById("aiBudget").innerHTML = `
+  <div class="gauge ${aiOver ? "over" : ""}">
+    <div class="g-head"><span>${ai.label}</span><b class="num">${D.krw(ai.usedKRW)} / ${D.krw(ai.limitKRW)}</b></div>
+    <div class="g-track"><div class="g-fill" style="width:${Math.min(100, aiPct)}%"></div></div>
+    <div class="g-foot"><span>ChatGPT $22 + Claude $110 환산 반영</span>
+      <span style="font-weight:700;color:${aiOver ? "var(--danger)" : "var(--ok)"}">${aiOver ? "⚠ 한도 초과 " + D.krw(ai.usedKRW - ai.limitKRW) : "한도 이내 · 잔여 " + D.krw(ai.limitKRW - ai.usedKRW)}</span></div>
+  </div>
+  ${aiOver ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230">
+    DIY100 예산 정산 한도(${D.krw(ai.limitKRW)}, VAT별도)를 초과했습니다. 제도별 상한은 일정 화면의 프리셋 설정에서 변경할 수 있어요.</div>` : ""}`;
+
+/* ---- 최근 영수증 ---- */
+document.getElementById("recent").innerHTML = D.valid()
+  .slice().sort((a, b) => b.paidAt.localeCompare(a.paidAt)).slice(0, 4)
+  .map(r => {
+    const g = D.groupOf(r), G = D.GROUPS[g];
+    const url = D.imgUrl(r.img);
+    return `
+    <div class="rcpt-row">
+      <div class="rcpt-thumb">${url ? `<img src="${url}" alt="">` : (r.source === "pdf" ? "📄" : "🧾")}</div>
+      <div class="rcpt-main">
+        <div class="m1">${r.merchant}</div>
+        <div class="m2"><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span><span>${D.dt(r.paidAt)}</span></div>
+      </div>
+      <div class="rcpt-amt">
+        <div class="a1 num">${D.krw(r.amountKRW)}</div>
+        <div class="a2">${r.currency !== "KRW" ? D.money(r) + " 환산" : (r.status === "review" ? "확인 필요" : "매칭 완료")}</div>
+      </div>
+    </div>`;
+  }).join("");
+</script>
+</body>
+</html>
