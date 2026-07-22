@@ -1,0 +1,20 @@
+{
+  "id": "rcpt_002",
+  "imageUrl": "/uploads/rcpt_002.jpg",
+  "croppedUrl": "/uploads/rcpt_002_crop.jpg",
+  "ocr": {
+    "merchant": "둘둘치킨 종로1가점",
+    "amount": 64000,
+    "currency": "KRW",
+    "paidAt": "2026-07-20T21:40:10+09:00",
+    "cardLast4": "3059",
+    "items": [
+      { "name": "후라이드치킨", "amount": 20000 },
+      { "name": "양념치킨", "amount": 21000 },
+      { "name": "생맥주 3000cc", "amount": 23000 }
+    ],
+    "confidence": 0.91
+  },
+  "matchedTxId": null,
+  "tripId": null
+}

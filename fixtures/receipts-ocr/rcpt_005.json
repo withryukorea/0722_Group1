@@ -1,0 +1,18 @@
+{
+  "id": "rcpt_005",
+  "imageUrl": "/uploads/rcpt_005.jpg",
+  "croppedUrl": "/uploads/rcpt_005_crop.jpg",
+  "ocr": {
+    "merchant": "카카오T 택시",
+    "amount": 5000,
+    "currency": "KRW",
+    "paidAt": "2026-07-16T02:58:00+09:00",
+    "cardLast4": "3059",
+    "items": [
+      { "name": "택시요금 (호출료)", "amount": 5000 }
+    ],
+    "confidence": 0.86
+  },
+  "matchedTxId": null,
+  "tripId": null
+}

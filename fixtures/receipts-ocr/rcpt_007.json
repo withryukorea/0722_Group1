@@ -1,0 +1,18 @@
+{
+  "id": "rcpt_007",
+  "imageUrl": "/uploads/rcpt_007.jpg",
+  "croppedUrl": "/uploads/rcpt_007_crop.jpg",
+  "ocr": {
+    "merchant": "OPENAI CHATGPT SUBSCRIPTION",
+    "amount": 162612,
+    "currency": "KRW",
+    "paidAt": "2026-07-10T09:02:00+09:00",
+    "cardLast4": "3059",
+    "items": [
+      { "name": "ChatGPT Plus (monthly)", "amount": 162612 }
+    ],
+    "confidence": 0.87
+  },
+  "matchedTxId": null,
+  "tripId": null
+}

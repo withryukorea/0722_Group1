@@ -1,0 +1,13 @@
+# Render Blueprint — 가짜 e-Accounting 서버 자동 배포 설정
+# 사용법: Render 대시보드 → New → Blueprint → 이 저장소 선택 → Apply
+# (render.yaml 을 자동으로 읽어 아래 설정대로 웹 서비스를 만든다)
+services:
+  - type: web
+    name: mock-eaccounting
+    runtime: node
+    plan: free            # 무료 플랜 (미사용 시 잠들었다가 첫 요청에 다시 깨어남)
+    region: singapore     # 한국에서 가장 가까운 리전
+    buildCommand: npm install --prefix server
+    startCommand: node server/index.js
+    healthCheckPath: /api/transactions   # 이 경로가 200이면 정상 기동으로 판단
+    autoDeploy: true      # main 에 푸시하면 자동 재배포
