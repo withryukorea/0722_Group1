@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 간편정산 · 영수증 업로드</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/quick.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div class="page-heading">
+      <h2 class="page-title">영수증 업로드 <span class="fav off">★</span></h2>
+    </div>
+
+    <div class="qk">
+      <p class="muted" style="margin:0 0 14px">사진(JPG/PNG)·전자영수증(PDF)을 끌어다 놓으면 자동 크롭 → OCR/파싱 → 프리셋 분류까지 진행됩니다.
+        모바일 E-acc(<a href="m/index.html" style="color:var(--sk-red);font-weight:700">/m/</a>)에서 촬영한 영수증과 같은 저장소를 사용합니다.</p>
+
+      <div class="grid c2">
+        <div>
+          <!-- 드롭존 -->
+          <div class="dropzone" id="dz">
+            <div class="dz-icon">🧾</div>
+            <h3>여기로 파일을 끌어다 놓으세요</h3>
+            <p class="muted">또는 <label style="color:var(--sk-red);font-weight:700;cursor:pointer">파일 선택<input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden></label> · 여러 장 동시 업로드 가능</p>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
+              <span class="badge info">📷 사진 → Vision OCR 경로</span>
+              <span class="badge neutral">📄 PDF → 텍스트 파싱 경로</span>
+            </div>
+          </div>
+
+          <!-- 데모 샘플 버튼 (서버 WoZ 데모키 — fixtures/receipts-ocr) -->
+          <section class="card" style="margin-top:14px">
+            <div class="card-title">데모 샘플로 시험하기 <span class="more" id="demoSrc">서버 연결 확인 중…</span></div>
+            <div class="chips" id="demoChips"></div>
+          </section>
+
+          <!-- 처리 큐 -->
+          <section class="card" style="margin-top:14px">
+            <div class="card-title">처리 현황 <span class="more" id="queueCount">0건</span></div>
+            <div id="queue"><p class="muted" style="padding:8px 0">업로드된 파일이 여기에 표시됩니다</p></div>
+          </section>
+        </div>
+
+        <div>
+          <!-- 처리 파이프라인 안내 -->
+          <section class="card">
+            <div class="card-title">자동 처리 파이프라인</div>
+            <div id="pipeSteps"></div>
+          </section>
+
+          <!-- 인식 결과 미리보기 -->
+          <section class="card" style="margin-top:14px">
+            <div class="card-title">최근 인식 결과</div>
+            <div id="lastResult"><p class="muted">파일을 업로드하면 인식 결과가 표시됩니다</p></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/layout.js"></script>
+<script src="js/quick-data.js"></script>
+<script>
+renderChrome({ top: '간편정산', active: '영수증 업로드',
+               breadcrumb: ['메뉴', '간편정산', '영수증 업로드'] });
+
+const D = SKD;
+const $ = (id) => document.getElementById(id);
+
+/* 파이프라인 단계 안내 */
+const STEPS = [
+  ["업로드", "사진·PDF 접수 (모바일 E-acc와 동일 저장소)"],
+  ["자동 크롭", "영수증 영역 감지 — 실패 시 원본 사용"],
+  ["OCR / 파싱", "사진은 Vision OCR, PDF는 텍스트 레이어 파싱"],
+  ["프리셋 분류", "출장 일정·가맹점 프리셋으로 대분류/세부비목 자동 지정"],
+  ["중복 검사", "invoiceNo 기준 — 인보이스/영수증 중복 자동 제외"],
+  ["카드 매칭", "금액·일시·가맹점으로 법인카드 승인내역과 매칭"]
+];
+$("pipeSteps").innerHTML = STEPS.map(([t, d], i) => `
+  <div style="display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);${i === STEPS.length - 1 ? "border-bottom:none" : ""}">
+    <span style="flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--sk-grad);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span>
+    <div style="font-size:12.5px"><b>${t}</b><div class="muted" style="margin-top:1px">${d}</div></div>
+  </div>`).join("");
+
+/* 데모 샘플 — 서버 WoZ 데모키 (fixtures/receipts-ocr/index.json 과 1:1) */
+const DEMOS = [
+  { key: "coffee",      label: "☕ 폴바셋 (커피·간식비)" },
+  { key: "chicken",     label: "🍗 치킨 (회식)" },
+  { key: "anthropic",   label: "🤖 Anthropic 구독" },
+  { key: "taxi1",       label: "🚕 카카오택시" },
+  { key: "taxi2",       label: "🚕 카카오택시 (복귀)" },
+  { key: "officedepot", label: "🗂 오피스디포 (사무용품)" },
+  { key: "openai",      label: "📄 OpenAI 구독 (PDF)" }
+];
+$("demoChips").innerHTML = DEMOS.map(d => `<button class="chip" data-key="${d.key}">${d.label}</button>`).join("");
+document.querySelectorAll("#demoChips .chip").forEach(c =>
+  c.onclick = () => enqueue({ demoKey: c.dataset.key, name: c.textContent }));
+
+/* 서버 연결 표시 + 프리셋 이름 캐시 */
+let PRESETS = [];
+(async () => {
+  const ps = await eaccApi("/api/presets");
+  if (ps) { PRESETS = ps; $("demoSrc").textContent = "서버 연결됨 · fixtures/receipts-ocr 7종"; }
+  else $("demoSrc").textContent = "서버 미연결 — 내장 데모로 동작";
+})();
+const presetName = (id) => (PRESETS.find(p => p.id === id) || {}).name || id;
+
+/* 업로드 큐 — 각 건: 진행 애니메이션 + 서버 POST 동시 진행, 둘 다 끝나면 결과 표시 */
+let queue = [];
+const PHASES = ["업로드", "크롭", "OCR", "분류", "중복검사", "매칭"];
+
+function enqueue(opt) {
+  const item = {
+    id: "q" + Date.now() + Math.random().toString(36).slice(2, 5),
+    name: opt.name || (opt.file ? opt.file.name : "영수증"),
+    phase: 0, serverReceipt: undefined,
+    isPdf: opt.file ? opt.file.type === "application/pdf" || /\.pdf$/i.test(opt.file.name) : /PDF/.test(opt.name || ""),
+    objUrl: opt.file && opt.file.type.startsWith("image/") ? URL.createObjectURL(opt.file) : null
+  };
+  queue.unshift(item);
+  renderQueue();
+
+  /* 서버 호출 (애니메이션과 병행) */
+  const post = opt.file ? postMultipart(opt.file) : eaccApi("/api/receipts", { body: { key: opt.demoKey } });
+  post.then(r => { item.serverReceipt = r || null; maybeFinish(item); });
+
+  const timer = setInterval(() => {
+    item.phase++;
+    if (item.phase >= PHASES.length) { clearInterval(timer); item.animDone = true; maybeFinish(item); }
+    renderQueue();
+  }, 380);
+}
+
+async function postMultipart(file) {
+  const fd = new FormData(); fd.append("image", file);
+  const bases = location.protocol === "file:" ? ["http://localhost:4000"] : ["", "http://localhost:4000"];
+  for (const base of bases) {
+    try {
+      const res = await fetch(base + "/api/receipts", { method: "POST", body: fd });
+      if (res.ok) return await res.json();
+    } catch (e) { /* 다음 후보 */ }
+  }
+  return null;
+}
+
+function maybeFinish(item) {
+  if (!item.animDone || item.serverReceipt === undefined) return;
+  item.done = true;
+  renderQueue();
+  if (item.serverReceipt) showServerResult(item);
+  else showFallbackResult(item);
+}
+
+function renderQueue() {
+  $("queueCount").textContent = queue.length + "건";
+  $("queue").innerHTML = queue.map(it => {
+    const dupCheck = it.serverReceipt && (it.serverReceipt.checks || []).some(c => c.type === "DUPLICATE_DOCUMENT");
+    return `
+    <div style="padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <b style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.isPdf ? "📄" : "📷"} ${it.name}</b>
+        ${it.done ? (dupCheck ? '<span class="badge danger">중복 의심 — 확인 필요</span>'
+                              : `<span class="badge ok">✓ 완료${it.serverReceipt ? " · " + it.serverReceipt.id : ""}</span>`)
+                  : `<span class="badge info">${PHASES[Math.min(it.phase, PHASES.length - 1)]} 중…</span>`}
+      </div>
+      <div class="pipeline" style="margin-top:6px">
+        ${PHASES.map((p, i) => `${i ? '<span class="arrow">›</span>' : ""}<b style="color:${i < it.phase ? "var(--ok)" : i === it.phase && !it.done ? "var(--sk-red)" : "var(--ink-3)"}">${p}</b>`).join("")}
+      </div>
+    </div>`;
+  }).join("") || '<p class="muted" style="padding:8px 0">업로드된 파일이 여기에 표시됩니다</p>';
+}
+
+/* 서버 Receipt 결과 표시 */
+function showServerResult(item) {
+  const r = item.serverReceipt, o = r.ocr || {};
+  const cur = o.currency || "KRW";
+  const amt = cur === "KRW" ? D.krw(o.amount || 0)
+    : (cur === "USD" ? "$" + Number(o.amount).toFixed(2) : "¥" + D.fmt(o.amount)) + " → " + D.krw(r.amountKRW);
+  const img = item.objUrl || r.croppedUrl;
+  $("lastResult").innerHTML = `
+    ${img ? `<img src="${img}" style="width:100%;max-height:200px;object-fit:contain;background:#14161B;border-radius:10px" alt="">` : ""}
+    <dl style="display:grid;grid-template-columns:86px 1fr;row-gap:7px;font-size:13px;margin-top:12px">
+      <dt class="muted">가맹점</dt><dd style="font-weight:700">${o.merchant || "-"}</dd>
+      <dt class="muted">금액</dt><dd class="num" style="font-weight:700">${amt}</dd>
+      <dt class="muted">일시</dt><dd>${o.paidAt ? D.dt(o.paidAt) : "-"}</dd>
+      <dt class="muted">이용일</dt><dd>${r.serviceDate || "-"}</dd>
+      ${r.suggestedPresetId ? `<dt class="muted">프리셋 추천</dt><dd><span class="badge brand">⚡ ${presetName(r.suggestedPresetId)}</span></dd>` : ""}
+      ${o.vat != null ? `<dt class="muted">부가세</dt><dd>${D.krw(o.vat)} <span class="badge neutral">영수증 표기</span></dd>` : ""}
+    </dl>
+    ${(r.checks || []).map(c => `<div class="preset-why" style="margin-top:8px;${c.status === "warn" ? "background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn)" : ""}">
+      ${c.status === "warn" ? "⚠️" : "ℹ️"} ${c.message}</div>`).join("")}
+    <div class="preset-why" style="margin-top:10px">영수증 <b>${r.id}</b> 저장 완료 — 모바일·PC 어디서든 같은 저장소에서 조회됩니다.</div>
+    <a class="btn primary block" style="margin-top:12px" href="quick-match.html">자동매칭에서 확인 ›</a>`;
+}
+
+/* 서버 미연결 폴백 — 시제품#1 내장 데모 */
+function showFallbackResult(item) {
+  const r = D.RECEIPTS.find(x => x.id === "r_paris");
+  const G = D.GROUPS[D.groupOf(r)];
+  $("lastResult").innerHTML = `
+    <dl style="display:grid;grid-template-columns:86px 1fr;row-gap:7px;font-size:13px;margin-top:4px">
+      <dt class="muted">가맹점</dt><dd style="font-weight:700">${r.merchant} (내장 데모)</dd>
+      <dt class="muted">금액</dt><dd class="num" style="font-weight:700">${D.money(r)}</dd>
+      <dt class="muted">일시</dt><dd>${D.dt(r.paidAt)}</dd>
+      <dt class="muted">분류</dt><dd><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span></dd>
+    </dl>
+    <div class="preset-why" style="margin-top:10px">서버(:4000) 미연결 — 내장 데모 데이터로 표시 중입니다. ${r.why}</div>
+    <a class="btn primary block" style="margin-top:12px" href="quick-match.html">자동매칭에서 확인 ›</a>`;
+}
+
+/* 드래그앤드롭 + 파일 선택 */
+const dz = $("dz");
+["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("over"); }));
+dz.addEventListener("drop", (e) => [...e.dataTransfer.files].forEach(f => enqueue({ file: f, name: f.name })));
+$("fileInput").onchange = (e) => [...e.target.files].forEach(f => enqueue({ file: f, name: f.name }));
+</script>
+</body>
+</html>
