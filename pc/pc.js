@@ -16,7 +16,7 @@ window.SKP = (function () {
     ];
     document.querySelector(".topbar").innerHTML = `
       <div class="tb-in">
-        <span class="sk-logo">${WING}<span class="brand">찍으면 <em>끝</em> <span style="font-weight:600;color:var(--ink-3);font-size:12px">| SK 출장·경비 자동정산</span></span></span>
+        <a href="index.html" class="sk-logo" title="대시보드로 이동" style="text-decoration:none;color:inherit;cursor:pointer">${WING}<span class="brand">찍으면 <em>끝</em> <span style="font-weight:600;color:var(--ink-3);font-size:12px">| SK 출장·경비 자동정산</span></span></a>
         <nav>${menus.map(([k, href, label]) =>
           `<a href="${href}" class="${active === k ? "on" : ""}">${label}</a>`).join("")}</nav>
         <div class="tb-user">${D.USER.name} · ${D.USER.team}<br>${D.TODAY.replace(/-/g, ".")} 기준</div>
