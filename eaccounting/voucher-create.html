@@ -33,6 +33,11 @@
       </div>
     </div>
 
+    <!-- 정산단위 정산으로 진입 시 적용된 정산단위 배너 (sot/03 E4-3) -->
+    <div class="info-bar" id="preset-banner" style="display:none; margin:12px 0 0;"></div>
+    <!-- 서버 미리보기 한도 경고 (경고만 — 상신 차단 없음) -->
+    <div class="info-bar" id="warn-banner" style="display:none; margin:12px 0 0; border-color:var(--red); color:var(--red);"></div>
+
     <!-- 결재선지정 -->
     <section class="sect" id="sec-approval">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
@@ -46,7 +51,7 @@
           <th style="width:19%;">승인</th>
         </tr>
         <tr>
-          <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
+          <td>전력사업기획팀<br><b>홍길동 매니저</b></td>
           <td style="width:19%;" id="review-1"></td>
           <td style="width:19%;"></td>
           <td style="width:19%;"></td>
@@ -504,25 +509,102 @@ window.addEventListener('scroll', () => {
   tabs.forEach((t, i) => t.classList.toggle('on', i === cur));
 }, { passive: true });
 
-/* ── 상신 ── */
+/* ── 전표 초안 미리보기 (서버) → 화면 프리필 ──
+   sot/02 정산 흐름: 정산단위가 지정한 칸(계정과목·예산부서·적요·결재선)은 서버 preview가 채우고,
+   나머지는 사용자가 확인/수정한다. 사용자가 이미 입력한 칸은 덮어쓰지 않는다. */
+let previewData = null;                  // 마지막 preview 응답 (상신 시 receiptId/presetId/결재선의 근거)
+const previewByTx = new Map();           // txId → preview 라인
+const DEPT_OF = { '김아무개 팀장': '전력사업기획팀', '박아무개 부장': '전력사업본부', '최아무개 매니저': '경영기획실' };
+
+async function loadPreview() {
+  if (!draft.apiMode) return false;
+  const matches = lines.map(l => ({ txId: l.id, receiptId: (receiptByTx.get(l.id) || {}).id || null }));
+  const pv = await eaccApiTry('/api/vouchers/preview', { body: { matches } });
+  if (!pv.ok || !pv.data || !Array.isArray(pv.data.lines)) return false; // 미리보기 실패 → 수동 입력 그대로 (성공 위장 아님)
+  previewData = pv.data;
+  previewByTx.clear();
+  previewData.lines.forEach(pl => previewByTx.set(pl.txId, pl));
+  lines.forEach(l => {
+    const pl = previewByTx.get(l.id);
+    if (!pl) return;
+    l.receiptId = pl.receiptId;          // 상신 라인에 그대로 실림 → 문서함 증빙 열람
+    l.presetId = pl.presetId;
+    l.accountCode = pl.accountCode;      // 내부 비목 코드 (usage.byAccountCode 차감용)
+    l.supply = pl.supplyKRW;             // 부가세: 사용자가 영수증에서 확정한 값 반영됨
+    l.vat = pl.vatKRW;
+    if (!l.acct) l.acct = pl.accountDisplay;                                   // [726350]수수료-기타 형식
+    if (!l.budgetDept) l.budgetDept = fmtDept(pl.costCenter) || `[${pl.costCenter}]`;
+    if (!l.memo) l.memo = pl.description;                                      // 적요양식 자동 생성분
+  });
+  // 결재선 양식 해석 결과($DRAFTER/$SUPERIOR → 실명)를 결재선지정 표에 전개 (수동 변경이 있으면 존중)
+  const d = previewData.approvalLineDetail;
+  if (d && !window._apvLine) {
+    apvApplyToTable([
+      ...d.reviewers.map(n => ({ type: '검토', name: n, dept: DEPT_OF[n] || '' })),
+      { type: '승인', name: d.approve, dept: DEPT_OF[d.approve] || '' },
+    ]);
+  }
+  // 한도 경고 (경고만 — 상신 차단 없음)
+  const warns = previewData.warnings || [];
+  const wb = document.getElementById('warn-banner');
+  wb.style.display = warns.length ? 'block' : 'none';
+  wb.textContent = warns.length ? `⚠ ${warns.map(w => w.message).join(' / ')}` : '';
+  renderLines(); renderBudget(); renderCardDetail();
+  return true;
+}
+
+/* ── 상신: preview → submit 통일 (직접 POST 금지 — 라인에 receiptId/presetId가 실리도록) ── */
 async function submitVoucher() {
   if (!slipType) { document.getElementById('slip-modal').style.display = 'flex'; return; }
   bulkApply();  // 비어있는 계정과목/예산부서는 자동 채움
   const total = lines.reduce((s, l) => s + l.amount, 0);
-  const voucher = await eaccApi('/api/vouchers', {
-    body: {
-      title: `${slipType} (${lines[0].merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ''})`,
-      lines: lines.map(l => ({ txId: l.id, accountCode: acctCode(l.acct) || l.acct, amountKRW: l.amount, description: l.memo || l.merchant })),
-      approvalLine: apvLineNames() || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 부장']),
-    },
-  });
-  sessionStorage.removeItem('voucherDraft');
-  if (voucher) {
-    alert(`전표 [${voucher.id}]가 상신되었습니다.\n결재라인: ${voucher.approvalLine.join(' → ')}`);
+
+  if (!draft.apiMode) {
+    // 성공 위장 금지: 서버 연결 없이는 상신 자체가 불가함을 그대로 표시
+    alert('서버에 연결할 수 없어 전표를 상신하지 못했습니다.\n서버(:4000) 상태를 확인한 뒤 다시 시도해 주세요.');
+    return;
+  }
+  if (!previewData) await loadPreview();  // preview → submit 순서 보장 (초기 로드가 실패했던 경우 재시도)
+  if (previewData && (previewData.warnings || []).length) {
+    const msg = previewData.warnings.map(w => w.message).join('\n');
+    if (!confirm(`한도 경고가 있습니다:\n${msg}\n\n그래도 상신할까요?`)) return;
+  }
+
+  const payload = {
+    // 정산단위 정산으로 진입했으면 preview가 만든 제목(정산단위명 기반) 사용
+    title: draft.presetName && previewData ? previewData.title
+      : `${slipType} (${lines[0].merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ''})`,
+    lines: lines.map(l => ({
+      txId: l.id,
+      receiptId: l.receiptId || null,
+      presetId: l.presetId || null,
+      accountCode: l.accountCode || acctCode(l.acct) || l.acct,
+      accountDisplay: l.acct,                                        // [실계정코드]계정명 — 문서함 표시용
+      costCenter: (String(l.budgetDept || '').match(/\[(\w+)\]/) || [])[1] || null,
+      amountKRW: l.amount,
+      supplyKRW: l.supply,
+      vatKRW: l.vat,
+      description: l.memo || l.merchant,
+    })),
+    approvalLine: apvLineNames()                                     // 사용자가 결재선을 직접 바꿨으면 그 값
+      || (previewData ? previewData.approvalLine : null)             // 아니면 preview 양식 해석 결과
+      || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 부장']),
+    approvalLineDetail: window._apvLine ? undefined : (previewData ? previewData.approvalLineDetail : undefined),
+  };
+  const r = await eaccApiTry('/api/vouchers', { body: payload });
+  if (r.ok) {
+    sessionStorage.removeItem('voucherDraft');
+    alert(`전표 [${r.data.id}]가 상신되었습니다.\n결재라인: ${r.data.approvalLine.join(' → ')}`);
     location.href = 'mydocs-all.html';
+    return;
+  }
+  // 실패는 실패로 표시하고 화면에 남는다 (선택 내역 유지 → 바로 재시도 가능)
+  if (r.status === 409) {
+    alert(`이미 전표가 상신된 카드내역이 포함되어 있습니다.\n(${((r.data && r.data.txIds) || []).join(', ')})\n해당 건을 행삭제 후 다시 상신해 주세요.`);
+  } else if (r.status === 0) {
+    alert('서버에 연결할 수 없어 전표를 상신하지 못했습니다.\n서버(:4000) 상태를 확인한 뒤 다시 시도해 주세요.');
   } else {
-    alert('전표가 상신되었습니다. (오프라인 모드 — 서버 연결 시 나의 문서함에 표시됩니다)');
-    location.href = 'card-settlement.html';
+    alert(`전표 상신에 실패했습니다: ${(r.data && (r.data.hint || r.data.error)) || 'HTTP ' + r.status}\n확인 후 다시 시도해 주세요.`);
   }
 }
 
@@ -530,6 +612,8 @@ async function submitVoucher() {
 const AI_RE = /ANTHROPIC|OPENAI|CLAUDE|CHATGPT|GITHUB|CURSOR/i;
 function detectAiRows() { return lines.map((l, i) => AI_RE.test(l.merchant) ? i : -1).filter(i => i >= 0); }
 function showAiBanner() {
+  // 정산단위 정산으로 진입했으면 preset 규칙이 이미 같은 내용을 적용하므로 중복 안내하지 않는다
+  if (draft.presetId) { document.getElementById('ai-banner').style.display = 'none'; return; }
   const hits = detectAiRows();
   document.getElementById('ai-banner').style.display = hits.length ? 'flex' : 'none';
   const cnt = document.getElementById('ai-cnt');
@@ -555,12 +639,13 @@ function applyAiPolicy() {
 }
 
 /* ── 증빙(영수증) 자동 첨부 — 매칭된 카드내역의 영수증을 첨부파일 영역에 자동 연결 ── */
-let vatWarnTx = new Set();   // 부가세 확인 필요 거래 (영수증 OCR 신뢰도 낮음)
+let vatWarnTx = new Set();          // 부가세 확인 필요 거래 (영수증 OCR 신뢰도 낮음)
+const receiptByTx = new Map();      // txId → 매칭 영수증 (preview의 receiptId 근거로도 사용)
 async function loadAutoAttachments() {
   const receipts = await eaccApi('/api/receipts');
   if (!Array.isArray(receipts)) return;
-  const byTx = new Map(receipts.filter(r => r.matchedTxId).map(r => [r.matchedTxId, r]));
-  const attached = lines.map(l => byTx.get(l.id)).filter(Boolean);
+  receipts.filter(r => r.matchedTxId).forEach(r => receiptByTx.set(r.matchedTxId, r));
+  const attached = lines.map(l => receiptByTx.get(l.id)).filter(Boolean);
   attached.forEach(r => {
     if ((r.checks || []).some(c => c.type === 'VAT_CHECK') && r.matchedTxId) vatWarnTx.add(r.matchedTxId);
   });
@@ -573,11 +658,21 @@ async function loadAutoAttachments() {
   if (vatWarnTx.size) renderCardDetail();   // 부가세 배지 반영
 }
 
+/* 정산단위 정산으로 진입한 경우 상단 배너 (sot/03 E4-3) */
+function showPresetBanner() {
+  if (!draft.presetName) return;
+  const el = document.getElementById('preset-banner');
+  el.style.display = 'block';
+  el.innerHTML = `ⓘ <b>정산단위 정산: ${draft.presetName}</b> — 계정과목·예산부서·적요·결재선이 정산단위 규칙으로 자동 적용됩니다. 금액·부가세·증빙일자만 확인하세요.`;
+}
+
 initInfo();
 renderCardDetail();
 renderLines();
 showAiBanner();
-loadAutoAttachments();
+showPresetBanner();
+// 첨부(영수증 매핑) → 서버 미리보기 프리필 순서 보장: preview가 receiptByTx의 receiptId를 사용한다
+loadAutoAttachments().then(loadPreview);
 </script>
 </body>
 </html>

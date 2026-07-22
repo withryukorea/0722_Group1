@@ -558,21 +558,34 @@ async function submitVoucher() {
   const total = cardLines.reduce((s, l) => s + l.krw, 0) + cashLines.reduce((s, l) => s + l.krw, 0);
   const city = document.getElementById('t-city').value || '해외';
   const nights = document.getElementById('t-nights').value, days = document.getElementById('t-days').value;
-  const voucher = await eaccApi('/api/vouchers', {
+  // 카드 라인에 매칭된 영수증(receiptId)을 실어 문서함에서 증빙 열람이 되게 한다
+  const receipts = await eaccApi('/api/receipts');
+  const rByTx = new Map((Array.isArray(receipts) ? receipts : []).filter(r => r.matchedTxId).map(r => [r.matchedTxId, r]));
+  const r = await eaccApiTry('/api/vouchers', {
     body: {
       title: `해외출장비 정산 (${city} ${nights}박${days}일)`,
       lines: [
-        ...cardLines.map(l => ({ txId: l.id, amountKRW: l.krw, description: `[카드/${l.type}] ${l.merchant}` })),
+        ...cardLines.map(l => {
+          const rc = rByTx.get(l.id);
+          return { txId: l.id, receiptId: rc ? rc.id : null, presetId: rc ? rc.presetId : null, amountKRW: l.krw, description: `[카드/${l.type}] ${l.merchant}` };
+        }),
         ...cashLines.map(l => ({ amountKRW: l.krw, description: `[현금/${l.type}] ${l.detail || '실비'}` })),
       ],
       approvalLine: apvLineNames() || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 부장']),
     },
   });
-  if (voucher) {
-    alert(`전표 [${voucher.id}]가 상신되었습니다.\n결재라인: ${voucher.approvalLine.join(' → ')}`);
+  if (r.ok) {
+    alert(`전표 [${r.data.id}]가 상신되었습니다.\n결재라인: ${r.data.approvalLine.join(' → ')}`);
     location.href = 'mydocs-all.html';
+    return;
+  }
+  // 성공 위장 금지 — 실패는 실패로 표시하고 입력 내역을 유지한다 (재시도 가능)
+  if (r.status === 409) {
+    alert(`이미 전표가 상신된 카드내역이 포함되어 있습니다.\n(${((r.data && r.data.txIds) || []).join(', ')})`);
   } else {
-    alert('전표가 상신되었습니다. (오프라인 모드 — 서버 연결 시 나의 문서함에 표시됩니다)');
+    alert(r.status === 0
+      ? '서버에 연결할 수 없어 전표를 상신하지 못했습니다.\n서버(:4000) 상태를 확인한 뒤 다시 시도해 주세요.'
+      : `전표 상신에 실패했습니다: ${(r.data && (r.data.hint || r.data.error)) || 'HTTP ' + r.status}`);
   }
 }
 
