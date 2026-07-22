@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 간편정산 · 정산·전표 생성</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/quick.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div class="page-heading">
+      <h2 class="page-title">정산·전표 생성 <span class="fav off">★</span></h2>
+    </div>
+
+    <div class="qk">
+      <p class="muted" style="margin:0 0 14px" id="srcNote">매칭된 영수증으로 계정과목·전결라인이 자동 지정된 전표 초안을 만들고, 그대로 상신하면 나의 문서함에 접수됩니다</p>
+
+      <!-- 정산 단위 탭 (폴백 모드 전용) -->
+      <div class="chips" id="unitTabs" style="margin-bottom:14px"></div>
+
+      <div class="grid c2">
+        <div>
+          <section class="card">
+            <div class="card-title">전표에 담을 영수증 선택 <span class="more">매칭 완료 건만 전표에 담깁니다</span></div>
+            <div id="matchList"></div>
+          </section>
+
+          <section class="card" style="margin-top:14px">
+            <div class="card-title">미매칭 승인내역 <span class="more">영수증 미제출 — 소명 필요</span></div>
+            <div id="unmatched"></div>
+          </section>
+        </div>
+
+        <div>
+          <section class="card" style="border-top:3px solid var(--sk-red)">
+            <div class="card-title">전표 초안 (자동 생성) <span class="more" id="vchId"></span></div>
+            <div id="voucher"><p class="muted">영수증을 선택하면 초안이 생성됩니다</p></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/layout.js"></script>
+<script src="js/quick-data.js"></script>
+<script>
+renderChrome({ top: '간편정산', active: '정산·전표 생성',
+               breadcrumb: ['메뉴', '간편정산', '정산·전표 생성'] });
+
+const D = SKD;
+const $ = (id) => document.getElementById(id);
+
+/* ═══════════════ 서버 모드 — 실 preview/상신 API ═══════════════ */
+let RECEIPTS = [], TXS = [];
+const picked = new Set();   // 전표에 담을 receiptId
+let lastPreview = null;
+
+function scorePillHtml(matched) {
+  return matched ? '<span class="score-pill score-hi">매칭 ✓</span>' : '<span class="score-pill score-none">미매칭</span>';
+}
+
+async function serverRender() {
+  const matched = RECEIPTS.filter(r => r.matchedTxId);
+  const notMatched = RECEIPTS.filter(r => !r.matchedTxId);
+
+  $("matchList").innerHTML = matched.map(r => {
+    const o = r.ocr || {};
+    const tx = TXS.find(t => t.id === r.matchedTxId);
+    return `
+    <div class="match-row">
+      <div class="match-cell" style="display:flex;gap:8px;align-items:center">
+        <input type="checkbox" class="pick" data-id="${r.id}" ${picked.has(r.id) ? "checked" : ""}>
+        <div style="min-width:0"><div class="t">${tx ? tx.merchant : "?"}</div>
+        <div class="s">${tx ? D.dt(tx.approvedAt) + " · " : ""}<b class="num">${tx ? D.krw(tx.amountKRW) : ""}</b></div></div>
+      </div>
+      <div class="match-link">${scorePillHtml(true)}<div class="match-line hi"></div></div>
+      <div class="match-cell"><div class="t">${o.merchant || r.id}</div>
+        <div class="s"><b class="num">${D.krw(r.amountKRW)}</b> · ${r.serviceDate || ""}
+        ${r.presetId ? ' · <span class="badge brand">⚡ 프리셋</span>' : ""}</div></div>
+    </div>`;
+  }).join("") || `<p class="muted" style="padding:12px 0">매칭 완료된 영수증이 없습니다 —
+    <a href="quick-match.html" style="color:var(--sk-red);font-weight:700">자동매칭</a>을 먼저 실행하세요</p>`;
+
+  if (notMatched.length) {
+    $("matchList").insertAdjacentHTML("beforeend",
+      `<p class="muted" style="padding:8px 0 0">미매칭 영수증 ${notMatched.length}건은 <a href="quick-match.html" style="color:var(--sk-red)">자동매칭</a> 후 담을 수 있습니다</p>`);
+  }
+  document.querySelectorAll("#matchList .pick").forEach(cb =>
+    cb.onclick = () => { cb.checked ? picked.add(cb.dataset.id) : picked.delete(cb.dataset.id); serverPreview(); });
+
+  const um = TXS.filter(t => t.status !== "vouchered" && !t.matchedReceiptId);
+  $("unmatched").innerHTML = um.slice(0, 8).map(t => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">
+      <div><b style="font-size:13px">${t.merchant}</b>
+        <span class="muted" style="margin-left:8px">${t.approvedAt ? D.dt(t.approvedAt) : ""}</span></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <b class="num">${D.krw(t.amountKRW)}</b>
+        <button class="btn sm">영수증 요청</button>
+      </div>
+    </div>`).join("") + (um.length > 8 ? `<p class="muted" style="padding:6px 0">외 ${um.length - 8}건</p>` : "")
+    || '<p class="muted" style="padding:6px 0">미매칭 승인내역이 없습니다 ✓</p>';
+
+  serverPreview();
+}
+
+async function serverPreview() {
+  if (!picked.size) { $("vchId").textContent = ""; $("voucher").innerHTML = '<p class="muted">영수증을 선택하면 초안이 생성됩니다</p>'; return; }
+  const draft = await eaccApi("/api/vouchers/preview", { body: { receiptIds: [...picked] } });
+  lastPreview = draft;
+  if (!draft || draft.error) {
+    $("voucher").innerHTML = `<p class="muted">초안 생성 실패 — ${draft && draft.hint ? draft.hint : "매칭 상태를 확인하세요"}</p>`;
+    return;
+  }
+  $("vchId").textContent = "미리보기";
+  $("voucher").innerHTML = `
+    <div style="font-size:14px;font-weight:800;margin-bottom:4px">${draft.title}</div>
+    <div class="muted" style="margin-bottom:10px">기안자 ${D.USER.name} · ${D.USER.team} · ${D.TODAY.replace(/-/g, ".")}</div>
+
+    ${draft.lines.map(l => `
+      <div class="voucher-line">
+        <span><b>${l.accountName}</b> <span class="muted">${l.description}</span><br>
+          <span class="muted" style="font-size:11px">공급가액 ${D.krw(l.supplyKRW)} + 부가세 ${D.krw(l.vatKRW)}${l.presetId ? ' · <span class="badge brand" style="font-size:10px">⚡ 프리셋</span>' : ""}</span></span>
+        <b class="num">${D.krw(l.amountKRW)}</b>
+      </div>`).join("")}
+    <div class="voucher-line" style="border-top:2px solid var(--ink);font-size:15px">
+      <b>합계</b><b class="num" style="color:var(--sk-red)">${D.krw(draft.totalKRW)}</b>
+    </div>
+
+    ${(draft.warnings || []).map(w => `<div class="preset-why" style="background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn);margin:10px 0">
+      ⚠ <b>${w.type === "PRESET_LIMIT_EXCEEDED" ? "프리셋 한도 경고" : w.type}</b> — ${w.message} (경고만, 상신은 가능)</div>`).join("")}
+
+    <div style="margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--ink-2)">전결라인 (규정 자동 지정)</div>
+    <div class="approval">
+      <span class="ap me">${D.USER.name}(기안)</span>
+      ${draft.approvalLine.map(p => `<span class="arr">→</span><span class="ap">${p}</span>`).join("")}
+    </div>
+
+    <button class="btn primary block" style="margin-top:16px" id="btnSubmit">검토 완료 · 상신하기</button>
+    <p class="muted" style="margin-top:8px;text-align:center">상신하면 전표가 접수되어 <b>나의 문서함</b>에서 조회됩니다</p>`;
+
+  $("btnSubmit").onclick = async () => {
+    const v = await eaccApi("/api/vouchers", { body: {
+      title: draft.title, lines: draft.lines, totalKRW: draft.totalKRW, approvalLine: draft.approvalLine
+    }});
+    if (v && v.id) {
+      $("voucher").innerHTML = `
+        <div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55">
+          ✓ <b>상신 완료</b> — 전표 <b>${v.id}</b> (${D.krw(v.totalKRW)})가 접수되었습니다.</div>
+        <a class="btn primary block" style="margin-top:12px" href="mydocs-all.html">나의 문서함에서 확인 ›</a>
+        <a class="btn block" style="margin-top:8px" href="quick-dashboard.html">분석 대시보드 보기</a>`;
+      $("vchId").textContent = v.id;
+      picked.clear();
+      const fresh = await eaccApi("/api/receipts"); if (fresh) RECEIPTS = fresh;
+      const ftx = await eaccApi("/api/transactions"); if (ftx) TXS = ftx;
+      const list = $("matchList"); // 좌측 목록만 갱신 (성공 메시지는 유지)
+      serverRenderLeftOnly();
+    } else {
+      alert("상신 실패" + (v && v.hint ? ": " + v.hint : " — 이미 전표 처리된 거래인지 확인하세요"));
+    }
+  };
+}
+
+function serverRenderLeftOnly() {
+  const keep = $("voucher").innerHTML, keepId = $("vchId").textContent;
+  serverRender().then(() => { $("voucher").innerHTML = keep; $("vchId").textContent = keepId; });
+}
+
+/* ═══════════════ 폴백 모드 — 시제품#1 내장 데모 (원본 로직 축약 이식) ═══════════════ */
+const UNITS = [
+  { id: "trip_busan", label: "🚄 부산·울산 출장 (4월)", filter: r => r.tripId === "trip_busan",
+    title: "4월 국내출장비 정산 — 부산·울산", ready: true },
+  { id: "trip_tokyo", label: "✈ 도쿄 출장 (진행중)", filter: r => r.tripId === "trip_tokyo",
+    title: "7월 해외출장비 정산 — 도쿄", ready: false },
+  { id: "monthly", label: "🗂 7월 일반·복지 정산", filter: r => !r.tripId && r.paidAt.startsWith("2026-07"),
+    title: "7월 일반경비·복지비 정산", ready: true }
+];
+let unit = UNITS[0];
+let submitted = {};
+
+function fallbackRender() {
+  $("unitTabs").innerHTML = UNITS.map(u =>
+    `<button class="chip ${unit.id === u.id ? "on brand" : ""}" data-u="${u.id}">${u.label}${submitted[u.id] ? " ✓" : ""}</button>`).join("");
+  document.querySelectorAll("#unitTabs .chip").forEach(c =>
+    c.onclick = () => { unit = UNITS.find(u => u.id === c.dataset.u); fallbackRender(); });
+
+  const rows = D.RECEIPTS.filter(r => r.status !== "duplicate").filter(unit.filter);
+
+  $("matchList").innerHTML = rows.map(r => {
+    const tx = D.CARD_TX.find(t => t.receiptId === r.id);
+    const G = D.GROUPS[D.groupOf(r)];
+    const basis = D.matchBasis(r, tx);
+    return `
+    <div class="match-row">
+      <div class="match-cell">${tx ? `<div class="t">${tx.merchant}</div>
+        <div class="s">${D.dt(tx.approvedAt)} · <b class="num">${D.krw(tx.amountKRW)}</b>${tx.approvalNo ? ` · 승인 ${tx.approvalNo}` : ""}</div>`
+        : `<div class="t muted">승인내역 없음</div><div class="s">개인카드/현금 추정</div>`}</div>
+      <div class="match-link">${tx && tx.score >= 70 ? `<span class="score-pill score-hi">${tx.score}점 · 자동</span>` : tx ? `<span class="score-pill score-mid">${tx.score}점 · 확인</span>` : '<span class="score-pill score-none">미매칭</span>'}
+        <div class="match-line ${tx && tx.score >= 70 ? "hi" : tx ? "mid" : ""}"></div>
+        ${basis ? `<div class="muted" style="font-size:10px;margin-top:3px">${basis.rank === 1 ? "🥇 " : ""}${basis.label}</div>` : ""}</div>
+      <div class="match-cell"><div class="t">${r.merchant}</div>
+        <div class="s"><span class="cat" style="font-size:11px"><i style="background:${G.hex}"></i>${D.subOf(r)}</span>
+          · <b class="num">${D.krw(r.amountKRW)}</b> · ${D.dateShort(r.serviceDate)}</div></div>
+    </div>`;
+  }).join("") || '<p class="muted" style="padding:12px 0">이 정산 단위에 연결된 영수증이 없습니다</p>';
+
+  const um = unit.id === "monthly" ? D.CARD_TX.filter(t => !t.receiptId) : [];
+  $("unmatched").innerHTML = um.map(t => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">
+      <div><b style="font-size:13px">${t.merchant}</b><span class="muted" style="margin-left:8px">${D.dt(t.approvedAt)}</span></div>
+      <div style="display:flex;gap:10px;align-items:center"><b class="num">${D.krw(t.amountKRW)}</b><button class="btn sm">영수증 요청</button></div>
+    </div>`).join("") || '<p class="muted" style="padding:6px 0">미매칭 승인내역이 없습니다 ✓</p>';
+
+  /* 전표 초안 (계정과목 집계 + 전결라인 규칙) */
+  $("vchId").textContent = "VCH-2026-" + unit.id.toUpperCase().slice(0, 6);
+  if (!rows.length) { $("voucher").innerHTML = '<p class="muted">정산할 건이 없습니다</p>'; return; }
+  const byCat = {};
+  rows.forEach(r => { (byCat[r.category] = byCat[r.category] || { sum: 0, n: 0 }); byCat[r.category].sum += r.amountKRW; byCat[r.category].n++; });
+  const total = rows.reduce((s, r) => s + r.amountKRW, 0);
+  const required = ["홍길동(기안)", "김팀장"];
+  if (total > 300000) required.push("박부장");
+
+  const trip = D.TRIPS.find(t => t.id === unit.id);
+  const capBlock = trip ? (() => {
+    const cap = D.tripCap(trip), spent = D.tripSpent(trip), over = spent > cap;
+    return `<div class="gauge ${over ? "over" : ""}" style="margin:12px 0 4px">
+      <div class="g-head"><span>출장비 기준 검증</span><b class="num">${D.krw(spent)} / ${D.krw(cap)}</b></div>
+      <div class="g-track"><div class="g-fill" style="width:${Math.min(100, spent / cap * 100)}%"></div></div>
+      <div class="g-foot"><span>${trip.capNote}</span>
+        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "기준 초과" : "기준 이내 ✓"}</span></div></div>`;
+  })() : "";
+
+  $("voucher").innerHTML = `
+    <div style="font-size:14px;font-weight:800;margin-bottom:4px">${unit.title}</div>
+    <div class="muted" style="margin-bottom:10px">기안자 ${D.USER.name} · ${D.USER.team} · ${D.TODAY.replace(/-/g, ".")}</div>
+    ${Object.entries(byCat).map(([k, v]) => `
+      <div class="voucher-line">
+        <span><b>${D.CATEGORIES[k].name}</b> <span class="muted">(${D.CATEGORIES[k].sub} · ${v.n}건)</span></span>
+        <b class="num">${D.krw(v.sum)}</b></div>`).join("")}
+    <div class="voucher-line" style="border-top:2px solid var(--ink);font-size:15px">
+      <b>합계</b><b class="num" style="color:var(--sk-red)">${D.krw(total)}</b></div>
+    ${capBlock}
+    <div style="margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--ink-2)">전결라인 (규정 자동 지정)</div>
+    <div class="approval">${required.map((p, i) => `${i ? '<span class="arr">→</span>' : ""}<span class="ap ${i === 0 ? "me" : ""}">${p}</span>`).join("")}</div>
+    ${submitted[unit.id]
+      ? `<div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin-top:16px">✓ <b>상신 완료</b> (내장 데모)</div>`
+      : unit.ready
+        ? `<button class="btn primary block" style="margin-top:16px" id="btnSubmit">검토 완료 · 상신하기</button>
+           <p class="muted" style="margin-top:8px;text-align:center">서버 미연결 — 내장 데모로 시뮬레이션됩니다</p>`
+        : `<button class="btn block" style="margin-top:16px" disabled>출장 종료 후 상신 가능</button>`}`;
+  const b = $("btnSubmit");
+  if (b) b.onclick = () => { submitted[unit.id] = true; fallbackRender(); };
+}
+
+/* ═══════════════ 부팅: 서버 우선 ═══════════════ */
+(async () => {
+  const list = await eaccApi("/api/receipts");
+  if (list) {
+    RECEIPTS = list;
+    TXS = (await eaccApi("/api/transactions")) || [];
+    $("unitTabs").style.display = "none";
+    /* quick-match에서 넘어온 선택(?ids=) 반영, 없으면 매칭 완료 전체 */
+    const ids = new URLSearchParams(location.search).get("ids");
+    const matchedIds = RECEIPTS.filter(r => r.matchedTxId).map(r => r.id);
+    (ids ? ids.split(",").filter(id => matchedIds.includes(id)) : matchedIds).forEach(id => picked.add(id));
+    $("srcNote").innerHTML = `서버 저장소 영수증 ${RECEIPTS.length}건 중 매칭 완료 ${matchedIds.length}건 — 초안은 <b>POST /api/vouchers/preview</b>, 상신은 <b>POST /api/vouchers</b>로 접수됩니다`;
+    serverRender();
+  } else {
+    $("srcNote").innerHTML = `<span class="badge neutral">서버 미연결</span> 시제품#1 내장 데모로 동작 중`;
+    fallbackRender();
+  }
+})();
+</script>
+</body>
+</html>
