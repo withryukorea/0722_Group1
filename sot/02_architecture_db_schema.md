@@ -94,7 +94,12 @@ AI구독료처럼 PDF 인보이스로 오는 건은 이어카운팅에서 직접
   "name": "AI Frontier 교육",
   "type": "RECURRING",            // TRIP | RECURRING | CAMPAIGN
   "source": "admin",              // trip_request(품의 자동, PoC는 seed) | employee(국내출장 직접) | admin(관리자 배포)
-  "assignees": ["u_me"],
+  "target": {                     // 배포 대상 — 이 대상의 영수증 처리에만 후보로 노출
+    "scope": "company",           // company(전사) | team | users
+    "teams": [],                  // scope=team일 때 (예: ["전력사업기획팀"])
+    "users": []                   // scope=users일 때 명단
+  },
+  "limitBasis": "perPerson",      // perPerson(1인당) | shared(공동) — 한도 집계 기준
   "period": null,                 // TRIP만 사용 (예: {"start":"2026-07-14","end":"2026-07-17"})
   "active": true,
   "rules": {
@@ -104,7 +109,7 @@ AI구독료처럼 PDF 인보이스로 오는 건은 이어카운팅에서 직접
     "limitPeriod": "monthly",                 // daily(TRIP 일당) | monthly | total
     "approvalLineTemplate": {                 // 전결라인 "양식" — 변수는 상신자 기준 자동 결정
       "draft": "$DRAFTER",                    // 기안 = [기안자] 자동
-      "reviewers": ["이진현 팀원", "오정훈 팀장"],  // 검토 = 지정 검토자(고정)
+      "reviewers": ["이진현 매니저", "오정훈 팀장"],  // 검토 = 지정 검토자(고정) 또는 상대 직책 변수
       "approve": "$SUPERIOR"                  // 승인 = [차상위자] 자동
     },
     "descriptionTemplate": "[이름][직급]_[월]월 AI Frontier",  // 적요양식 — [이름]·[직급]=프로필, [월]=결제월 치환
@@ -114,6 +119,10 @@ AI구독료처럼 PDF 인보이스로 오는 건은 이어카운팅에서 직접
   "usage": { "usedKRW": 0, "byAccountCode": {} }   // TRIP 대시보드는 비목별 누적으로 표시 (일별 아님)
 }
 ```
+
+배포 대상 × 한도 기준 조합 예: AI구독 = `company × perPerson`(전사, 1인당 한도), 팀빌딩 = `team × shared`(특정 팀, 공동 한도), 신규 구성원 지원 = `users × perPerson`(명단, 1인당).
+
+직급·상대 결재자 해석 주의: **회사 직급은 전원 "매니저"** — `[직급]` 변수는 항상 "매니저"로 렌더된다 (예: "정성훈매니저_7월 AI Frontier"). 따라서 `[상위자]`/`[차상위자]`/`[차차상위자]`는 직급이 아니라 **조직도·직책 기준**으로 해석한다 (내 팀의 팀장 → 소속 실의 실장 → 본부장 순, `eaccounting/js/org-data.js` 조직트리 사용).
 
 - 단일 비목 정산단위(`allowedAccountCodes` 길이 1)는 리뷰 화면에서 비목 선택 단계가 자동 생략된다.
 - TRIP의 국내출장 표준 기본값: 직원은 목적지·기간만 입력하면 일비·허용비목·전결라인이 표준 규정으로 자동 세팅된다.
