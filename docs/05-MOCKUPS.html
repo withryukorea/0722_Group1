@@ -165,126 +165,97 @@
 </div>
 </section>
 
-<!-- ============ SECTION 2: 이어카운팅 - 정산 (자동 채움 + 접수) ============ -->
+<!-- ============ SECTION 2: 정산 자동화 & 전표 접수 ============ -->
 <section class="page-break">
-<h2>2. 이어카운팅 — 정산 (Preset 자동 채움 & 전표 접수)</h2>
-<p class="subtitle">Preset이 지정되면 전표의 회계 항목이 전부 자동으로 채워지고, 사용자는 확인 후 상신만 한다. 상신된 전표는 이어카운팅에 즉시 접수된다.</p>
+<h2>2. 정산 자동화 & 전표 접수</h2>
+<p class="subtitle">영수증 저장 이후의 정산(매칭 → 전표 생성 → 상신)은 자동으로 처리된다. Preset이 회계 항목을 이미 싣고 있으므로 정산 단계에서 사람이 손댈 것이 없다. 별도의 정산 입력 화면은 두지 않는다.</p>
 
-<div class="cols" style="margin-top:12px">
-  <div class="panel">
-    <div class="ph mo">📱 정산 시 전표 라인 — 자동 채움 결과</div>
-    <div class="pb">
-      <div style="font-size:10.5px;color:#6b7488;margin-bottom:4px">AI Frontier 교육비 영수증 촬영 → Preset 자동인식 후</div>
-      <div class="f auto"><span class="k">비목</span><span class="v">[723101] 교육훈련비</span></div>
-      <div class="f auto"><span class="k">Cost Center</span><span class="v">[A860] SSC 교육</span></div>
-      <div class="f auto"><span class="k">전결라인</span><span class="v">정성훈→이진현→오정훈→김현준</span></div>
-      <div class="f auto"><span class="k">적요</span><span class="v">정성훈팀원_7월 AI Frontier</span></div>
-      <div class="f auto"><span class="k">금액</span><span class="v">₩120,000 (OCR)</span></div>
-      <div style="text-align:center;font-size:11px;color:#6b7488;margin:8px 0">↑ 5개 항목 전부 <b style="color:#2e8b40">자동</b></div>
-      <div class="f" style="border-color:#e0a94f;background:#fbf6ec"><span class="k">사용자가 하는 것</span><span class="v">확인 후 [상신] <span class="tag yes">탭 1회</span></span></div>
-    </div>
-  </div>
+<h3 style="margin-top:14px">저장 이후 자동 처리 흐름</h3>
+<div class="flow" style="margin-top:6px">
+  <div class="stg"><div class="stg-h">저장된 영수증</div><div class="stg-v" style="font-size:9.5px">Preset·비목 확정본</div></div>
+  <div class="arr">→</div>
+  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 자동 매칭</div><div class="stg-v" style="font-size:9.5px;color:#6b7488">카드내역 대조</div></div>
+  <div class="arr">→</div>
+  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 전표 생성</div><div class="stg-v" style="font-size:9.5px;color:#6b7488">Preset 규칙 반영</div></div>
+  <div class="arr">→</div>
+  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 상신</div><div class="stg-v" style="font-size:9.5px;color:#6b7488">전결선 자동</div></div>
+  <div class="arr">→</div>
+  <div class="stg varbox"><div class="stg-h">🖥️ 이어카운팅</div><div class="stg-v" style="font-size:9.5px">전표 접수</div></div>
+</div>
 
+<div class="cols" style="margin-top:14px">
   <div class="panel">
-    <div class="ph pc">🖥️ 접수된 전표 (자동 갱신 · 3초 폴링)</div>
+    <div class="ph pc">🖥️ 접수된 전표 (이어카운팅 · 기존 화면)</div>
     <div class="pb">
       <div class="row hi">AI Frontier 교육비 · ₩120,000 · submitted</div>
       <div style="font-size:10px;color:#6b7488;margin:3px 0 8px">전결선 정성훈 팀원 → 이진현 팀원 → 오정훈 팀장 → 김현준 기술위원</div>
       <div class="row hi">7월 도쿄 출장비 · ₩91,600 · submitted</div>
       <div style="font-size:10px;color:#6b7488;margin:3px 0 8px">전결선 김민수 팀장 → 박영호 부장</div>
       <div style="font-size:10.5px;margin-top:8px">💳 카드내역 상태: matched → <b>vouchered</b></div>
-      <div class="op">모바일에서 상신하면 화면 전환만으로 여기에 자동 등장</div>
+      <div class="op">상신된 전표가 자동으로 등장 (기존 이어카운팅 접수 화면 그대로)</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph pc">Preset이 정산 시 자동으로 채우는 항목</div>
+    <div class="pb">
+      <div class="f auto"><span class="k">비목(계정)</span><span class="v">[723101] 교육훈련비</span></div>
+      <div class="f auto"><span class="k">Cost Center</span><span class="v">[A860] SSC 교육</span></div>
+      <div class="f auto"><span class="k">전결라인</span><span class="v">양식 → 자동 전개</span></div>
+      <div class="f auto"><span class="k">적요</span><span class="v">양식 → 자동 생성</span></div>
+      <div class="f auto"><span class="k">금액</span><span class="v">OCR 값</span></div>
+      <div class="op">위 항목이 정산 시 전부 자동 — 사용자가 입력·조작할 정산 화면이 필요 없음</div>
     </div>
   </div>
 </div>
-
-<h3>정산 시 "손대는 정도" 비교</h3>
-<table class="cmp">
-  <thead><tr><th style="width:22%">항목</th><th>기존 (수작업)</th><th>Preset 적용 후</th></tr></thead>
-  <tbody>
-    <tr><td>비목(계정)</td><td>직접 선택</td><td>자동 <span class="tag no">무입력</span></td></tr>
-    <tr><td>Cost Center</td><td>직접 입력</td><td>자동 <span class="tag no">무입력</span></td></tr>
-    <tr><td>전결라인</td><td>규정 찾아 다단계 지정</td><td>자동 <span class="tag no">무입력</span></td></tr>
-    <tr><td>적요</td><td>양식 맞춰 타이핑</td><td>양식 자동 생성 <span class="tag no">무입력</span></td></tr>
-    <tr><td>금액</td><td>확인</td><td>OCR 자동, 확인만</td></tr>
-    <tr><td><b>사용자 조작</b></td><td>다수 필드 입력</td><td><b style="color:#2e8b40">상신 탭 1회</b></td></tr>
-  </tbody>
-</table>
 </section>
 
-<!-- ============ SECTION 3: 모바일 - 영수증 처리 워크플로우 ============ -->
+<!-- ============ SECTION 3: 모바일 - 영수증 처리 Flow ============ -->
 <section class="page-break">
-<h2>3. 모바일 — 영수증 처리 워크플로우</h2>
-<p class="subtitle">촬영 → 크롭·OCR → Preset·비목 선택 → (적격증빙·부가세 확인) → 정산하기 → 전표 검토·상신. 모바일은 고르고 확인만 한다.</p>
+<h2>3. 모바일 — 영수증 처리 Flow</h2>
+<p class="subtitle">촬영부터 저장까지가 모바일의 역할. 아래에서 ⚙️는 백엔드 연산, 📱은 사용자 확인·선택 단계다. 저장 이후 정산은 자동(2장).</p>
 
-<div class="phones" style="margin-top:12px">
+<h3 style="margin-top:14px">처리 단계</h3>
+<div class="flow" style="margin-top:6px">
+  <div class="stg"><div class="stg-h">📱 촬영</div><div class="stg-v" style="font-size:9.5px">영수증 사진</div></div>
+  <div class="arr">→</div>
+  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 서버 전송</div><div class="stg-v" style="font-size:9.3px;color:#6b7488">원본파일</div></div>
+  <div class="arr">→</div>
+  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 자동 크롭</div><div class="stg-v" style="font-size:9.3px;color:#6b7488">백엔드</div></div>
+  <div class="arr">→</div>
+  <div class="stg varbox"><div class="stg-h">📱 크롭 확인</div><div class="stg-v" style="font-size:9.3px">이미지 반환</div></div>
+  <div class="arr">→</div>
+  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 정보 파싱</div><div class="stg-v" style="font-size:9.3px;color:#6b7488">OCR</div></div>
+  <div class="arr">→</div>
+  <div class="stg varbox"><div class="stg-h">📱 확인·선택</div><div class="stg-v" style="font-size:9.3px">Preset·비목</div></div>
+  <div class="arr">→</div>
+  <div class="stg"><div class="stg-h">📱 저장</div><div class="stg-v" style="font-size:9.5px">완료</div></div>
+</div>
+<div style="font-size:10px;color:#6b7488;margin-top:6px">원본은 서버에 항상 보존, 크롭·파싱은 백엔드가 수행. 사용자 개입은 <b>크롭 확인</b>과 <b>파싱 확인 + Preset/비목 선택</b> 두 번뿐. (적격증빙 경고·부가세 확인은 파싱 확인 단계에 선택적으로 함께 표시)</div>
+
+<h3>사용자 화면 (두 확인 지점)</h3>
+<div class="phones" style="grid-template-columns:repeat(2,1fr);max-width:560px">
   <div class="phone">
-    <div class="pt"><span>① 촬영 · OCR</span><span class="tm">0:55</span></div>
+    <div class="pt"><span>📱 크롭 이미지 확인</span></div>
     <div class="pbd">
-      <div class="imgph">📷 원본보존 + 크롭본 분리저장</div>
-      <div>OCR: 스시로 신주쿠점<br>¥8,800 → ₩79,200</div>
-      <div style="font-size:9.5px;color:#6b7488;margin-top:4px">가맹점·금액·통화·일시·품목·부가세 자동 추출</div>
-      <div class="op">셔터 1회 → 크롭·파싱 자동. 실패 시 원본 사용</div>
+      <div class="imgph" style="height:78px">📷 자동 크롭 결과 (원본 보존)</div>
+      <div style="display:flex;gap:6px;margin-top:7px">
+        <div class="btn" style="flex:1;margin-top:0">확인</div>
+        <div class="btn" style="flex:1;margin-top:0;background:#eef1f7;color:#33405a">다시 크롭</div>
+      </div>
+      <div class="op">자동 크롭 결과 확인 → 어긋나면 다시 크롭. 원본은 항상 보존</div>
     </div>
   </div>
-
   <div class="phone">
-    <div class="pt"><span>② 리뷰 — Preset·비목</span><span class="tm">0:55</span></div>
+    <div class="pt"><span>📱 파싱 확인 · Preset/비목 선택</span></div>
     <div class="pbd">
-      <div style="font-size:9.5px;color:#6b7488">Preset (자동추천)</div>
+      <div>OCR: 스시로 신주쿠점 · ¥8,800 → ₩79,200</div>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">Preset (자동추천)</div>
       <span class="chip hi">✓ 도쿄 출장</span><span class="chip">일반</span>
-      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">비목 (허용 3개)</div>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">비목 (허용 3개 · 1개면 자동)</div>
       <span class="chip hi">식대</span><span class="chip">교통</span><span class="chip">숙박</span>
-      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">부가세</div>
-      <div class="row">₩720 (추출값 · 확인/수정)</div>
-      <div class="op">추천 칩 확인 + 비목 <b>탭</b>. 허용비목 1개면 자동</div>
-    </div>
-  </div>
-
-  <div class="phone">
-    <div class="pt"><span>③ 적격증빙 경고</span><span class="tm">1:30</span></div>
-    <div class="pbd">
-      <div class="imgph">📷 GS25 영수증</div>
-      <div>OCR: GS25 강남점 · ₩12,400</div>
-      <div class="warn">⚠️ 편의점 — 상세내역 증빙 필요 (상신은 가능)</div>
-      <span class="chip hi">✓ 일반</span>
-      <div class="btn">그냥 진행</div>
-      <div class="op">경고 배지 <b>자동 표시</b>, 막지 않음</div>
-    </div>
-  </div>
-
-  <div class="phone">
-    <div class="pt"><span>④ 정산하기 — 매칭</span><span class="tm">1:50</span></div>
-    <div class="pbd">
-      <div class="row hi">스시로 ↔ tx_001 · 98점 ✓</div>
-      <div class="row hi">GS25 ↔ tx_007 · 92점 ✓</div>
-      <div class="row">택시 ↔ ? · 55점 확인필요</div>
-      <div class="btn">매칭 확정 → 전표 생성</div>
-      <div class="op">영수증↔카드내역 <b>자동 매칭</b>, 낮은 점수만 확인</div>
-    </div>
-  </div>
-
-  <div class="phone">
-    <div class="pt"><span>⑤ 전표 검토·상신</span><span class="tm">2:20</span></div>
-    <div class="pbd">
-      <div style="font-weight:700;margin-bottom:3px">7월 도쿄 출장비 (초안)</div>
-      <div class="row">식대 · 스시로 · ₩79,200</div>
-      <div class="row">간식비 · GS25 · ₩12,400</div>
-      <div style="font-size:9.5px;color:#6b7488;margin-top:3px">계정·적요·결재선 자동 기입</div>
-      <div class="btn">상신</div>
-      <div class="op">Preset 규칙 반영 초안 <b>검토만</b> → 상신</div>
-    </div>
-  </div>
-
-  <div class="phone">
-    <div class="pt"><span>⑥ AI 구독/교육 자동인식</span><span class="tm">2:55</span></div>
-    <div class="pbd">
-      <div class="imgph">📷 AI Frontier 교육비</div>
-      <div>OCR: ₩120,000</div>
-      <div style="font-size:9.5px;color:#6b7488;margin-top:4px">Preset (키워드 자동매칭)</div>
-      <span class="chip hi">✓ AI Frontier 교육</span>
-      <div class="row" style="margin-top:5px;border-color:#8fce9e;background:#f0f9f2">교육훈련비 잔여 ₩300,000 → ₩180,000</div>
-      <div class="op">배포된 Preset <b>자동 추천</b> → 한도 차감</div>
+      <div class="warn" style="margin-top:6px">⚠️ (편의점 등) 상세내역 증빙 필요 — 선택적 경고</div>
+      <div class="btn">저장</div>
+      <div class="op">파싱값 확인 → Preset·비목 선택(자동추천) → 저장</div>
     </div>
   </div>
 </div>
@@ -301,16 +272,16 @@
     <div style="padding:12px">
       <div class="pcard">
         <div class="r1"><span class="nm">7월 도쿄 출장</span><span class="badge trip">TRIP</span></div>
-        <div class="pmeta">7/14–7/17 · 일일 Cap ₩200,000 · 전체 ₩800,000</div>
-        <div class="bar"><span style="width:47%;background:#3f6fd6"></span></div>
-        <div class="fig"><span class="used">사용 ₩377,000</span><span class="rem">잔여 ₩423,000</span></div>
-        <div class="days">
-          <div class="day"><div class="db"><span style="height:88%;background:#e0894f"></span></div>14</div>
-          <div class="day"><div class="db"><span style="height:89%;background:#e0894f"></span></div>15</div>
-          <div class="day"><div class="db"><span style="height:40%;background:#3f6fd6"></span></div>16</div>
-          <div class="day"><div class="db"><span style="height:0%"></span></div>17</div>
+        <div class="pmeta">7/14–7/17 · 4일 · 비목별 현황</div>
+        <div style="border:1px solid #cdd8ee;background:#f5f8ff;border-radius:7px;padding:8px;margin:8px 0">
+          <div class="fig" style="font-size:11px"><span style="font-weight:700">일당 (4일 × ₩50,000)</span><span class="rem">한도 ₩200,000</span></div>
+          <div class="bar"><span style="width:75%;background:#3f6fd6"></span></div>
+          <div class="fig"><span class="used">사용 ₩150,000</span><span class="rem">잔여 ₩50,000</span></div>
         </div>
-        <div style="font-size:9px;color:#8b93a5;margin-top:5px">일별 사용 — 15일 일일 Cap 근접(주황)</div>
+        <div class="fig" style="margin:5px 0"><span>식대</span><span class="used">₩127,000</span></div>
+        <div class="fig" style="margin:5px 0"><span>교통</span><span class="used">₩68,000</span></div>
+        <div class="fig" style="margin:5px 0"><span>숙박</span><span class="used">₩32,000</span></div>
+        <div style="font-size:9px;color:#8b93a5;margin-top:5px">일별 구분 없이 비목별 누적 — 일당(per-diem)이 관리 중심</div>
       </div>
       <div class="pcard">
         <div class="r1"><span class="nm">AI Frontier 교육</span><span class="badge recur">월 한도</span></div>
@@ -330,9 +301,9 @@
   <div>
     <h3 style="margin-top:0">대시보드가 보여주는 것</h3>
     <ul style="padding-left:18px;line-height:1.7">
-      <li><b>출장(TRIP)</b>: 기간 + 전체 한도 대비 사용/잔여, 일별 사용 막대(일일 Cap 근접 시 색 경고)</li>
+      <li><b>출장(TRIP)</b>: 일별 구분 없이 <b>비목별</b> 누적 현황. 특히 <b>일당(per-diem)</b> 한도 대비 사용/잔여를 중심으로 표시</li>
       <li><b>월 한도(RECURRING)</b>: 교육·도서 등 배정 예산의 사용/잔여 게이지</li>
-      <li>영수증을 상신하면 해당 Preset 사용량이 <b>자동 반영</b>되어 갱신</li>
+      <li>영수증을 저장·정산하면 해당 Preset 사용량이 <b>자동 반영</b>되어 갱신</li>
     </ul>
     <h3>데이터 출처</h3>
     <p style="line-height:1.6">이미 설계된 <span class="tpl">GET /api/presets?active=true</span> 의 <span class="tpl">usage</span> · <span class="tpl">rules.limitKRW</span> 를 그대로 읽어 렌더링. 신규 API 없이 표시 화면만 추가.</p>
