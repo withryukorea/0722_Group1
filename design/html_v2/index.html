@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AXE-acc 시제품#2 초기버전 — 화면 포털</title>
+<style>
+  :root { --red:#EA002C; --orange:#F47725; --ink:#1A1C22; --ink2:#4B5160; --ink3:#8A90A0; --line:#E6E8EE; --surface:#F5F6F8; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Pretendard","Segoe UI","Malgun Gothic",sans-serif; background:var(--surface); color:var(--ink); line-height:1.6; }
+  .wrap { max-width:860px; margin:0 auto; padding:36px 20px 60px; }
+  h1 { font-size:26px; letter-spacing:-.02em; }
+  h1 em { font-style:normal; background:linear-gradient(135deg,#EA002C,#F47725); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sub { color:var(--ink2); margin:6px 0 24px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin-bottom:16px; box-shadow:0 1px 3px rgba(26,28,34,.06); }
+  .card h2 { font-size:15px; margin-bottom:10px; }
+  .card h2 .tag { font-size:11px; font-weight:700; color:#fff; background:linear-gradient(135deg,#EA002C,#F47725); border-radius:999px; padding:3px 9px; vertical-align:2px; margin-left:6px; }
+  ul { padding-left:20px; }
+  li { margin:4px 0; }
+  a { color:var(--red); font-weight:700; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  code { background:#EEF0F4; border-radius:6px; padding:2px 7px; font-size:13px; font-family:Consolas,monospace; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px; }
+  .scr { border:1px solid var(--line); border-radius:11px; padding:12px 14px; background:#FAFBFC; }
+  .scr b { display:block; font-size:13.5px; }
+  .scr .d { font-size:12px; color:var(--ink3); margin:2px 0 6px; }
+  .muted { color:var(--ink3); font-size:12.5px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; margin-top:8px; }
+  th, td { border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; }
+  th { color:var(--ink3); font-size:12px; }
+  @media (max-width:640px){ .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><em>AXE-acc</em> — 시제품#2 초기버전 포털</h1>
+  <p class="sub">기존 Mock E-Accounting(E-acc)에 시제품#1 「찍으면 끝」을 머지한 <b>업그레이드판 E-acc</b>입니다.
+    기존 E-acc 기능(법인카드·출장비 정산, 전결규정 상신, 나의 문서함 등)은 <b>전부 유지</b>되고,
+    간편정산(영수증 촬영→OCR→자동매칭→전표) 기능과 모바일 창이 추가되었습니다. · 2026-07-22 · Main_2200_v2</p>
+
+  <div class="card">
+    <h2>🚀 실행 방법 (서버 1개로 PC + 모바일 모두)</h2>
+    <ul>
+      <li><code>cd server</code> → <code>npm install</code> → <code>npm start</code> (포트 4000)</li>
+      <li><b>PC AXE-acc</b>: <a href="http://localhost:4000/">http://localhost:4000/</a> — 상단 메뉴 <b>「간편정산」</b></li>
+      <li><b>모바일 AXE-acc</b>: <a href="http://localhost:4000/m/">http://localhost:4000/m/</a> — 브라우저 모바일 뷰(F12) 권장</li>
+      <li class="muted">시제품#1(별개 솔루션 버전)은 기존처럼 <code>design/serve.js</code> → :5173/5174 로 따로 확인 가능 — 서로 독립</li>
+      <li class="muted">서버 없이 아래 링크(file://)로 열어도 내장 데모 데이터로 동작합니다 (실 API 연동은 서버 실행 시)</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>📱 모바일 화면 4종 <span class="tag">NEW</span></h2>
+    <p class="muted">같은 서버·같은 DB, 창(뷰)만 모바일 전용 — 모바일엔 현장 기능(촬영·확인)만, 전표는 PC에서</p>
+    <div class="grid">
+      <div class="scr"><b>홈</b><div class="d">이번 달 요약 · 미매칭 알림 · 촬영 바로가기</div><a href="../../eaccounting/m/index.html">열기 ›</a></div>
+      <div class="scr"><b>촬영</b><div class="d">카메라/갤러리 → 자동 크롭·OCR → 프리셋 추천 → 저장</div><a href="../../eaccounting/m/capture.html">열기 ›</a></div>
+      <div class="scr"><b>영수증 보관함</b><div class="d">내 영수증 목록 + 매칭 상태</div><a href="../../eaccounting/m/receipts.html">열기 ›</a></div>
+      <div class="scr"><b>일정·프리셋</b><div class="d">TRIP·정기 프리셋 조회 (등록은 PC)</div><a href="../../eaccounting/m/schedule.html">열기 ›</a></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🖥 PC 간편정산 화면 4종 <span class="tag">NEW</span></h2>
+    <p class="muted">E-acc 채름(GNB/SNB) 안에 신규 톱메뉴 「간편정산」으로 편입 — 서버 실행 시 실 API(Preset 엔진) 연동</p>
+    <div class="grid">
+      <div class="scr"><b>영수증 업로드</b><div class="d">드롭존·데모 샘플 7종 → POST /api/receipts (OCR/WoZ)</div><a href="../../eaccounting/quick-upload.html">열기 ›</a></div>
+      <div class="scr"><b>자동매칭</b><div class="d">카드승인내역 매칭 (금액60·일시30·가맹점10, ≥70 자동)</div><a href="../../eaccounting/quick-match.html">열기 ›</a></div>
+      <div class="scr"><b>정산·전표 생성</b><div class="d">전표 초안(계정·부가세·전결라인 자동) → 상신 → 문서함</div><a href="../../eaccounting/quick-settlement.html">열기 ›</a></div>
+      <div class="scr"><b>분석 대시보드</b><div class="d">KPI·최근 등록(실데이터) + 카테고리·출장·예산 분석</div><a href="../../eaccounting/quick-dashboard.html">열기 ›</a></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🏛 기존 E-acc 화면 (전부 유지)</h2>
+    <div class="grid">
+      <div class="scr"><b>메인</b><a href="../../eaccounting/index.html">열기 ›</a></div>
+      <div class="scr"><b>법인카드 정산</b><a href="../../eaccounting/card-settlement.html">열기 ›</a></div>
+      <div class="scr"><b>국내출장비 정산</b><a href="../../eaccounting/travel-domestic.html">열기 ›</a></div>
+      <div class="scr"><b>해외출장비 정산</b><a href="../../eaccounting/travel-foreign.html">열기 ›</a></div>
+      <div class="scr"><b>전표 작성 (전결규정 상신)</b><a href="../../eaccounting/voucher-create.html">열기 ›</a></div>
+      <div class="scr"><b>나의 문서함</b><div class="d">간편정산에서 상신한 전표도 여기서 조회</div><a href="../../eaccounting/mydocs-all.html">열기 ›</a></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🎬 3분 데모 시나리오</h2>
+    <table>
+      <tr><th>#</th><th>단계</th><th>위치</th></tr>
+      <tr><td>1</td><td>영수증 촬영/샘플 선택 → OCR·프리셋 추천 확인 → 저장</td><td>모바일 /m/ 촬영</td></tr>
+      <tr><td>2</td><td>같은 영수증이 서버 저장소에 보임 → 매칭 실행 (score 표시)</td><td>PC 간편정산 › 자동매칭</td></tr>
+      <tr><td>3</td><td>전표 초안(계정과목·부가세·전결라인 자동) → 상신</td><td>PC 간편정산 › 정산·전표 생성</td></tr>
+      <tr><td>4</td><td>상신된 전표·증빙(📎) 확인 — 기존 E-acc 흐름과 합류</td><td>PC 나의 문서함</td></tr>
+    </table>
+    <p class="muted" style="margin-top:8px">초기화: <code>POST /api/reset</code> — 서버 재시작 없이 시드 데이터로 복구</p>
+  </div>
+
+  <div class="card">
+    <h2>📄 문서</h2>
+    <ul>
+      <li>설계 스펙: <code>docs/superpowers/specs/2026-07-22-eacc-v2-integration-design.md</code></li>
+      <li>구현 계획: <code>docs/superpowers/plans/2026-07-22-eacc-v2-integration.md</code></li>
+      <li>API 계약: <code>docs/02-API-CONTRACT.md</code> (v1.2 Preset 엔진 — 이번 통합은 스키마 변경 없음)</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
