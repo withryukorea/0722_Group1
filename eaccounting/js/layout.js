@@ -92,9 +92,15 @@ function renderChrome(opts) {
         <span class="sub">이노베이션<br>E&amp;S</span>
         <span class="sys">e-Accounting System</span>
       </a>
-      <nav>${topMenu.map(m =>
-        `<a class="top-item${m === opts.top ? ' active' : ''}" href="${EACC.topLinks[m]}">${m}</a>`
-      ).join('<span class="sep"></span>')}</nav>
+      <nav>${topMenu.map(m => {
+        const sb = EACC.sidebars[m];
+        const drop = sb ? `<div class="top-drop">${sb.items.map(it => {
+          const href = it.href || (it.children && (it.children.find(c => c.href) || {}).href) || '#';
+          return `<a href="${href}"><span class="di">${it.icon || ''}</span>${it.label}</a>`;
+        }).join('')}</div>` : '';
+        return `<span class="top-wrap" data-menu="${m}">
+          <a class="top-item${m === opts.top ? ' active' : ''}" href="${EACC.topLinks[m]}">${m}</a>${drop}</span>`;
+      }).join('<span class="sep"></span>')}</nav>
       <div class="util"><span class="star">☆</span><span class="lang">🇰🇷 KOR ▾</span></div>
     </header>`;
   }
@@ -122,5 +128,13 @@ function renderChrome(opts) {
   const bc = document.getElementById('breadcrumb');
   if (bc && opts.breadcrumb) {
     bc.innerHTML = '🏠 › ' + opts.breadcrumb.join(' › ');
+  }
+
+  // 미리보기 편의: ?drop=메뉴명 이면 해당 드롭다운을 열어둔 채 표시 (스크린샷/시연용)
+  const dropParam = new URLSearchParams(location.search).get('drop');
+  if (dropParam) {
+    document.querySelectorAll('.top-wrap').forEach(w => {
+      if (w.dataset.menu === dropParam) w.classList.add('open');
+    });
   }
 }

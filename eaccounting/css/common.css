@@ -43,6 +43,16 @@ button { font-family: inherit; cursor: pointer; }
 .gnb .logo .sys { font-size: 17px; font-weight: 600; margin-left: 4px; white-space: nowrap; }
 .gnb nav { display: flex; align-items: center; }
 .gnb nav .sep { width: 1px; height: 14px; background: rgba(255,255,255,.25); }
+.gnb nav .top-wrap { position: relative; display: flex; align-items: center; height: 64px; }
+.gnb nav .top-drop { display: none; position: absolute; top: 63px; left: 0; background: #fff;
+  border: 1px solid var(--pink); border-top: none; border-radius: 0 0 10px 10px; min-width: 216px;
+  padding: 8px 0 10px; z-index: 80; box-shadow: 0 12px 26px rgba(18,22,42,.2); }
+.gnb nav .top-wrap:hover .top-drop, .gnb nav .top-wrap.open .top-drop { display: block; }
+.gnb nav .top-drop a { display: flex; align-items: center; gap: 11px; padding: 13px 22px;
+  color: var(--text); font-size: 14.5px; font-weight: 600; white-space: nowrap; border-radius: 0; }
+.gnb nav .top-drop a .di { font-size: 15px; color: #7b8494; }
+.gnb nav .top-drop a:hover { color: var(--pink); background: #fdf3f7; }
+.gnb nav .top-drop a:hover .di { color: var(--pink); }
 .gnb nav .top-item {
   padding: 8px 18px; margin: 0 4px; border-radius: 6px;
   font-size: 15px; font-weight: 700; white-space: nowrap;
@@ -110,9 +120,9 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 13px; color: var(--text);
 }
 .btn-search {
-  flex-shrink: 0; width: 96px; height: 76px;
-  background: var(--pink); color: #fff; border: none; border-radius: 8px;
-  font-size: 16px; font-weight: 700;
+  flex-shrink: 0; width: 90px; height: 46px;
+  background: var(--pink); color: #fff; border: none; border-radius: 6px;
+  font-size: 15px; font-weight: 700;
 }
 .btn-search:hover { filter: brightness(.95); }
 

@@ -17,8 +17,9 @@
     <div id="breadcrumb" class="breadcrumb"></div>
     <h2 class="page-title">법인카드 정산 <span class="fav">★</span></h2>
 
-    <!-- 검색 필터 -->
-    <div class="filter-box">
+    <!-- 검색 필터 (안내문 포함) -->
+    <div class="filter-box" style="display:block;">
+      <div style="display:flex; align-items:center; gap:20px;">
       <div class="filter-grid">
         <div class="field">
           <label>사용일자</label>
@@ -38,9 +39,9 @@
         <div class="field"><label>가맹점</label><div class="ctrl"><input type="text" id="f-merchant"></div></div>
       </div>
       <button class="btn-search" onclick="applyFilter()">조회</button>
+      </div>
+      <div class="notice-bar" style="margin-top:14px;"><span class="i">i</span>취소된 카드내역도 모두 정산이 필요합니다 정산시 결제취소건 모두 부가세없음에 체크하여 주시기 바랍니다.</div>
     </div>
-
-    <div class="notice-bar"><span class="i">i</span>취소된 카드내역도 모두 정산이 필요합니다 정산시 결제취소건 모두 부가세없음에 체크하여 주시기 바랍니다.</div>
 
     <!-- 툴바 -->
     <div class="toolbar">
@@ -134,7 +135,7 @@ function renderTable() {
       <td><input type="checkbox" class="row-chk" value="${t.id}"></td>
       <td>${t.useDate}</td>
       <td>${t.payAt}</td>
-      <td class="l">${t.merchant}</td>
+      <td>${t.merchant}</td>
       <td>${t.biz}</td>
       <td class="r">${t.amount.toLocaleString('ko-KR')}</td>
       <td>${t.owner}</td>
