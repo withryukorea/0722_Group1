@@ -14,6 +14,7 @@ const EACC = {
 
   // 상단 메뉴 → 파일명 매핑 (다른 툴이 만드는 화면과 합칠 때 여기만 고치면 됨)
   topLinks: {
+    '간편정산': 'quick-upload.html',
     '법인카드': 'card-settlement.html',
     '전불/출장비': 'travel-foreign.html',
     '매입': '#',
@@ -24,6 +25,16 @@ const EACC = {
   },
 
   sidebars: {
+    '간편정산': {
+      title: '간편정산', titleIcon: '⚡',
+      items: [
+        { label: '영수증 업로드', icon: '📸', href: 'quick-upload.html' },
+        { label: '자동매칭', icon: '🔗', href: 'quick-match.html' },
+        { label: '정산·전표 생성', icon: '🧾', href: 'quick-settlement.html' },
+        { label: '분석 대시보드', icon: '📊', href: 'quick-dashboard.html' },
+        { label: '모바일에서 촬영', icon: '📱', href: 'm/index.html' },
+      ],
+    },
     '법인카드': {
       title: '법인카드', titleIcon: '💳',
       items: [
