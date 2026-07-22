@@ -1,0 +1,134 @@
+[
+  {
+    "id": "tx_001",
+    "cardLast4": "1234",
+    "merchant": "스시로 신주쿠점",
+    "amount": 8800,
+    "currency": "JPY",
+    "amountKRW": 79200,
+    "approvedAt": "2026-07-15T19:32:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_002",
+    "cardLast4": "1234",
+    "merchant": "도쿄메트로",
+    "amount": 400,
+    "currency": "JPY",
+    "amountKRW": 3600,
+    "approvedAt": "2026-07-15T09:10:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_003",
+    "cardLast4": "1234",
+    "merchant": "TOKYO CITY HOTEL",
+    "amount": 42000,
+    "currency": "JPY",
+    "amountKRW": 378000,
+    "approvedAt": "2026-07-14T15:02:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_004",
+    "cardLast4": "1234",
+    "merchant": "이치란 시부야점",
+    "amount": 1200,
+    "currency": "JPY",
+    "amountKRW": 10800,
+    "approvedAt": "2026-07-16T12:40:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_005",
+    "cardLast4": "1234",
+    "merchant": "하네다공항 택시",
+    "amount": 6800,
+    "currency": "JPY",
+    "amountKRW": 61200,
+    "approvedAt": "2026-07-17T08:05:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_006",
+    "cardLast4": "1234",
+    "merchant": "STARBUCKS SHIBUYA",
+    "amount": 720,
+    "currency": "JPY",
+    "amountKRW": 6480,
+    "approvedAt": "2026-07-16T08:30:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_007",
+    "cardLast4": "1234",
+    "merchant": "이자카야 토리키조쿠 신주쿠",
+    "amount": 15600,
+    "currency": "JPY",
+    "amountKRW": 140400,
+    "approvedAt": "2026-07-15T21:12:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_008",
+    "cardLast4": "1234",
+    "merchant": "게이세이 스카이라이너",
+    "amount": 2570,
+    "currency": "JPY",
+    "amountKRW": 23130,
+    "approvedAt": "2026-07-14T13:20:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_009",
+    "cardLast4": "1234",
+    "merchant": "GS25 판교테크노밸리점",
+    "amount": 12400,
+    "currency": "KRW",
+    "amountKRW": 12400,
+    "approvedAt": "2026-07-20T15:20:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_010",
+    "cardLast4": "1234",
+    "merchant": "CU 코엑스몰점",
+    "amount": 9800,
+    "currency": "KRW",
+    "amountKRW": 9800,
+    "approvedAt": "2026-07-21T14:05:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_011",
+    "cardLast4": "1234",
+    "merchant": "ANTHROPIC",
+    "amount": 20,
+    "currency": "USD",
+    "amountKRW": 27600,
+    "approvedAt": "2026-07-19T03:00:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  },
+  {
+    "id": "tx_012",
+    "cardLast4": "1234",
+    "merchant": "교보문고 광화문점",
+    "amount": 33000,
+    "currency": "KRW",
+    "amountKRW": 33000,
+    "approvedAt": "2026-07-18T18:30:00+09:00",
+    "category": null,
+    "status": "unmatched"
+  }
+]
