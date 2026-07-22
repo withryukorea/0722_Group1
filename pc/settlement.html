@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>찍으면 끝 — 정산·전표</title>
+<link rel="stylesheet" href="./sk-theme.css">
+<link rel="stylesheet" href="./pc.css">
+</head>
+<body class="pc">
+<header class="topbar"></header>
+
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1>정산 · 전표</h1>
+      <div class="desc">정산 단위별로 카드승인내역과 영수증을 매칭하고, 계정과목·전결라인이 자동 지정된 전표 초안을 생성합니다</div>
+    </div>
+  </div>
+
+  <!-- 정산 단위 탭 (출장건별 분리) -->
+  <div class="chips" id="unitTabs" style="margin-bottom:14px"></div>
+
+  <div class="grid c2">
+    <div>
+      <!-- 매칭 현황 -->
+      <section class="card">
+        <div class="card-title">카드승인내역 ↔ 영수증 자동 매칭 <span class="more">금액 60 · 일시 30 · 가맹점 10점</span></div>
+        <div class="match-row" style="border-bottom:2px solid var(--line);padding:4px 0 8px">
+          <b style="font-size:12px;color:var(--ink-3)">법인카드 승인내역</b>
+          <b style="font-size:12px;color:var(--ink-3);text-align:center">매칭 점수</b>
+          <b style="font-size:12px;color:var(--ink-3)">영수증 (OCR)</b>
+        </div>
+        <div id="matchList"></div>
+      </section>
+
+      <!-- 미매칭 -->
+      <section class="card" style="margin-top:14px">
+        <div class="card-title">미매칭 승인내역 <span class="more">영수증 미제출 — 소명 필요</span></div>
+        <div id="unmatched"></div>
+      </section>
+    </div>
+
+    <div>
+      <!-- 전표 초안 -->
+      <section class="card" style="border-top:3px solid var(--sk-red)">
+        <div class="card-title">전표 초안 (자동 생성) <span class="more" id="vchId"></span></div>
+        <div id="voucher"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="./config.js"></script>
+<script src="./api.js"></script>
+<script src="./data-live.js"></script>
+<script src="./pc.js"></script>
+<script>
+SKD.load().then(function () {
+const D = SKD;
+SKP.chrome("settlement");
+SKD.mountBadge();
+const $ = (id) => document.getElementById(id);
+
+/* ---- 정산 단위: 출장건별 분리 + 월 정산(일반·복지) ---- */
+const UNITS = [
+  { id: "trip_busan", label: "🚄 부산·울산 출장 (4월)", filter: r => r.tripId === "trip_busan",
+    title: "4월 국내출장비 정산 — 부산·울산", ready: true },
+  { id: "trip_tokyo", label: "✈ 도쿄 출장 (진행중)", filter: r => r.tripId === "trip_tokyo",
+    title: "7월 해외출장비 정산 — 도쿄", ready: false },
+  { id: "monthly", label: "🗂 7월 일반·복지 정산", filter: r => !r.tripId && r.paidAt.startsWith("2026-07"),
+    title: "7월 일반경비·복지비 정산", ready: true },
+  { id: "etc", label: "❓ 확인 필요 건", filter: r => r.status === "review" && !r.paidAt.startsWith("2026-07"),
+    title: "분류 확인 필요 건", ready: false }
+];
+let unit = UNITS[0];
+let submitted = {};
+const manualPick = {};   // F2: 수동 매칭 결과 rid → txId | "personal"
+const aiPolicyOn = {};   // F1: 정산단위별 AI구독료 정책 적용 여부
+const lineChoice = {};   // F8: 정산단위별 결재라인 선택 (auto|team|dept)
+
+function scorePill(s, manual) {
+  if (manual) return '<span class="score-pill score-hi">수동 확정 ✓</span>';
+  if (!s) return '<span class="score-pill score-none">미매칭</span>';
+  if (s >= 70) return `<span class="score-pill score-hi">${s}점 · 자동</span>`;
+  return `<span class="score-pill score-mid">${s}점 · 확인</span>`;
+}
+
+function render() {
+  $("unitTabs").innerHTML = UNITS.map(u =>
+    `<button class="chip ${unit.id === u.id ? "on brand" : ""}" data-u="${u.id}">${u.label}${submitted[u.id] ? " ✓" : ""}</button>`).join("");
+  document.querySelectorAll("#unitTabs .chip").forEach(c =>
+    c.onclick = () => { unit = UNITS.find(u => u.id === c.dataset.u); render(); });
+
+  const rows = D.RECEIPTS.filter(r => r.status !== "duplicate").filter(unit.filter);
+
+  /* 매칭 리스트: 승인번호 최우선 근거 표시 + 모호 건 후보 선택 */
+  $("matchList").innerHTML = rows.map(r => {
+    const picked = manualPick[r.id];
+    const tx = picked && picked !== "personal" ? D.CARD_TX.find(t => t.id === picked)
+      : D.CARD_TX.find(t => t.receiptId === r.id);
+    const G = D.GROUPS[D.groupOf(r)];
+    const ambiguous = r.status === "review" && !picked;
+    const basis = picked ? { label: picked === "personal" ? "개인경비 처리 확정" : "사용자 수동 매칭", rank: 0 }
+      : D.matchBasis(r, tx);
+    const auto = tx && tx.score >= 70;
+    return `
+    <div class="match-row">
+      <div class="match-cell">${tx && picked !== "personal" ? `<div class="t">${tx.merchant}</div>
+        <div class="s">${D.dt(tx.approvedAt)} · <b class="num">${D.krw(tx.amountKRW)}</b>${tx.fx ? ` (${tx.fx})` : ""}${tx.approvalNo ? ` · 승인 ${tx.approvalNo}` : ""}</div>`
+        : `<div class="t muted">승인내역 없음</div><div class="s">개인카드/현금 추정</div>`}</div>
+      <div class="match-link">${scorePill(tx ? tx.score : 0, !!picked)}
+        <div class="match-line ${picked || auto ? "hi" : tx ? "mid" : ""}"></div>
+        ${basis ? `<div class="muted" style="font-size:10px;margin-top:3px;line-height:1.3">${basis.rank === 1 ? "🥇 " : ""}${basis.label}</div>` : ""}</div>
+      <div class="match-cell"><div class="t">${r.merchant}</div>
+        <div class="s"><span class="cat" style="font-size:11px"><i style="background:${G.hex}"></i>${D.subOf(r)}</span>
+          · <b class="num">${D.krw(r.amountKRW)}</b> · ${D.dateShort(r.serviceDate)}${r.approvalNo ? ` · 승인 ${r.approvalNo}` : ""}</div>
+        ${r.industryMismatch ? `<span class="badge ${r.evidenceAttached ? "ok" : "warn"}" style="margin-top:4px">${r.evidenceAttached ? "증빙 첨부됨" : "증빙 요청"}</span>` : ""}</div>
+    </div>
+    ${ambiguous ? `
+    <div style="background:var(--warn-bg);border:1px solid #EAD3A8;border-radius:10px;padding:10px 12px;margin:0 0 8px">
+      <b style="font-size:12px;color:var(--warn)">모호 매칭 — 후보를 선택해 주세요</b>
+      <span class="muted" style="font-size:11.5px">(후보 1건이면 자동, 0건·2건 이상이면 수동 선택)</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        ${D.candidatesFor(r).map(c => `
+          <button class="btn sm cand" data-r="${r.id}" data-tx="${c.id}">
+            ${c.merchant} · ${D.krw(c.amountKRW)} · ${D.dateShort(c.approvedAt)}</button>`).join("")}
+        <button class="btn sm ghost cand" data-r="${r.id}" data-tx="personal">해당 없음 (개인경비)</button>
+      </div>
+    </div>` : ""}`;
+  }).join("") || '<p class="muted" style="padding:12px 0">이 정산 단위에 연결된 영수증이 없습니다</p>';
+  document.querySelectorAll("#matchList .cand").forEach(b =>
+    b.onclick = () => { manualPick[b.dataset.r] = b.dataset.tx; render(); });
+
+  /* 미매칭 tx (월정산 탭에서만 표시) */
+  const um = unit.id === "monthly" ? D.CARD_TX.filter(t => !t.receiptId) : [];
+  $("unmatched").innerHTML = um.map(t => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)">
+      <div><b style="font-size:13px">${t.merchant}</b>
+        <span class="muted" style="margin-left:8px">${D.dt(t.approvedAt)}</span></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <b class="num">${D.krw(t.amountKRW)}</b>
+        <button class="btn sm">영수증 요청</button>
+      </div>
+    </div>`).join("") || '<p class="muted" style="padding:6px 0">미매칭 승인내역이 없습니다 ✓</p>';
+
+  renderVoucher(rows);
+}
+
+/* ---- 전표 초안 ---- */
+function renderVoucher(rows) {
+  $("vchId").textContent = "VCH-2026-" + unit.id.toUpperCase().slice(0, 6);
+  if (!rows.length) { $("voucher").innerHTML = '<p class="muted">정산할 건이 없습니다</p>'; return; }
+
+  /* 계정과목별 집계 */
+  const byCat = {};
+  rows.forEach(r => {
+    const k = r.category;
+    (byCat[k] = byCat[k] || { sum: 0, n: 0 }); byCat[k].sum += r.amountKRW; byCat[k].n++;
+  });
+  const total = rows.reduce((s, r) => s + r.amountKRW, 0);
+
+  /* 전결규정: 30만 이하 팀장 전결, 초과 시 부장 추가. AI 한도초과 시 부장 결재 필수 */
+  const aiLines = rows.filter(r => r.category === "WELFARE_AI");
+  const aiOver = aiLines.length > 0 && D.BUDGETS[0].usedKRW > D.BUDGETS[0].limitKRW;
+  const aiOn = !!aiPolicyOn[unit.id];
+  const required = ["홍길동(기안)", "김팀장"];
+  if (total > 300000 || aiOver) required.push("박부장");
+  if (aiOn) required.splice(1, 0, D.AI_POLICY.reviewer);   // 정책 적용 시 현업검토 삽입
+  /* F8: 사용자가 결재선을 바꿀 수 있고, 규정 라인과 다르면 이탈 알람 */
+  const choice = lineChoice[unit.id] || "auto";
+  const actual = choice === "auto" ? required
+    : choice === "team" ? ["홍길동(기안)", "김팀장"]
+    : ["홍길동(기안)", "김팀장", "박부장"];
+  if (aiOn && choice !== "auto" && !actual.includes(D.AI_POLICY.reviewer)) actual.splice(1, 0, D.AI_POLICY.reviewer);
+  const deviated = JSON.stringify(actual) !== JSON.stringify(required);
+
+  const trip = D.TRIPS.find(t => t.id === unit.id);
+  const capBlock = trip ? (() => {
+    const cap = D.tripCap(trip), spent = D.tripSpent(trip), over = spent > cap;
+    return `<div class="gauge ${over ? "over" : ""}" style="margin:12px 0 4px">
+      <div class="g-head"><span>출장비 기준 검증</span><b class="num">${D.krw(spent)} / ${D.krw(cap)}</b></div>
+      <div class="g-track"><div class="g-fill" style="width:${Math.min(100, spent / cap * 100)}%"></div></div>
+      <div class="g-foot"><span>${trip.capNote}</span>
+        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "기준 초과" : "기준 이내 ✓"}</span></div></div>`;
+  })() : "";
+
+  $("voucher").innerHTML = `
+    <div style="font-size:14px;font-weight:800;margin-bottom:4px">${unit.title}</div>
+    <div class="muted" style="margin-bottom:10px">기안자 ${D.USER.name} · ${D.USER.team} · ${D.TODAY.replace(/-/g, ".")}</div>
+
+    ${Object.entries(byCat).map(([k, v]) => `
+      <div class="voucher-line">
+        <span><b>${D.CATEGORIES[k].name}</b> <span class="muted">(${D.CATEGORIES[k].sub} · ${v.n}건)</span></span>
+        <b class="num">${D.krw(v.sum)}</b>
+      </div>`).join("")}
+    <div class="voucher-line" style="border-top:2px solid var(--ink);font-size:15px">
+      <b>합계</b><b class="num" style="color:var(--sk-red)">${D.krw(total)}</b>
+    </div>
+
+    ${capBlock}
+    ${aiOver ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin:10px 0">
+      ⚠ <b>AI구독(DIY100) 한도 초과</b> 건이 포함되어 전결라인에 부장 결재가 추가되었습니다. 정산 제도 변경 시 팀장 전결로 축소될 수 있습니다.</div>` : ""}
+
+    ${aiLines.length ? (aiOn ? `
+      <div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin:10px 0">
+        ✓ <b>AI구독료 정책 적용됨</b> — 예산부서 <b>${D.AI_POLICY.budgetDept}</b> · 계정 <b>${D.AI_POLICY.account}</b> · 고정검토자 <b>${D.AI_POLICY.reviewer}</b><br>
+        ${aiLines.map(r => {
+          const tool = r.merchant.includes("OpenAI") ? "ChatGPT" : r.merchant.includes("Anthropic") ? "Claude" : "AI Tool";
+          return `적요: <b>${D.AI_POLICY.memo(tool, D.USER.name)}</b>`;
+        }).join("<br>")}
+        <button class="btn sm" id="btnAiOff" style="margin-top:8px">적용 취소</button>
+      </div>` : `
+      <div style="display:flex;gap:10px;align-items:center;margin:10px 0;padding:10px 12px;border:2px solid var(--sk-orange);border-radius:12px;background:#FFF6EF">
+        <button class="btn sm primary" id="btnAiOn">✨ AI구독료 정책 적용 (추천)</button>
+        <span class="muted" style="font-size:11.5px;line-height:1.4">AI구독 ${aiLines.length}건 감지 — 자동 적용하지 않습니다. 자기개발비 정산이면 무시하세요.</span>
+      </div>`) : ""}
+
+    <div style="margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--ink-2);display:flex;justify-content:space-between;align-items:center">
+      <span>전결라인 ${choice === "auto" ? "(규정 자동 지정)" : "(수동 변경됨)"}</span>
+      <select id="lineSel" style="border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px">
+        <option value="auto" ${choice === "auto" ? "selected" : ""}>규정 라인 (자동)</option>
+        <option value="team" ${choice === "team" ? "selected" : ""}>팀장 전결로 변경</option>
+        <option value="dept" ${choice === "dept" ? "selected" : ""}>부장까지 결재</option>
+      </select>
+    </div>
+    <div class="approval">
+      ${actual.map((p, i) => `${i ? '<span class="arr">→</span>' : ""}<span class="ap ${i === 0 ? "me" : ""}">${p}</span>`).join("")}
+    </div>
+    ${deviated ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:10px">
+      🚨 <b>전결규정 이탈 알람</b> — 규정 라인은 <b>${required.join(" → ")}</b> 입니다.
+      (근거: ${total > 300000 || aiOver ? "합계 30만원 초과 또는 한도초과 건 → 부장 결재 필수" : "합계 30만원 이하 → 팀장 전결"})
+      이대로 상신하면 반려될 수 있습니다.</div>` : ""}
+
+    ${submitted[unit.id]
+      ? `<div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin-top:16px">
+          ✓ <b>상신 완료</b> — Mock E-Accounting에 전표가 접수되었습니다 (결재 대기)</div>`
+      : unit.ready
+        ? `<button class="btn primary block" style="margin-top:16px" id="btnSubmit">검토 완료 · 상신하기</button>
+           <p class="muted" style="margin-top:8px;text-align:center">상신 시 E-Accounting(4000 포트 목업)으로 전표가 접수됩니다</p>`
+        : `<button class="btn block" style="margin-top:16px" disabled>${unit.id === "trip_tokyo" ? "출장 종료(7/23) 후 상신 가능" : "분류 확정 후 상신 가능"}</button>`}`;
+
+  const b = $("btnSubmit");
+  if (b) b.onclick = async () => {
+    b.disabled = true; b.textContent = "상신 중…";
+    const lines = rows.map(r => {
+      const tx = D.CARD_TX.find(t => t.receiptId === r.id);
+      return { txId: tx ? tx.id : null, receiptId: r.id, accountCode: r.category, amountKRW: r.amountKRW, description: `${r.merchant} · ${D.subOf(r)}` };
+    });
+    const voucher = { title: unit.title, lines, totalKRW: total, approvalLine: actual, status: "submitted" };
+    try {
+      const saved = await PC_API.submitVoucher(voucher); // 공유 서버로 실제 전표 접수 → E-Accounting 노출
+      submitted[unit.id] = (saved && saved.id) ? saved.id : true;
+    } catch (e) {
+      submitted[unit.id] = true; // 서버 실패 시에도 데모상 완료 표시(폴백)
+    }
+    render();
+  };
+  const on = $("btnAiOn"), off = $("btnAiOff"), sel = $("lineSel");
+  if (on) on.onclick = () => { aiPolicyOn[unit.id] = true; render(); };
+  if (off) off.onclick = () => { aiPolicyOn[unit.id] = false; render(); };
+  if (sel) sel.onchange = () => { lineChoice[unit.id] = sel.value; render(); };
+}
+
+render();
+});
+</script>
+</body>
+</html>

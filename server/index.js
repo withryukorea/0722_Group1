@@ -39,9 +39,14 @@ app.use("/eaccounting", express.static(path.join(__dirname, "..", "eaccounting")
 // ── 관리자 웹화면 (정적 파일) → /admin ────────────────────────
 app.use("/admin", express.static(path.join(__dirname, "public")));
 
+// ── PC 웹(분석·정산 대시보드) → /pc ───────────────────────────
+// 모바일 웹과 "동일한 데이터"를 같은 서버 API(same-origin)로 읽는 독립 페이지.
+app.use("/pc", express.static(path.join(__dirname, "..", "pc")));
+
 app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);
   console.log(`  ├ 직원용 화면 : http://localhost:${PORT}/`);
+  console.log(`  ├ PC 웹       : http://localhost:${PORT}/pc/`);
   console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/admin/`);
   console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
 });
