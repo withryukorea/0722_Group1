@@ -48,6 +48,7 @@ router.post("/", (req, res) => {
         ? body.lines.reduce((s, l) => s + (l.amountKRW || 0), 0)
         : 0),
     approvalLine: body.approvalLine || [],
+    approvalLineDetail: body.approvalLineDetail || null, // { draft, reviewers[], approve } — 문서함 표시용
     status: "submitted",
     submittedAt: new Date().toISOString(),
   };

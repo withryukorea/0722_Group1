@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>e-Accounting - 법인카드 정산</title>
 <link rel="stylesheet" href="css/common.css">
+<style>
+/* [일반 정산 | 정산단위 정산] 토글 (sot/02 정산 방식 선택) */
+.seg { display:inline-flex; border:1px solid #c6ccd6; border-radius:6px; overflow:hidden; background:#fff; }
+.seg button { height:34px; padding:0 18px; border:none; background:#fff; font-size:13px; color:#555; cursor:pointer; }
+.seg button + button { border-left:1px solid #c6ccd6; }
+.seg button.on { background:var(--pink, #e6007e); color:#fff; font-weight:700; }
+.preset-bar { display:none; align-items:center; gap:10px; }
+.preset-bar select { height:34px; min-width:240px; border:1px solid #c6ccd6; border-radius:5px; padding:0 8px; font-size:13px; }
+.preset-summary { font-size:13px; color:#555; }
+</style>
 </head>
 <body>
 
@@ -16,6 +26,18 @@
   <main class="content">
     <div id="breadcrumb" class="breadcrumb"></div>
     <h2 class="page-title">법인카드 정산 <span class="fav">★</span></h2>
+
+    <!-- 정산 방식 선택: 일반(낱개 선택) | 정산단위(배정된 정산단위로 태깅된 미정산 건 자동 필터·선택) -->
+    <div style="display:flex; align-items:center; gap:14px; margin:0 0 14px;">
+      <div class="seg">
+        <button type="button" id="seg-normal" class="on" onclick="setMode('normal')">일반 정산</button>
+        <button type="button" id="seg-preset" onclick="setMode('preset')">정산단위 정산</button>
+      </div>
+      <div class="preset-bar" id="preset-bar">
+        <select id="preset-select" onchange="applyPresetFilter()"><option value="">정산단위 선택</option></select>
+        <span class="preset-summary" id="preset-summary"></span>
+      </div>
+    </div>
 
     <!-- 검색 필터 (안내문 포함) -->
     <div class="filter-box" style="display:block;">
@@ -170,12 +192,69 @@ function toggleAll(master) {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = master.checked; });
 }
 
+/* ── 정산 방식: 일반 정산 | 정산단위 정산 (sot/02·03 — 신규 API 없이 receipt.presetId 클라이언트 필터) ── */
+let mode = 'normal';
+let PRESETS = [];              // 활성 정산단위 목록
+let receiptByTx = new Map();   // txId → 매칭된 영수증 (presetId 태깅 확인용)
+
+async function setMode(m) {
+  document.getElementById('seg-normal').classList.toggle('on', m === 'normal');
+  document.getElementById('seg-preset').classList.toggle('on', m === 'preset');
+  const bar = document.getElementById('preset-bar');
+  if (m === 'normal') {
+    mode = m;
+    bar.style.display = 'none';
+    view = ALL.slice();
+    renderTable();
+    return;
+  }
+  if (!apiMode) {
+    alert('정산단위 정산은 서버 연결이 필요합니다. (영수증 태깅 정보를 서버에서 읽어옵니다)');
+    setMode('normal');
+    return;
+  }
+  mode = m;
+  bar.style.display = 'flex';
+  if (!PRESETS.length) {
+    const [presets, receipts] = await Promise.all([
+      eaccApi('/api/presets?active=true'),
+      eaccApi('/api/receipts'),
+    ]);
+    PRESETS = Array.isArray(presets) ? presets : [];
+    receiptByTx = new Map((Array.isArray(receipts) ? receipts : [])
+      .filter(r => r.matchedTxId).map(r => [r.matchedTxId, r]));
+    document.getElementById('preset-select').innerHTML =
+      '<option value="">정산단위 선택</option>' +
+      PRESETS.map(p => `<option value="${p.id}">[${p.type === 'TRIP' ? '출장' : '상시'}] ${p.name}</option>`).join('');
+  }
+  applyPresetFilter();
+}
+
+function applyPresetFilter() {
+  const pid = document.getElementById('preset-select').value;
+  const sum = document.getElementById('preset-summary');
+  if (!pid) { view = []; renderTable(); sum.textContent = '정산단위를 선택하세요.'; return; }
+  // 이 정산단위로 태깅된(영수증 presetId 매칭) 미정산 카드내역만 필터
+  view = ALL.filter(t => t.status === '미정산' && (receiptByTx.get(t.id) || {}).presetId === pid);
+  renderTable();
+  document.querySelectorAll('.row-chk').forEach(c => { c.checked = true; });  // 자동 선택
+  const total = view.reduce((s, t) => s + t.amount, 0);
+  sum.innerHTML = view.length
+    ? `<b>${view.length}</b>건 자동 선택 · 합계 <b>${total.toLocaleString('ko-KR')}</b>원`
+    : '이 정산단위로 태깅된 미정산 카드내역이 없습니다.';
+}
+
 function createVoucher() {
   const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
   if (checked.length === 0) { alert('전표를 작성할 카드내역을 선택해 주세요.'); return; }
   // 선택 내역을 들고 전표작성 화면으로 이동 → 거기서 유형 선택 팝업이 먼저 뜬다
   const rows = ALL.filter(t => checked.includes(t.id));
-  sessionStorage.setItem('voucherDraft', JSON.stringify({ apiMode, rows }));
+  const preset = mode === 'preset' ? PRESETS.find(p => p.id === document.getElementById('preset-select').value) : null;
+  sessionStorage.setItem('voucherDraft', JSON.stringify({
+    apiMode, rows,
+    presetId: preset ? preset.id : null,     // 정산단위 정산으로 진입 시 전표작성 화면에 배너 표시
+    presetName: preset ? preset.name : null,
+  }));
   location.href = 'voucher-create.html';
 }
 
