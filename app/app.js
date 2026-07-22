@@ -304,7 +304,13 @@ function receiptRow(receipt) {
   const ocr = receipt.ocr || {};
   const key = categoryKey({ merchant: ocr.merchant, accountCode: receipt.accountCode });
   const category = CATEGORY_META[key];
-  return `<article class="receipt-row"><div class="receipt-mini">${receipt.id === state.receipt?.id ? receiptVisual() : receiptThumbnail(receipt)}</div><div><b>${escapeHtml(ocr.merchant || '분석 중인 영수증')}</b><small><i style="background:${category.color}"></i>${category.name} · ${dateTime(ocr.paidAt)}</small><span class="status ${receipt.matchedTxId ? 'matched' : 'needed'}">${receipt.matchedTxId ? '매칭완료' : '확인 필요'}</span></div><strong>${won(ocr.amount)}</strong></article>`;
+  const dup = isDuplicateReceipt(receipt);
+  const foreign = ocr.currency && ocr.currency !== 'KRW';
+  const statusClass = dup ? 'dup' : (receipt.matchedTxId ? 'matched' : 'needed');
+  const statusText = dup ? '중복' : (receipt.matchedTxId ? '매칭완료' : '확인 필요');
+  // 금액은 원화 환산액을 대표로 보여주고, 외화 영수증은 원문 통화를 함께 표기한다.
+  const amount = `${won(receiptAmountKRW(receipt))}${foreign ? `<small>${escapeHtml(ocr.currency)} ${Number(ocr.amount || 0).toLocaleString('ko-KR')}</small>` : ''}`;
+  return `<article class="receipt-row${dup ? ' is-dup' : ''}"><div class="receipt-mini">${receipt.id === state.receipt?.id ? receiptVisual() : receiptThumbnail(receipt)}</div><div><b>${escapeHtml(ocr.merchant || '분석 중인 영수증')}</b><small><i style="background:${category.color}"></i>${category.name} · ${dateTime(ocr.paidAt)}</small><span class="status ${statusClass}">${statusText}</span></div><strong>${amount}</strong></article>`;
 }
 
 function screenReceipts() {
@@ -317,8 +323,10 @@ function screenReceipts() {
     if (state.receiptFilter === 'matched') return Boolean(receipt.matchedTxId);
     return categoryKey({ merchant: receipt.ocr?.merchant, accountCode: receipt.accountCode }) === state.receiptFilter;
   });
-  const total = visible.reduce((sum, receipt) => sum + Number(receipt.ocr?.amount || 0), 0);
-  root.innerHTML = `<section class="list-screen receipt-screen"><div class="page-heading-mobile"><span class="eyebrow">증빙 보관함</span><h1>촬영한 영수증</h1><p>원본·크롭본·OCR 결과와 카드 매칭 상태를 함께 보관합니다.</p></div><div class="filter-chips sticky-filters">${filters.map(([key, label]) => `<button class="${state.receiptFilter === key ? 'active' : ''}" type="button" data-receipt-filter="${key}">${label}</button>`).join('')}</div><article class="receipt-total"><span>${filters.find(([key]) => key === state.receiptFilter)?.[1]} ${visible.length}건</span><b>${won(total)}</b></article>${visible.length ? `<div class="section-label"><b>2026년 7월</b><span>${visible.length}건</span></div><div class="receipt-list receipt-card">${visible.map(receiptRow).join('')}</div>` : '<div class="empty-state"><span class="empty-receipt" aria-hidden="true"></span><h2>해당 조건의 영수증이 없어요</h2><p>새 영수증을 촬영하면 자동으로 분류됩니다.</p><button class="button primary" data-route="capture">영수증 촬영</button></div>'}<div class="section-label"><b>카드 매칭이 필요하신가요?</b><button type="button" data-route="transactions">승인내역 보기 ›</button></div></section>`;
+  // 합산은 원화 환산액(receiptAmountKRW) 기준 + 중복 문서는 제외한다(집계 일관성).
+  const total = visible.reduce((sum, receipt) => isDuplicateReceipt(receipt) ? sum : sum + receiptAmountKRW(receipt), 0);
+  const dupCount = visible.filter(isDuplicateReceipt).length;
+  root.innerHTML = `<section class="list-screen receipt-screen"><div class="page-heading-mobile"><span class="eyebrow">증빙 보관함</span><h1>촬영한 영수증</h1><p>원본·크롭본·OCR 결과와 카드 매칭 상태를 함께 보관합니다.</p></div><div class="filter-chips sticky-filters">${filters.map(([key, label]) => `<button class="${state.receiptFilter === key ? 'active' : ''}" type="button" data-receipt-filter="${key}">${label}</button>`).join('')}</div><article class="receipt-total"><span>${filters.find(([key]) => key === state.receiptFilter)?.[1]} ${visible.length}건${dupCount ? ` · 중복 ${dupCount}건 제외` : ''}</span><b>${won(total)}</b></article>${visible.length ? `<div class="section-label"><b>2026년 7월</b><span>${visible.length}건</span></div><div class="receipt-list receipt-card">${visible.map(receiptRow).join('')}</div>` : '<div class="empty-state"><span class="empty-receipt" aria-hidden="true"></span><h2>해당 조건의 영수증이 없어요</h2><p>새 영수증을 촬영하면 자동으로 분류됩니다.</p><button class="button primary" data-route="capture">영수증 촬영</button></div>'}<div class="section-label"><b>카드 매칭이 필요하신가요?</b><button type="button" data-route="transactions">승인내역 보기 ›</button></div></section>`;
 }
 
 function screenCapture() {

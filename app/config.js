@@ -9,7 +9,7 @@ const runtime = window.RECEIPT_APP_CONFIG || {};
 export const APP_CONFIG = Object.freeze({
   apiBase: runtime.apiBase ?? (isWeb ? '' : 'http://localhost:4000'),
   demoFallback: runtime.demoFallback ?? true,
-  requestTimeoutMs: runtime.requestTimeoutMs || 9000,
+  requestTimeoutMs: runtime.requestTimeoutMs || 25000,
   eAccountingUrl: runtime.eAccountingUrl || '../eaccounting/card-settlement.html?source=mobile',
 });
 
