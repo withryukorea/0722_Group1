@@ -46,7 +46,8 @@
     <!-- 툴바 -->
     <div class="toolbar">
       <button class="btn btn-dark" onclick="createVoucher()">✎ 전표작성</button>
-      <button class="btn btn-line" onclick="alert('데모 버전에서는 카드검색을 지원하지 않습니다.')">🔍 카드검색</button>
+      <button class="btn btn-pink" onclick="openVoucherPreview()">🧾 미리보기(기안)</button>
+      <button class="btn btn-line" onclick="applyFilter()">🔍 카드검색</button>
       <button class="btn btn-line" onclick="alert('데모 버전에서는 엑셀다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 엑셀다운로드</button>
     </div>
 
@@ -176,6 +177,18 @@ function createVoucher() {
   const rows = ALL.filter(t => checked.includes(t.id));
   sessionStorage.setItem('voucherDraft', JSON.stringify({ apiMode, rows }));
   location.href = 'voucher-create.html';
+}
+
+function openVoucherPreview() {
+  const previewIds = new Set(['tx_001', 'tx_002', 'tx_003', 'tx_004', 'tx_005', 'tx_007']);
+  const source = view.length ? view : ALL;
+  const ids = source.map(t => t.id).filter(id => previewIds.has(id));
+  if (ids.length === 0) {
+    alert('미리보기할 카드 이용내역이 없습니다.');
+    return;
+  }
+  const url = `voucher-preview.html?txIds=${encodeURIComponent(ids.join(','))}`;
+  window.open(url, 'voucherDraftPreview', 'width=1320,height=900,scrollbars=yes,resizable=yes');
 }
 
 load();

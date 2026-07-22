@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>e-Accounting - 나의 문서함 전체조회</title>
+<title>e-Accounting - 나의 문서함</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/mydocs.css">
 </head>
 <body>
 
@@ -15,169 +17,83 @@
 
   <main class="content">
     <div id="breadcrumb" class="breadcrumb"></div>
-    <h2 class="page-title">전체조회 <span class="fav off">★</span></h2>
+    <div class="page-heading">
+      <h2 class="page-title"><span id="view-title">전체조회</span> <span class="fav off">★</span></h2>
+    </div>
 
-    <!-- 검색 필터 -->
-    <div class="filter-box">
+    <section class="filter-box mydocs-filter" aria-label="문서 검색 조건">
       <div class="filter-grid">
-        <div class="field">
-          <select class="lbl-select" id="f-date-kind">
-            <option>기안일자</option><option>전기일자</option><option>증빙일자</option>
+        <div class="field date-field">
+          <select class="lbl-select" id="f-date-kind" aria-label="조회 일자 기준">
+            <option value="draftDate">기안일자</option>
+            <option value="postDate">전기일자</option>
+            <option value="evidDate">증빙일자</option>
           </select>
-          <div class="ctrl">
-            <input type="date" value="2025-07-22"> <span>~</span> <input type="date" value="2026-07-22">
+          <div class="ctrl date-range">
+            <input type="date" id="f-date-from" aria-label="조회 시작일">
+            <span>~</span>
+            <input type="date" id="f-date-to" aria-label="조회 종료일">
           </div>
         </div>
-        <div class="field"><label>결재/공사명</label><div class="ctrl"><input type="text" id="f-title"></div></div>
-        <div class="field"><label>전표유형</label><div class="ctrl">
-          <select id="f-type"><option value="">전체</option><option>매입일반전표 (세금계산서)</option><option>SAP전표</option><option>법인카드전표</option><option>지급결의전표</option><option>거래처 변경/삭제</option></select>
+        <div class="field"><label for="f-title">결재/공사명</label><div class="ctrl"><input type="text" id="f-title"></div></div>
+        <div class="field"><label for="f-type">전표유형</label><div class="ctrl">
+          <select id="f-type"><option value="">전체</option><option>매입일반전표 (세금계산서)</option><option>SAP전표</option><option>법인카드전표</option><option>법인카드전표 (현업완결)</option><option>법인카드전표 (회계팀검토)</option><option>지급결의전표</option><option>거래처 변경/삭제</option></select>
         </div></div>
 
-        <div class="field"><label>진행상태</label><div class="ctrl">
-          <select id="f-progress"><option value="">전체</option><option>결재완료</option><option>결재중</option><option>반려</option></select>
+        <div class="field"><label for="f-progress">진행상태</label><div class="ctrl">
+          <select id="f-progress"><option value="">전체</option><option>결재중</option><option>결재완료</option><option>반려</option><option>철회</option></select>
         </div></div>
-        <div class="field"><label>전표상태</label><div class="ctrl">
-          <select><option>전체</option><option>확정전표</option><option>SAP전표</option></select>
+        <div class="field"><label for="f-slip-state">전표상태</label><div class="ctrl">
+          <select id="f-slip-state"><option value="">전체</option><option>기안전표</option><option>확정전표</option><option>SAP전표</option></select>
         </div></div>
-        <div class="field"><label>전표번호</label><div class="ctrl"><input type="text" id="f-docno"></div></div>
+        <div class="field"><label for="f-docno">전표번호</label><div class="ctrl"><input type="text" id="f-docno"></div></div>
 
-        <div class="field"><label>작성자</label><div class="ctrl"><input type="text" id="f-drafter"></div></div>
-        <div class="field"><label>회사</label><div class="ctrl">
-          <select><option>전체</option><option>SKㅇㅇ 주식회사</option></select>
+        <div class="field"><label for="f-person" id="f-person-label">작성자</label><div class="ctrl"><input type="text" id="f-person"></div></div>
+        <div class="field"><label for="f-company">회사</label><div class="ctrl">
+          <select id="f-company"><option value="">전체</option><option>에스케이이노베이션 주식회사</option></select>
         </div></div>
-        <div class="field"><label>업체명</label><div class="ctrl"><input type="text" id="f-vendor"></div></div>
+        <div class="field"><label for="f-vendor">업체명</label><div class="ctrl"><input type="text" id="f-vendor"></div></div>
       </div>
-      <button class="btn-search" onclick="applyFilter()">조회</button>
-    </div>
+      <div class="filter-actions">
+        <button class="btn-search" id="btn-search" type="button">조회</button>
+        <button class="btn-reset" id="btn-reset" type="button">초기화</button>
+      </div>
+    </section>
 
-    <!-- 툴바 -->
     <div class="toolbar">
-      <button class="btn btn-line" onclick="alert('데모 버전에서는 첨부파일 다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 첨부파일 다운로드</button>
-      <button class="btn btn-pink" onclick="approveChecked('결재완료')">✔ 결재</button>
-      <button class="btn btn-dark" onclick="approveChecked('반려')">↺ 반려</button>
-      <button class="btn btn-line" onclick="alert('데모 버전에서는 엑셀다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 엑셀다운로드</button>
+      <span class="toolbar-spacer"></span>
+      <button class="btn btn-line" id="btn-attachment" type="button"><span class="xls">▦</span> 첨부파일 다운로드</button>
+      <button class="btn btn-pink" id="btn-approve" type="button">✔ 결재</button>
+      <button class="btn btn-dark" id="btn-reject" type="button">↺ 반려</button>
+      <button class="btn btn-dark" id="btn-withdraw" type="button" hidden>↩ 철회</button>
+      <button class="btn btn-line" id="btn-export" type="button"><span class="xls">▦</span> 엑셀다운로드</button>
     </div>
 
-    <!-- 목록 -->
     <div class="table-wrap scroll-y">
-      <table class="grid" style="min-width: 1860px;">
-        <colgroup>
-          <col style="width:44px"><col style="width:36px"><col style="width:44px"><col style="width:170px">
-          <col style="width:112px"><col style="width:88px"><col style="width:88px"><col style="width:88px"><col style="width:88px">
-          <col style="width:70px"><col style="width:104px"><col style="width:70px"><col style="width:82px"><col style="width:82px">
-          <col style="width:120px"><col style="width:140px"><col style="width:180px">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>No.</th><th><input type="checkbox" id="chk-all" onclick="toggleAll(this)"></th>
-            <th>보류</th><th>전표유형</th><th>전표번호</th><th>전기일자</th><th>증빙일자</th><th>기안일자</th><th>지급일자</th>
-            <th>기안자</th><th>부서</th><th>결재자</th><th>진행상태</th><th>전표상태</th><th>금액</th><th>업체명</th><th>회사</th>
-          </tr>
-        </thead>
-        <tbody id="doc-body"></tbody>
+      <table class="grid mydocs-grid" id="doc-table">
+        <colgroup id="doc-colgroup"></colgroup>
+        <thead id="doc-head"></thead>
+        <tbody id="doc-body">
+          <tr class="empty-pad"><td>문서를 불러오는 중입니다.</td></tr>
+        </tbody>
       </table>
     </div>
 
     <div class="table-foot">
       <div class="total">Total : <b id="total">0</b></div>
-      <div class="pagination">
-        <button>«</button><button>‹</button><button class="cur">1</button><button>›</button><button>»</button>
+      <div class="pagination" aria-label="페이지 이동">
+        <button type="button">«</button><button type="button">‹</button><button type="button" class="cur">1</button><button type="button">›</button><button type="button">»</button>
       </div>
-      <div class="psize"><select><option>100</option><option>50</option><option>20</option></select></div>
+      <div class="psize"><select aria-label="페이지당 문서 수"><option>100</option><option>50</option><option>20</option></select></div>
     </div>
   </main>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr-only" id="sync-status" role="status" aria-live="polite"></div>
+
 <script src="js/layout.js"></script>
 <script src="js/mydocs-data.js"></script>
-<script>
-renderChrome({
-  top: '나의 문서함',
-  active: '결재문서>전체조회',
-  breadcrumb: ['메뉴', '나의 문서함', '결재문서', '전체조회'],
-});
-
-let ALL = APPROVAL_DOCS.slice();
-let view = ALL.slice();
-
-/* 서버에 상신된 전표(/api/vouchers)를 목록 맨 위에 '결재중'으로 표시
-   — 법인카드 정산 화면이나 모바일앱에서 상신한 전표가 여기 나타난다 */
-async function loadLive() {
-  const vouchers = await eaccApi('/api/vouchers');
-  if (Array.isArray(vouchers) && vouchers.length) {
-    const live = vouchers.map(v => {
-      const d = v.submittedAt ? v.submittedAt.slice(0, 10).replaceAll('-', '.') : '';
-      return {
-        hold: '', type: '법인카드전표', docNo: v.id,
-        postDate: d, evidDate: d, draftDate: d, payDate: '',
-        drafter: '홍길동', dept: '전력사업기획팀',
-        approver: (v.approvalLine || []).join(' → '),
-        progress: '결재중', slipState: '기안전표',
-        amount: v.totalKRW, vendor: v.title || '', company: 'SKㅇㅇ 주식회사',
-        attach: (v.lines || []).map(l => l.receiptId).filter(Boolean),  // 증빙(영수증) 열람용
-      };
-    }).reverse();
-    ALL = [...live, ...APPROVAL_DOCS];
-    applyFilter();
-  }
-}
-
-function fmtAmount(a) { return a === '' || a == null ? '' : Number(a).toLocaleString('ko-KR'); }
-function progressClass(p) { return p === '반려' ? 'state-red' : p === '결재중' ? 'state-blue' : ''; }
-
-function renderTable() {
-  const body = document.getElementById('doc-body');
-  body.innerHTML = view.map((d, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td><input type="checkbox" class="row-chk" value="${d.docNo}"></td>
-      <td>${d.hold}</td>
-      <td class="l">${d.type}</td>
-      <td>${d.docNo}</td>
-      <td>${d.postDate}</td><td>${d.evidDate}</td><td>${d.draftDate}</td><td>${d.payDate}</td>
-      <td>${d.drafter}</td><td>${d.dept}</td><td>${d.approver}</td>
-      <td class="${progressClass(d.progress)}">${d.progress}</td>
-      <td>${d.slipState}</td>
-      <td class="r">${fmtAmount(d.amount)}</td>
-      <td class="l">${d.vendor}${d.attach && d.attach.length
-        ? ` ${d.attach.map((rid, k) => `<a href="/api/receipts/${rid}/image" target="_blank" title="증빙 영수증 ${rid}" style="color:var(--blue); text-decoration:none;">📎${k + 1}</a>`).join(' ')}`
-        : ''}</td>
-      <td class="l">${d.company}</td>
-    </tr>`).join('');
-  document.getElementById('total').textContent = view.length;
-  document.getElementById('chk-all').checked = false;
-}
-
-function applyFilter() {
-  const type = document.getElementById('f-type').value;
-  const progress = document.getElementById('f-progress').value;
-  const docno = document.getElementById('f-docno').value.trim();
-  const drafter = document.getElementById('f-drafter').value.trim();
-  const vendor = document.getElementById('f-vendor').value.trim();
-  view = ALL.filter(d =>
-    (!type || d.type === type) &&
-    (!progress || d.progress === progress) &&
-    (!docno || d.docNo.includes(docno)) &&
-    (!drafter || d.drafter.includes(drafter)) &&
-    (!vendor || d.vendor.includes(vendor))
-  );
-  renderTable();
-}
-
-function toggleAll(master) {
-  document.querySelectorAll('.row-chk').forEach(c => { c.checked = master.checked; });
-}
-
-function approveChecked(newState) {
-  const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
-  if (checked.length === 0) { alert('처리할 문서를 선택해 주세요.'); return; }
-  ALL.forEach(d => { if (checked.includes(d.docNo)) d.progress = newState; });
-  applyFilter();
-  alert(`${checked.length}건이 [${newState}] 처리되었습니다.`);
-}
-
-renderTable();
-loadLive();
-</script>
+<script src="js/mydocs.js"></script>
 </body>
 </html>
