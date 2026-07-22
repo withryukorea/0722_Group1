@@ -8,8 +8,16 @@ const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const { db, nextReceiptId } = require("../store");
+const { suggestPreset } = require("./presets");
 
 const router = express.Router();
+
+/* 환율 조회 — fx.json이 {rates:{...}} 구조든 평면 맵이든 동작 */
+function fxRateOf(cur) {
+  const t = db.fx && db.fx.rates ? db.fx.rates : db.fx || {};
+  return t[cur] || 1;
+}
+
 
 const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -26,20 +34,94 @@ function pickWoz(key) {
   return WOZ_INDEX.find((w) => !used.has(w.key)) || null;
 }
 
-// POST /api/receipts — multipart(image) 또는 JSON { key, tripId }
-router.post("/", upload.single("image"), (req, res) => {
-  const id = nextReceiptId();
-  // TODO(P3 여유 시): 여기서 실제 Vision OCR 호출 → 실패하면 아래 WoZ 폴백 그대로 사용
-  const woz = pickWoz((req.body && req.body.key) || req.query.key);
-  const ocr = woz
-    ? wozData(woz.file).ocr
-    : { merchant: "", amount: 0, currency: "KRW", paidAt: null, items: [], confidence: 0.3 };
+/* ── 실 OCR (Letsur AI Gateway, server/.env) — 실패 시 WoZ 폴백 (sot: 서버 OCR + WoZ) ── */
+const OCR_PROMPT = `영수증 이미지에서 다음 정보를 JSON으로만 답하세요(설명 금지):
+{"merchant":"가맹점명","amount":숫자,"currency":"KRW|USD|JPY","paidAt":"ISO8601(+09:00, 결제/승인 일시. 예매성 결제도 승인일)","serviceDate":"YYYY-MM-DD(탑승/투숙 등 실제 이용일, 없으면 null)","vat":숫자또는null,"invoiceNo":"문서번호 또는 null","items":[{"name":"품목","amount":숫자}],"confidence":0~1}`;
 
+async function realOcr(filePath, mimetype) {
+  const key = process.env.LETSUR_API_KEY;
+  if (!key || typeof fetch !== "function") return null;
+  try {
+    const b64 = fs.readFileSync(filePath).toString("base64");
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25000);
+    const resp = await fetch(`${process.env.LETSUR_BASE_URL || "https://gw.letsur.ai"}/v1/chat/completions`, {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: process.env.OCR_MODEL || "gpt-4o",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: OCR_PROMPT },
+            { type: "image_url", image_url: { url: `data:${mimetype || "image/jpeg"};base64,${b64}` } },
+          ],
+        }],
+      }),
+    });
+    clearTimeout(timer);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const text = data.choices?.[0]?.message?.content || "";
+    const json = text.match(/\{[\s\S]*\}/);
+    return json ? JSON.parse(json[0]) : null;
+  } catch (e) {
+    return null; // 어떤 실패든 WoZ 폴백으로
+  }
+}
+
+/* 환율 반영: 원본 통화 보존 + 결제 시점 환율/원화 환산액을 함께 저장 (data_sample 환율 규칙) */
+function fxFields(ocr) {
+  const cur = ocr.currency || "KRW";
+  const rate = cur === "KRW" ? 1 : fxRateOf(cur);
+  return { fxRate: rate, amountKRW: Math.round((Number(ocr.amount) || 0) * rate) };
+}
+
+/* 적격증빙·부가세·중복문서 경고 (경고만, 상신 차단 없음 — sot Non-Goals) */
+function buildChecks(ocr, receiptId) {
+  const checks = [];
+  const itemized = /편의점|마트|슈퍼|GS25|\bCU\b|스토리웨이|STORYWAY/i.test(ocr.merchant || "");
+  if (itemized && !(ocr.items || []).length) {
+    checks.push({ type: "ITEMIZED_REQUIRED", status: "warn", message: "편의점·마트 결제 — 품목 상세내역 증빙 필요" });
+  }
+  if ((ocr.confidence ?? 1) < 0.9) {
+    checks.push({ type: "VAT_CHECK", status: "info", message: "OCR 신뢰도 낮음 — 부가세 확인 필요" });
+  }
+  if (ocr.invoiceNo) {
+    const dup = db.receipts.find((r) => r.id !== receiptId && r.ocr && r.ocr.invoiceNo === ocr.invoiceNo);
+    if (dup) checks.push({ type: "DUPLICATE_DOCUMENT", status: "warn", message: `같은 문서번호(${ocr.invoiceNo})의 영수증/인보이스가 이미 등록됨 (${dup.id}) — 중복 전표 주의` });
+  }
+  return checks;
+}
+
+// POST /api/receipts — multipart(image) 또는 JSON { key, tripId, serviceDate }
+router.post("/", upload.single("image"), async (req, res) => {
+  const id = nextReceiptId();
+  // 1) 실 OCR (키가 있고 이미지가 올라온 경우) → 2) WoZ 폴백
+  let ocr = req.file ? await realOcr(req.file.path, req.file.mimetype) : null;
+  let woz = null;
+  if (!ocr) {
+    woz = pickWoz((req.body && req.body.key) || req.query.key);
+    ocr = woz
+      ? wozData(woz.file).ocr
+      : { merchant: "", amount: 0, currency: "KRW", paidAt: null, items: [], confidence: 0.3 };
+  }
+
+  const serviceDate = (req.body && req.body.serviceDate) || ocr.serviceDate || (ocr.paidAt || "").slice(0, 10) || null;
   const receipt = {
     id,
     imageUrl: req.file ? `/uploads/${req.file.filename}` : `/api/receipts/${id}/image`,
     croppedUrl: req.file ? `/uploads/${req.file.filename}` : `/api/receipts/${id}/image`,
     ocr,
+    ...fxFields(ocr),                       // fxRate, amountKRW — 화면·한도차감은 amountKRW 사용
+    serviceDate,                            // 출장 기간 판정용 (매칭은 paidAt)
+    vat: { extracted: ocr.vat ?? null, confirmed: null },
+    checks: buildChecks(ocr, id),
+    suggestedPresetId: suggestPreset(ocr, serviceDate),  // 자동추천 — 최종 선택은 항상 사용자
+    presetId: null,
+    accountCode: null,
     matchedTxId: null,
     tripId: (req.body && req.body.tripId) || null,
     wozKey: woz ? woz.key : null,
@@ -48,6 +130,40 @@ router.post("/", upload.single("image"), (req, res) => {
   };
   db.receipts.push(receipt);
   res.status(201).json(receipt);
+});
+
+// PATCH /api/receipts/:id — 사용자가 Preset·비목·부가세를 확정 (sot/05)
+router.patch("/:id", (req, res) => {
+  const r = db.receipts.find((x) => x.id === req.params.id);
+  if (!r) return res.status(404).json({ error: "receipt not found" });
+  const b = req.body || {};
+
+  if (b.presetId !== undefined) {
+    if (b.presetId === null) {
+      r.presetId = null; // 일반 결제(Preset 없음)로 변경
+    } else {
+      const p = db.presets.find((x) => x.id === b.presetId && x.active !== false);
+      if (!p) return res.status(400).json({ error: "INVALID_PRESET", hint: "활성 Preset이 아닙니다" });
+      r.presetId = p.id;
+      // 허용 비목이 1개면 자동 세팅 (리뷰 화면에서 비목 선택 단계 생략)
+      if ((p.rules.allowedAccountCodes || []).length === 1 && !b.accountCode) {
+        r.accountCode = p.rules.allowedAccountCodes[0];
+      }
+    }
+  }
+  if (b.accountCode !== undefined) {
+    if (r.presetId) {
+      const p = db.presets.find((x) => x.id === r.presetId);
+      if (p && !(p.rules.allowedAccountCodes || []).includes(b.accountCode)) {
+        return res.status(400).json({ error: "ACCOUNT_NOT_ALLOWED", allowed: p.rules.allowedAccountCodes });
+      }
+    }
+    r.accountCode = b.accountCode;
+  }
+  if (b.vat !== undefined) r.vat = { ...r.vat, confirmed: typeof b.vat === "object" ? b.vat.confirmed : b.vat };
+  if (b.serviceDate !== undefined) r.serviceDate = b.serviceDate;
+  if (b.tripId !== undefined) r.tripId = b.tripId;
+  res.json(r);
 });
 
 // GET /api/receipts — 전체 목록 / GET /api/receipts/:id — 단건

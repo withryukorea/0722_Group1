@@ -17,10 +17,10 @@ app.use("/api/transactions", require("./routes/transactions"));
 app.use("/api/vouchers", require("./routes/vouchers"));
 app.use("/api", require("./routes/reference")); // approval-rules, budgets, fx, accounts
 
-// [P3/P4/P5] 각 담당이 해당 파일을 채우면 바로 동작 (지금은 501 스텁)
-app.use("/api/receipts", require("./routes/receipts")); // P3
+app.use("/api/receipts", require("./routes/receipts")); // P3 (실 OCR + WoZ 폴백)
 app.use("/api", require("./routes/match")); // P4 (/api/match, /api/vouchers/preview)
-app.use("/api/trips", require("./routes/trips")); // P5
+app.use("/api/presets", require("./routes/presets")); // Preset 엔진 (sot/05)
+app.use("/api/trips", require("./routes/presets").tripsAlias); // 구 trips 호환 별칭 → TRIP Preset
 
 // 데모 리셋: POST /api/reset → 시드 초기값으로 복구
 app.post("/api/reset", (req, res) => {

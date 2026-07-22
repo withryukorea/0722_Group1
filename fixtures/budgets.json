@@ -1,5 +1,0 @@
-[
-  { "category": "WELFARE_AI",   "userId": "u_me", "limitKRW": 300000, "usedKRW": 120000, "remainingKRW": 180000 },
-  { "category": "WELFARE_BOOK", "userId": "u_me", "limitKRW": 200000, "usedKRW": 33000,  "remainingKRW": 167000 },
-  { "category": "WELFARE_ETC",  "userId": "u_me", "limitKRW": 100000, "usedKRW": 0,      "remainingKRW": 100000 }
-]

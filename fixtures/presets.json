@@ -1,0 +1,99 @@
+[
+  {
+    "id": "ps_ai_sub",
+    "name": "AI구독료 정산",
+    "type": "RECURRING",
+    "source": "admin",
+    "assignees": ["u_me"],
+    "period": null,
+    "active": true,
+    "rules": {
+      "allowedAccountCodes": ["WELFARE_AI"],
+      "limitKRW": 300000,
+      "limitPeriod": "monthly",
+      "approvalLine": ["김아무개 팀장"],
+      "descriptionTemplate": "[AI구독료] {merchant}_홍길동",
+      "matchKeywords": ["ANTHROPIC", "OPENAI", "CLAUDE", "CHATGPT", "GITHUB", "CURSOR"],
+      "requireItemized": false
+    },
+    "usage": { "usedKRW": 120000, "byDay": {} }
+  },
+  {
+    "id": "ps_book",
+    "name": "도서구입비 지원",
+    "type": "RECURRING",
+    "source": "admin",
+    "assignees": ["u_me"],
+    "period": null,
+    "active": true,
+    "rules": {
+      "allowedAccountCodes": ["WELFARE_BOOK"],
+      "limitKRW": 200000,
+      "limitPeriod": "monthly",
+      "approvalLine": ["김아무개 팀장"],
+      "descriptionTemplate": "[도서비] {merchant}_홍길동",
+      "matchKeywords": ["문고", "서점", "YES24", "알라딘"],
+      "requireItemized": false
+    },
+    "usage": { "usedKRW": 33000, "byDay": {} }
+  },
+  {
+    "id": "ps_welfare_etc",
+    "name": "복지비(기타)",
+    "type": "RECURRING",
+    "source": "admin",
+    "assignees": ["u_me"],
+    "period": null,
+    "active": true,
+    "rules": {
+      "allowedAccountCodes": ["WELFARE_ETC"],
+      "limitKRW": 100000,
+      "limitPeriod": "monthly",
+      "approvalLine": ["김아무개 팀장"],
+      "descriptionTemplate": "[복지] {merchant}_홍길동",
+      "matchKeywords": [],
+      "requireItemized": false
+    },
+    "usage": { "usedKRW": 0, "byDay": {} }
+  },
+  {
+    "id": "ps_tokyo_trip",
+    "name": "7월 도쿄 출장",
+    "type": "TRIP",
+    "source": "trip_request",
+    "assignees": ["u_me"],
+    "period": { "start": "2026-07-14", "end": "2026-07-17" },
+    "active": true,
+    "meta": { "destination": "도쿄", "country": "JP", "members": 2 },
+    "rules": {
+      "allowedAccountCodes": ["TRAVEL_MEAL", "TRAVEL_TRANSPORT", "TRAVEL_LODGING"],
+      "limitKRW": 200000,
+      "limitPeriod": "daily",
+      "approvalLine": ["김아무개 팀장"],
+      "descriptionTemplate": "도쿄출장 {merchant}",
+      "matchKeywords": ["JPY", "도쿄", "TOKYO"],
+      "requireItemized": false
+    },
+    "usage": { "usedKRW": 0, "byDay": {} }
+  },
+  {
+    "id": "ps_busan_daytrip",
+    "name": "4/15 부산·울산 당일 출장",
+    "type": "TRIP",
+    "source": "trip_request",
+    "assignees": ["u_me"],
+    "period": { "start": "2026-04-15", "end": "2026-04-15" },
+    "active": true,
+    "meta": { "destination": "부산·울산", "country": "KR", "members": 1 },
+    "rules": {
+      "allowedAccountCodes": ["TRAVEL_MEAL", "TRAVEL_TRANSPORT"],
+      "limitKRW": 150000,
+      "limitPeriod": "daily",
+      "approvalLine": ["김아무개 팀장"],
+      "descriptionTemplate": "부산출장 {merchant}",
+      "matchKeywords": ["부산", "울산", "KTX", "철도", "서울역"],
+      "requireItemized": false
+    },
+    "usage": { "usedKRW": 0, "byDay": {} }
+  }
+]

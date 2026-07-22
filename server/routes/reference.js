@@ -9,10 +9,21 @@ router.get("/approval-rules", (req, res) => {
 });
 
 // GET /api/budgets?userId=u_me  → 복지비 잔여 한도
+// (호환 shim — Budget 엔티티는 sot/02에서 Preset(usage)으로 흡수됨. 기존 호출자를 위해 Preset에서 계산해 준다)
 router.get("/budgets", (req, res) => {
   const { userId } = req.query;
-  let list = db.budgets;
-  if (userId) list = list.filter((b) => b.userId === userId);
+  const list = db.presets
+    .filter((p) => p.type !== "TRIP" && p.active !== false)
+    .filter((p) => !userId || (p.assignees || []).includes(userId))
+    .map((p) => ({
+      category: (p.rules.allowedAccountCodes || [])[0] || p.id,
+      userId: (p.assignees || [])[0] || "u_me",
+      limitKRW: p.rules.limitKRW || 0,
+      usedKRW: (p.usage && p.usage.usedKRW) || 0,
+      remainingKRW: (p.rules.limitKRW || 0) - ((p.usage && p.usage.usedKRW) || 0),
+      presetId: p.id,
+      name: p.name,
+    }));
   res.json(list);
 });
 

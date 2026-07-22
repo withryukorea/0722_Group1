@@ -7,6 +7,13 @@ const express = require("express");
 const { db } = require("../store");
 const router = express.Router();
 
+/* 환율 조회 — fx.json이 {rates:{...}} 구조든 평면 맵이든 동작 */
+function fxRateOf(cur) {
+  const t = db.fx && db.fx.rates ? db.fx.rates : db.fx || {};
+  return t[cur] || 1;
+}
+
+
 /* 가맹점명 정규화: 공백/특수문자 제거 + 대문자 (예: "폴 바셋 광화문점" ≈ "폴바셋광화문예금보험공사점") */
 const norm = (s) => String(s || "").toUpperCase().replace(/[\s*\-_.,()]/g, "");
 
@@ -27,7 +34,7 @@ function scorePair(receipt, tx) {
   let s = 0;
   // 금액 60점 — 원화 환산 기준으로 비교
   const raw = Number(o.amount) || 0;
-  const amtKRW = o.currency && o.currency !== "KRW" ? raw * (db.fx[o.currency] || 1) : raw;
+  const amtKRW = o.currency && o.currency !== "KRW" ? raw * (fxRateOf(o.currency)) : raw;
   const diff = Math.abs(amtKRW - tx.amountKRW) / Math.max(tx.amountKRW, 1);
   if (diff === 0) s += 60;
   else if (diff <= 0.01) s += 58;
@@ -129,29 +136,73 @@ router.post("/vouchers/preview", (req, res) => {
     return res.status(400).json({ error: "NO_MATCHES", hint: "matches:[{receiptId,txId}] 또는 매칭된 receiptIds 를 보내주세요" });
   }
 
+  const fillTemplate = (tpl, tx) =>
+    (tpl || "{merchant}").replaceAll("{merchant}", tx.merchant).replaceAll("{n}", "1")
+      .replaceAll("{date}", (tx.approvedAt || "").slice(0, 10));
+
   const lines = pairs.map((p) => {
     const tx = db.transactions.find((t) => t.id === p.txId);
-    const acc = classify(tx);
+    const receipt = db.receipts.find((r) => r.id === p.receiptId);
+    // Preset 지정 건: Preset의 비목(사용자 확정)·적요 템플릿 사용 (sot/02 전표 생성 흐름)
+    const preset = receipt && receipt.presetId
+      ? db.presets.find((x) => x.id === receipt.presetId && x.active !== false)
+      : null;
+    let acc;
+    if (preset) {
+      const codes = preset.rules.allowedAccountCodes || [];
+      const code = receipt.accountCode || (codes.length === 1 ? codes[0] : null);
+      acc = db.accounts.find((a) => a.code === code) || classify(tx);
+    } else {
+      acc = classify(tx);
+    }
     const vatFree = tx.currency !== "KRW" || NO_VAT.test(tx.merchant + (tx.biz || ""));
     const supply = vatFree ? tx.amountKRW : Math.ceil(tx.amountKRW / 1.1);
+    // 사용자가 부가세를 확정(vat.confirmed)했으면 그 값을 우선
+    const vatConfirmed = receipt && receipt.vat && receipt.vat.confirmed != null ? receipt.vat.confirmed : null;
     return {
       txId: tx.id,
       receiptId: p.receiptId,
+      presetId: preset ? preset.id : null,
       accountCode: acc.code,
       accountName: acc.name,
       amountKRW: tx.amountKRW,
-      supplyKRW: supply,
-      vatKRW: tx.amountKRW - supply,
-      description: `${tx.merchant} · ${acc.name}`,
+      supplyKRW: vatConfirmed != null ? tx.amountKRW - vatConfirmed : supply,
+      vatKRW: vatConfirmed != null ? vatConfirmed : tx.amountKRW - supply,
+      description: preset
+        ? fillTemplate(preset.rules.descriptionTemplate, tx)
+        : `${tx.merchant} · ${acc.name}`,
     };
   });
   const totalKRW = lines.reduce((s, l) => s + l.amountKRW, 0);
+
+  // 전결라인: Preset 지정 건이 있으면 지배 Preset(합계 최대)의 라인, 없으면 전결규정 fallback
+  const presetSums = {};
+  lines.forEach((l) => { if (l.presetId) presetSums[l.presetId] = (presetSums[l.presetId] || 0) + l.amountKRW; });
+  const domPresetId = Object.entries(presetSums).sort((a, b) => b[1] - a[1]).map(([id]) => id)[0];
+  const domPreset = domPresetId ? db.presets.find((x) => x.id === domPresetId) : null;
+  const approvalLine = domPreset ? domPreset.rules.approvalLine : approvalLineFor(lines, totalKRW);
+
+  // Preset 한도 경고 (차단 없음 — 경고만)
+  const warnings = [];
+  for (const [pid, sum] of Object.entries(presetSums)) {
+    const p = db.presets.find((x) => x.id === pid);
+    if (p && p.rules.limitKRW) {
+      const after = ((p.usage && p.usage.usedKRW) || 0) + sum;
+      if (after > p.rules.limitKRW) {
+        warnings.push({ type: "PRESET_LIMIT_EXCEEDED", presetId: pid, message: `${p.name} 한도 초과: ${after.toLocaleString("ko-KR")} / ${p.rules.limitKRW.toLocaleString("ko-KR")}원` });
+      }
+    }
+  }
+
   const first = db.transactions.find((t) => t.id === lines[0].txId);
   res.json({
-    title: `법인카드 정산 (${first.merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ""})`,
+    title: domPreset
+      ? `${domPreset.name} (${first.merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ""})`
+      : `법인카드 정산 (${first.merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ""})`,
     lines,
     totalKRW,
-    approvalLine: approvalLineFor(lines, totalKRW),
+    approvalLine,
+    warnings,
     status: "draft",
   });
 });

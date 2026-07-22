@@ -40,6 +40,18 @@ router.post("/", (req, res) => {
     if (tx) tx.status = "vouchered";
   }
 
+  // Preset 사용량 차감: submitted 전표만 합산 (초안 합산 금지 — 이중 차감 방지)
+  for (const line of voucher.lines) {
+    const receipt = line.receiptId ? db.receipts.find((r) => r.id === line.receiptId) : null;
+    const presetId = line.presetId || (receipt && receipt.presetId);
+    if (!presetId) continue;
+    const p = db.presets.find((x) => x.id === presetId);
+    if (!p) continue;
+    p.usage.usedKRW += line.amountKRW || 0;
+    const day = (receipt && receipt.serviceDate) || voucher.submittedAt.slice(0, 10);
+    p.usage.byDay[day] = (p.usage.byDay[day] || 0) + (line.amountKRW || 0);
+  }
+
   res.status(201).json(voucher);
 });
 

@@ -12,7 +12,7 @@ const readJSON = (name) => JSON.parse(fs.readFileSync(path.join(FIX, name), "utf
 const initial = {
   transactions: readJSON("transactions.json"),
   approvalRules: readJSON("approval-rules.json"),
-  budgets: readJSON("budgets.json"),
+  presets: readJSON("presets.json"),
   fx: readJSON("fx.json"),
   accounts: readJSON("accounts.json"),
 };
@@ -20,13 +20,14 @@ const initial = {
 const db = {
   transactions: JSON.parse(JSON.stringify(initial.transactions)),
   approvalRules: initial.approvalRules,
-  budgets: JSON.parse(JSON.stringify(initial.budgets)),
+  presets: JSON.parse(JSON.stringify(initial.presets)),
   fx: initial.fx,
   accounts: initial.accounts,
   vouchers: [], // 상신된 전표가 여기 쌓인다 (관리자 화면이 이걸 보여줌)
   receipts: [], // 업로드된 영수증 (P3 /api/receipts 가 쌓는다)
   _voucherSeq: 1,
   _receiptSeq: 1,
+  _presetSeq: 1,
 };
 
 // 전표 id 생성기 (vch_001, vch_002 ...)
@@ -43,14 +44,22 @@ function nextReceiptId() {
   return id;
 }
 
+// Preset id 생성기 (ps_001, ps_002 ...)
+function nextPresetId() {
+  const id = "ps_" + String(db._presetSeq).padStart(3, "0");
+  db._presetSeq += 1;
+  return id;
+}
+
 // 데모 중 처음부터 다시 하고 싶을 때 사용 (관리자 화면의 리셋 버튼)
 function reset() {
   db.transactions = JSON.parse(JSON.stringify(initial.transactions));
-  db.budgets = JSON.parse(JSON.stringify(initial.budgets));
+  db.presets = JSON.parse(JSON.stringify(initial.presets));
   db.vouchers = [];
   db.receipts = [];
   db._voucherSeq = 1;
   db._receiptSeq = 1;
+  db._presetSeq = 1;
 }
 
-module.exports = { db, nextVoucherId, nextReceiptId, reset };
+module.exports = { db, nextVoucherId, nextReceiptId, nextPresetId, reset };
