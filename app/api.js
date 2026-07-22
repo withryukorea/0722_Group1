@@ -44,6 +44,9 @@ async function runWithFallback(task, fallback) {
     return { data: fallback(), mode: 'demo', error };
   }
 }
+async function runWrite(task) {
+  return { data: await task(), mode: 'live', persisted: true };
+}
 
 export function demoReceipt() {
   return {
@@ -108,40 +111,6 @@ export async function listPresets() {
   );
 }
 
-export async function createTripPreset(input) {
-  const perPerson = input.tripType === 'overseas' ? 80000 : 30000;
-  const start = new Date(`${input.startDate}T00:00:00`);
-  const end = new Date(`${input.endDate}T00:00:00`);
-  const days = Math.max(1, Math.round((end - start) / 86400000) + 1);
-  const dailyCap = perPerson * Number(input.members || 1);
-  const payload = {
-    name: `${input.destination} 출장`,
-    type: 'TRIP',
-    source: 'trip_request',
-    assignees: ['u_me'],
-    period: { start: input.startDate, end: input.endDate },
-    active: true,
-    rules: {
-      allowedAccountCodes: ['TRAVEL_MEAL', 'TRAVEL_TRANSPORT', 'TRAVEL_LODGING'],
-      limitKRW: dailyCap,
-      limitPeriod: 'daily',
-      approvalLine: ['김아무개 팀장'],
-      descriptionTemplate: `${input.destination}출장 {merchant} ${input.members}인`,
-      matchKeywords: [input.destination, input.tripType === 'overseas' ? 'JPY' : 'KRW'],
-      requireItemized: false,
-    },
-    usage: { usedKRW: 0, byDay: {} },
-  };
-  return runWithFallback(
-    () => request('/api/presets', { method: 'POST', body: payload }),
-    () => ({
-      id: 'ps_trip_demo_001',
-      ...payload,
-      meta: { ...input, days, dailyCapPerPersonKRW: perPerson, dailyCapKRW: dailyCap },
-    }),
-  );
-}
-
 export async function listReceipts() {
   return runWithFallback(
     () => request('/api/receipts'),
@@ -152,10 +121,8 @@ export async function listReceipts() {
 export async function uploadReceipt(file) {
   const form = new FormData();
   form.append('image', file, file.name);
-  return runWithFallback(
-    () => request('/api/receipts', { method: 'POST', body: form }),
-    demoReceipt,
-  );
+  form.append('source', 'mobile');
+  return runWrite(() => request('/api/receipts', { method: 'POST', body: form }));
 }
 
 export async function confirmReceipt(receipt, selection) {
@@ -163,77 +130,27 @@ export async function confirmReceipt(receipt, selection) {
     presetId: selection.presetId || null,
     accountCode: selection.accountCode || null,
     vat: { confirmed: Number(selection.vatConfirmed || 0) },
+    ocr: receipt.ocr,
+    source: 'mobile',
   };
-  return runWithFallback(
-    () => request(`/api/receipts/${encodeURIComponent(receipt.id)}`, { method: 'PATCH', body: payload }),
-    () => ({ ...receipt, ...payload, vat: { ...(receipt.vat || {}), ...payload.vat }, _presetConfirmedLocally: true }),
-  );
-}
-
-export async function matchReceipt(receipt) {
-  return runWithFallback(
-    async () => {
-      const matches = await request('/api/match', {
-        method: 'POST',
-        body: { receiptIds: [receipt.id] },
-      });
-      const transactions = await request('/api/transactions');
-      const match = matches[0];
-      return {
-        match,
-        transaction: transactions.find((item) => item.id === match?.txId) || null,
-      };
-    },
-    () => ({
-      match: { receiptId: receipt.id, txId: 'tx_001', score: 96 },
-      transaction: {
-        id: 'tx_001',
-        merchant: '폴바셋광화문예금보험공사점',
-        amountKRW: 20500,
-        approvedAt: '2026-07-21T12:24:31+09:00',
-        approvalNo: '00045125',
-        cardNo: '4025961080293059',
-      },
-    }),
-  );
-}
-
-export async function previewVoucher(match, receipt, preset) {
-  const fallback = () => ({
-    title: '법인카드전표 (현업완결)',
-    lines: [{
-      txId: match.txId,
-      receiptId: receipt.id,
-      accountCode: receipt.accountCode || 'SNACK',
-      amountKRW: Number(receipt.ocr.amount),
-      description: preset?.rules?.descriptionTemplate
-        ? preset.rules.descriptionTemplate.replace('{merchant}', receipt.ocr.merchant).replace('{n}', '1')
-        : `${receipt.ocr.merchant} · 자동 정산`,
-    }],
-    totalKRW: Number(receipt.ocr.amount),
-    approvalLine: preset?.rules?.approvalLine || ['김아무개 팀장'],
-    status: 'draft',
-  });
-  if (receipt._presetConfirmedLocally) {
-    return { data: fallback(), mode: 'demo', error: new ApiError('PRESET_API_NOT_READY', 501) };
+  if (receipt.id?.startsWith('rcpt_demo_')) {
+    return {
+      data: { ...receipt, ...payload, vat: { ...(receipt.vat || {}), ...payload.vat } },
+      mode: 'demo',
+      persisted: false,
+    };
   }
-  return runWithFallback(
-    () => request('/api/vouchers/preview', {
-      method: 'POST',
-      body: { matches: [match] },
-    }),
-    fallback,
-  );
-}
-
-export async function submitVoucher(voucher) {
-  return runWithFallback(
-    () => request('/api/vouchers', { method: 'POST', body: voucher }),
-    () => ({
-      ...voucher,
-      id: 'DEMO-VCH-001',
-      status: 'demo',
-      submittedAt: new Date().toISOString(),
-    }),
-  );
+  const saved = await request(`/api/receipts/${encodeURIComponent(receipt.id)}`, { method: 'PATCH', body: payload });
+  const samePaidAt = new Date(saved.ocr?.paidAt).getTime() === new Date(payload.ocr?.paidAt).getTime();
+  const persisted = saved.presetId === payload.presetId
+    && saved.accountCode === payload.accountCode
+    && Number(saved.vat?.confirmed || 0) === Number(payload.vat.confirmed || 0)
+    && saved.ocr?.merchant === payload.ocr?.merchant
+    && Number(saved.ocr?.amount) === Number(payload.ocr?.amount)
+    && saved.ocr?.currency === payload.ocr?.currency
+    && samePaidAt;
+  if (!persisted) {
+    throw new ApiError('서버가 수정한 OCR·정산 정보를 완전히 저장하지 않았습니다.', 409);
+  }
+  return { data: saved, mode: 'live', persisted: true };
 }

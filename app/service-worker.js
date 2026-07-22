@@ -1,4 +1,4 @@
-const CACHE_NAME = 'receipt-app-shell-v4-sk-design';
+const CACHE_NAME = 'receipt-app-shell-v6-receipt-metrics';
 const APP_SHELL = ['./', './index.html', './styles.css', './config.js', './api.js', './app.js', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

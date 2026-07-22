@@ -1,4 +1,4 @@
-const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+const isWeb = ['http:', 'https:'].includes(location.protocol);
 
 /**
  * 기능 논의가 끝나기 전까지 화면 코드와 서버 주소를 분리한다.
@@ -7,12 +7,10 @@ const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 const runtime = window.RECEIPT_APP_CONFIG || {};
 
 export const APP_CONFIG = Object.freeze({
-  apiBase: runtime.apiBase || (isLocal
-    ? 'http://localhost:4000'
-    : 'https://zero722-group1.onrender.com'),
+  apiBase: runtime.apiBase ?? (isWeb ? '' : 'http://localhost:4000'),
   demoFallback: runtime.demoFallback ?? true,
   requestTimeoutMs: runtime.requestTimeoutMs || 9000,
-  eAccountingUrl: runtime.eAccountingUrl || '../eaccounting/mydocs-all.html?view=drafted-all',
+  eAccountingUrl: runtime.eAccountingUrl || '../eaccounting/card-settlement.html?source=mobile',
 });
 
 export const ACCOUNT_OPTIONS = Object.freeze([

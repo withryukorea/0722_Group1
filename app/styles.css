@@ -527,13 +527,16 @@ h1 em { color: var(--coral); font-style: normal; }
 .schedule-heading h1, .page-heading-mobile h1 { font-size: 25px; }
 .schedule-list { display: grid; gap: 10px; }
 .schedule-card {
+  width: 100%;
   padding: 15px;
   border: 1px solid var(--line);
   border-left: 4px solid var(--coral);
   border-radius: 14px;
   background: #fff;
   box-shadow: var(--shadow);
+  text-align: left;
 }
+.schedule-card .trip-select { min-height: 40px; margin-top: 12px; }
 .schedule-card.foreign { border-left-color: var(--orange); }
 .schedule-card-head b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .schedule-card-head span, .schedule-card > p { color: var(--muted); font-size: 9px; }
