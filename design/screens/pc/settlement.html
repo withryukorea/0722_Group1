@@ -156,18 +156,18 @@ function renderVoucher(rows) {
   });
   const total = rows.reduce((s, r) => s + r.amountKRW, 0);
 
-  /* 전결규정: 30만 이하 팀장 전결, 초과 시 부장 추가. AI 한도초과 시 부장 결재 필수 */
+  /* 전결규정: 30만 이하 팀장 전결, 초과 시 실장 추가. AI 한도초과 시 실장 결재 필수 */
   const aiLines = rows.filter(r => r.category === "WELFARE_AI");
   const aiOver = aiLines.length > 0 && D.BUDGETS[0].usedKRW > D.BUDGETS[0].limitKRW;
   const aiOn = !!aiPolicyOn[unit.id];
   const required = ["홍길동(기안)", "김팀장"];
-  if (total > 300000 || aiOver) required.push("박부장");
+  if (total > 300000 || aiOver) required.push("박실장");
   if (aiOn) required.splice(1, 0, D.AI_POLICY.reviewer);   // 정책 적용 시 현업검토 삽입
   /* F8: 사용자가 결재선을 바꿀 수 있고, 규정 라인과 다르면 이탈 알람 */
   const choice = lineChoice[unit.id] || "auto";
   const actual = choice === "auto" ? required
     : choice === "team" ? ["홍길동(기안)", "김팀장"]
-    : ["홍길동(기안)", "김팀장", "박부장"];
+    : ["홍길동(기안)", "김팀장", "박실장"];
   if (aiOn && choice !== "auto" && !actual.includes(D.AI_POLICY.reviewer)) actual.splice(1, 0, D.AI_POLICY.reviewer);
   const deviated = JSON.stringify(actual) !== JSON.stringify(required);
 
@@ -196,7 +196,7 @@ function renderVoucher(rows) {
 
     ${capBlock}
     ${aiOver ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin:10px 0">
-      ⚠ <b>AI구독(DIY100) 한도 초과</b> 건이 포함되어 전결라인에 부장 결재가 추가되었습니다. 정산 제도 변경 시 팀장 전결로 축소될 수 있습니다.</div>` : ""}
+      ⚠ <b>AI구독(DIY100) 한도 초과</b> 건이 포함되어 전결라인에 실장 결재가 추가되었습니다. 정산 제도 변경 시 팀장 전결로 축소될 수 있습니다.</div>` : ""}
 
     ${aiLines.length ? (aiOn ? `
       <div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin:10px 0">
@@ -217,7 +217,7 @@ function renderVoucher(rows) {
       <select id="lineSel" style="border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px">
         <option value="auto" ${choice === "auto" ? "selected" : ""}>규정 라인 (자동)</option>
         <option value="team" ${choice === "team" ? "selected" : ""}>팀장 전결로 변경</option>
-        <option value="dept" ${choice === "dept" ? "selected" : ""}>부장까지 결재</option>
+        <option value="dept" ${choice === "dept" ? "selected" : ""}>실장까지 결재</option>
       </select>
     </div>
     <div class="approval">
@@ -225,7 +225,7 @@ function renderVoucher(rows) {
     </div>
     ${deviated ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:10px">
       🚨 <b>전결규정 이탈 알람</b> — 규정 라인은 <b>${required.join(" → ")}</b> 입니다.
-      (근거: ${total > 300000 || aiOver ? "합계 30만원 초과 또는 한도초과 건 → 부장 결재 필수" : "합계 30만원 이하 → 팀장 전결"})
+      (근거: ${total > 300000 || aiOver ? "합계 30만원 초과 또는 한도초과 건 → 실장 결재 필수" : "합계 30만원 이하 → 팀장 전결"})
       이대로 상신하면 반려될 수 있습니다.</div>` : ""}
 
     ${submitted[unit.id]
