@@ -15,7 +15,7 @@ const EACC = {
   // 상단 메뉴 → 파일명 매핑 (다른 툴이 만드는 화면과 합칠 때 여기만 고치면 됨)
   topLinks: {
     '법인카드': 'card-settlement.html',
-    '전불/출장비': '#',
+    '전불/출장비': 'travel-foreign.html',
     '매입': '#',
     '매출': '#',
     '결산전표': '#',
@@ -34,6 +34,15 @@ const EACC = {
           { label: '신규신청' }, { label: '변경/해지' }, { label: '공용카드 신청' }, { label: '신청서 진행 현황' }] },
         { label: '법인카드 정산이력', icon: '🧾' },
         { label: '예산조회', icon: '📊' },
+      ],
+    },
+    '전불/출장비': {
+      title: '전불/출장비', titleIcon: '🧳',
+      items: [
+        { label: '전불 신청', icon: '📄' },
+        { label: '전불 정산', icon: '🧾' },
+        { label: '국내출장비 정산', icon: '🚄' },
+        { label: '해외출장비 정산', icon: '✈️', href: 'travel-foreign.html' },
       ],
     },
     '나의 문서함': {
