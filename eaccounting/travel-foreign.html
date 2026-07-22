@@ -48,7 +48,7 @@
         <tr>
           <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
           <td style="width:19%;" id="review-1"></td><td style="width:19%;"></td><td style="width:19%;"></td>
-          <td>전력사업기획팀<br><b>김예섭 팀장</b></td>
+          <td>전력사업기획팀<br><b>아무개 팀장</b></td>
         </tr>
       </table>
     </section>
@@ -501,7 +501,7 @@ async function submitVoucher() {
         ...cardLines.map(l => ({ txId: l.id, amountKRW: l.krw, description: `[카드/${l.type}] ${l.merchant}` })),
         ...cashLines.map(l => ({ amountKRW: l.krw, description: `[현금/${l.type}] ${l.detail || '실비'}` })),
       ],
-      approvalLine: total <= 300000 ? ['김예섭 팀장'] : ['김예섭 팀장', '박정민 부장'],
+      approvalLine: total <= 300000 ? ['아무개 팀장'] : ['아무개 팀장', '박정민 부장'],
     },
   });
   if (voucher) {
