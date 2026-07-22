@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>법인카드 정산 고도화 PoC — 화면 목업</title>
+<style>
+  @page { size: A4; margin: 12mm 12mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Malgun Gothic","맑은 고딕",-apple-system,Segoe UI,sans-serif; color:#1c2330; margin:0; font-size:12px; line-height:1.5; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  h2 { font-size:16px; margin:0 0 10px; padding-bottom:6px; border-bottom:2px solid #2f4a8a; color:#2f4a8a; }
+  h3 { font-size:13px; margin:14px 0 6px; color:#33405a; }
+  .subtitle { color:#5a6478; font-size:12px; }
+  .cover { text-align:left; padding:14px 0 8px; border-bottom:1px solid #ccd3e0; margin-bottom:18px; }
+  .cover .meta { color:#6b7488; font-size:12px; margin-top:8px; }
+  .legend { font-size:11.5px; margin:2px 0 0; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:3px; margin:0 4px 0 12px; vertical-align:middle; }
+  section { page-break-inside:avoid; }
+  .page-break { page-break-before:always; }
+
+  /* generic field rows */
+  .f { display:flex; justify-content:space-between; gap:8px; border:1px solid #ccd3e0; border-radius:7px; padding:6px 9px; margin:5px 0; align-items:center; }
+  .f .k { color:#6b7488; font-size:11px; }
+  .f .v { font-weight:600; text-align:right; }
+  .f.new { border-color:#d3a0a0; background:#faf2f2; }
+  .f.new .k::after { content:" ● 신규"; color:#c15a5a; font-size:8.5px; }
+  .auto { border-style:dashed; border-color:#8fce9e; background:#f0f9f2; }
+  .auto .v { color:#2e8b40; }
+  .tpl { font-family:Consolas,ui-monospace,monospace; font-size:11px; background:#eef0f4; border-radius:5px; padding:2px 6px; }
+
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+  .panel { border:1px solid #ccd3e0; border-radius:11px; overflow:hidden; }
+  .ph { padding:8px 12px; font-weight:700; font-size:12.5px; }
+  .ph.pc { background:#e6ecfa; color:#2f4a8a; }
+  .ph.mo { background:#e6f7ec; color:#1f7a3d; }
+  .pb { padding:12px; }
+
+  /* approval line table */
+  table.appr { width:100%; border-collapse:collapse; margin-top:4px; font-size:10.5px; }
+  table.appr th { background:#eef1f7; border:1px solid #c7cfdd; padding:5px; font-weight:700; }
+  table.appr td { border:1px solid #c7cfdd; padding:6px 5px; text-align:center; vertical-align:middle; }
+  table.appr .org { color:#5a6478; font-size:9.5px; }
+  table.appr .nm { font-weight:700; font-size:11px; margin:2px 0; }
+  table.appr .dt { color:#8b93a5; font-size:9px; }
+
+  /* approval-line template (양식) */
+  .flow { display:flex; align-items:stretch; gap:5px; flex-wrap:wrap; }
+  .stg { flex:1; min-width:62px; border:1px solid #c7cfdd; border-radius:7px; text-align:center; overflow:hidden; }
+  .stg-h { background:#eef1f7; font-size:9.5px; font-weight:700; padding:3px; color:#5a6478; }
+  .stg-v { padding:6px 4px; font-size:10.5px; font-weight:700; }
+  .stg.varbox { border-style:dashed; border-color:#3f6fd6; background:#eef4ff; }
+  .stg.varbox .stg-v { color:#2f4a8a; }
+  .arr { align-self:center; color:#98a0b0; font-size:11px; }
+
+  /* phone frames */
+  .phones { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .phone { border:1px solid #ccd3e0; border-radius:14px; overflow:hidden; }
+  .pt { background:#e6f7ec; color:#1f7a3d; padding:7px 10px; font-weight:700; font-size:11px; display:flex; justify-content:space-between; align-items:baseline; }
+  .pt .tm { color:#8b93a5; font-weight:600; font-size:9.5px; }
+  .pbd { padding:10px; font-size:10.8px; }
+  .imgph { background:#eceef2; border-radius:6px; height:46px; display:flex; align-items:center; justify-content:center; color:#98a0b0; font-size:9.5px; margin:3px 0; }
+  .row { border:1px solid #ccd3e0; border-radius:5px; padding:4px 7px; margin:3px 0; font-size:10.3px; }
+  .row.hi { border-color:#5b8def; background:#eef4ff; }
+  .btn { text-align:center; background:#3f6fd6; color:#fff; border-radius:6px; padding:6px; margin-top:7px; font-weight:600; font-size:10.5px; }
+  .warn { border:1px solid #d9915a; background:#fbf1e8; border-radius:5px; padding:5px 7px; font-size:10px; margin:4px 0; color:#a5601f; }
+  .chip { display:inline-block; border:1px solid #ccd3e0; border-radius:14px; padding:2px 8px; font-size:9.6px; margin:2px 2px 0 0; }
+  .chip.hi { border-color:#3f6fd6; background:#eef4ff; color:#2f4a8a; font-weight:700; }
+  .op { margin-top:6px; padding-top:5px; border-top:1px dashed #ccd3e0; font-size:9.8px; color:#4a5468; }
+  .op b { color:#2f4a8a; }
+
+  /* dashboard */
+  .dash { display:grid; grid-template-columns:320px 1fr; gap:18px; align-items:start; }
+  .pcard { border:1px solid #ccd3e0; border-radius:10px; padding:11px; margin-bottom:10px; }
+  .pcard .r1 { display:flex; justify-content:space-between; align-items:baseline; }
+  .pcard .nm { font-weight:700; font-size:12px; }
+  .badge { font-size:9px; border-radius:5px; padding:2px 6px; }
+  .badge.trip { background:#e6ecfa; color:#3f6fd6; }
+  .badge.recur { background:#e6f7ec; color:#2e8b40; }
+  .pmeta { font-size:10px; color:#6b7488; margin-top:2px; }
+  .bar { height:8px; border-radius:5px; background:#e7eaf0; margin:8px 0 4px; overflow:hidden; }
+  .bar > span { display:block; height:100%; border-radius:5px; }
+  .fig { display:flex; justify-content:space-between; font-size:10.5px; }
+  .fig .used { font-weight:700; }
+  .fig .rem { color:#6b7488; }
+  .days { display:flex; gap:3px; margin-top:8px; }
+  .day { flex:1; text-align:center; font-size:8px; color:#6b7488; }
+  .day .db { height:24px; border-radius:3px; background:#e7eaf0; position:relative; margin-bottom:2px; overflow:hidden; }
+  .day .db > span { position:absolute; bottom:0; left:0; right:0; border-radius:3px; }
+
+  /* compare table */
+  .cmp { width:100%; border-collapse:collapse; font-size:11px; margin-top:4px; }
+  .cmp th, .cmp td { border:1px solid #ccd3e0; padding:5px 8px; text-align:left; }
+  .cmp th { background:#eef1f7; }
+  .tag { font-size:9px; border-radius:4px; padding:1px 6px; }
+  .tag.no { background:#e6f7ec; color:#2e8b40; }
+  .tag.yes { background:#fbf1e8; color:#b57811; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>법인카드 정산 고도화 PoC — 화면 목업</h1>
+  <div class="subtitle">Preset 기반 정산엔진 · 모바일 워크플로우 & 이어카운팅(회사 시스템)</div>
+  <div class="meta">작성일 2026-07-22 · 프로젝트 0722_Group1 · 본 문서는 설계 논의용 목업이며 최종 UI가 아님</div>
+  <div class="legend" style="margin-top:10px">
+    <span class="dot" style="background:#3f6fd6"></span>🖥️ 이어카운팅 (PC·회사 시스템)
+    <span class="dot" style="background:#2e8b40"></span>📱 모바일 (직원)
+  </div>
+</div>
+
+<!-- ============ SECTION 1: 이어카운팅 - Preset 세팅 ============ -->
+<section>
+<h2>1. 이어카운팅 — Preset 세팅 (일반 Preset 예시: AI Frontier 교육)</h2>
+<p class="subtitle">Preset 생성·배포는 이어카운팅에서만. 정산에 필요한 회계 항목을 Preset에 담아, 정산 시 사용자가 손댈 부분을 최소화한다.</p>
+
+<div class="cols" style="margin-top:12px">
+  <div class="panel">
+    <div class="ph pc">🖥️ Preset 정의</div>
+    <div class="pb">
+      <div class="f"><span class="k">이름</span><span class="v">AI Frontier 교육</span></div>
+      <div class="f"><span class="k">유형</span><span class="v">RECURRING (월)</span></div>
+      <div class="f new"><span class="k">Cost Center</span><span class="v">[A860] SSC 교육</span></div>
+      <div class="f new"><span class="k">비목(계정)</span><span class="v">[723101] 교육훈련비 - 사내 교육</span></div>
+      <div class="f"><span class="k">예산 항목</span><span class="v" style="color:#8b93a5">별도 없음</span></div>
+      <div class="f"><span class="k">월 사용 한도</span><span class="v">₩300,000</span></div>
+      <div class="f new" style="flex-direction:column;align-items:stretch">
+        <span class="k" style="margin-bottom:3px">적요양식</span>
+        <span class="tpl">[이름][직급]_[월]월 AI Frontier</span>
+        <span style="font-size:9.5px;color:#8b93a5;margin-top:3px">변수: [이름]·[직급]=프로필, [월]=결제월 → 예) 정성훈팀원_7월 AI Frontier</span>
+      </div>
+      <div class="f"><span class="k">매칭 키워드</span><span class="v">AI Frontier, 사내교육…</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph pc">🖥️ 전결 라인 (양식)</div>
+    <div class="pb">
+      <div class="flow">
+        <div class="stg varbox"><div class="stg-h">기안</div><div class="stg-v">[기안자]</div></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="stg-h">검토1</div><div class="stg-v">이진현 팀원</div></div>
+        <div class="arr">→</div>
+        <div class="stg"><div class="stg-h">검토2</div><div class="stg-v">오정훈 팀장</div></div>
+        <div class="arr">→</div>
+        <div class="stg varbox"><div class="stg-h">승인</div><div class="stg-v">[차상위자]</div></div>
+      </div>
+      <div style="font-size:10px;color:#6b7488;margin-top:8px">
+        <b style="color:#2f4a8a">[기안자]</b> = 상신자 자동 · <b style="color:#2f4a8a">[차상위자]</b> = 기안자의 차상위자 자동 · 검토1·검토2 = 지정 검토자(고정)
+      </div>
+      <div style="border-top:1px dashed #ccd3e0;margin-top:9px;padding-top:9px">
+        <div style="font-size:9.5px;color:#6b7488;margin-bottom:4px">예) 정성훈 팀원이 기안 시 자동 완성 →</div>
+        <table class="appr">
+          <thead><tr><th>기안</th><th>검토1</th><th>검토2</th><th>승인</th></tr></thead>
+          <tbody><tr>
+            <td><div class="org">Upstream기술팀</div><div class="nm">정성훈 팀원</div></td>
+            <td><div class="org">기업문화AX팀</div><div class="nm">이진현 팀원</div></td>
+            <td><div class="org">기업문화AX팀</div><div class="nm">오정훈 팀장</div></td>
+            <td><div class="org">Upstream기술팀</div><div class="nm">김현준 기술위원</div></td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div class="op" style="margin-top:9px">전결선을 <b>양식(템플릿)</b>으로 정의 — 기안자·차상위자는 상신자에 따라 자동 결정되고, 정산 시 이 라인이 <b>자동으로 태워짐</b>.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ SECTION 2: 이어카운팅 - 정산 (자동 채움 + 접수) ============ -->
+<section class="page-break">
+<h2>2. 이어카운팅 — 정산 (Preset 자동 채움 & 전표 접수)</h2>
+<p class="subtitle">Preset이 지정되면 전표의 회계 항목이 전부 자동으로 채워지고, 사용자는 확인 후 상신만 한다. 상신된 전표는 이어카운팅에 즉시 접수된다.</p>
+
+<div class="cols" style="margin-top:12px">
+  <div class="panel">
+    <div class="ph mo">📱 정산 시 전표 라인 — 자동 채움 결과</div>
+    <div class="pb">
+      <div style="font-size:10.5px;color:#6b7488;margin-bottom:4px">AI Frontier 교육비 영수증 촬영 → Preset 자동인식 후</div>
+      <div class="f auto"><span class="k">비목</span><span class="v">[723101] 교육훈련비</span></div>
+      <div class="f auto"><span class="k">Cost Center</span><span class="v">[A860] SSC 교육</span></div>
+      <div class="f auto"><span class="k">전결라인</span><span class="v">정성훈→이진현→오정훈→김현준</span></div>
+      <div class="f auto"><span class="k">적요</span><span class="v">정성훈팀원_7월 AI Frontier</span></div>
+      <div class="f auto"><span class="k">금액</span><span class="v">₩120,000 (OCR)</span></div>
+      <div style="text-align:center;font-size:11px;color:#6b7488;margin:8px 0">↑ 5개 항목 전부 <b style="color:#2e8b40">자동</b></div>
+      <div class="f" style="border-color:#e0a94f;background:#fbf6ec"><span class="k">사용자가 하는 것</span><span class="v">확인 후 [상신] <span class="tag yes">탭 1회</span></span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph pc">🖥️ 접수된 전표 (자동 갱신 · 3초 폴링)</div>
+    <div class="pb">
+      <div class="row hi">AI Frontier 교육비 · ₩120,000 · submitted</div>
+      <div style="font-size:10px;color:#6b7488;margin:3px 0 8px">전결선 정성훈 팀원 → 이진현 팀원 → 오정훈 팀장 → 김현준 기술위원</div>
+      <div class="row hi">7월 도쿄 출장비 · ₩91,600 · submitted</div>
+      <div style="font-size:10px;color:#6b7488;margin:3px 0 8px">전결선 김민수 팀장 → 박영호 부장</div>
+      <div style="font-size:10.5px;margin-top:8px">💳 카드내역 상태: matched → <b>vouchered</b></div>
+      <div class="op">모바일에서 상신하면 화면 전환만으로 여기에 자동 등장</div>
+    </div>
+  </div>
+</div>
+
+<h3>정산 시 "손대는 정도" 비교</h3>
+<table class="cmp">
+  <thead><tr><th style="width:22%">항목</th><th>기존 (수작업)</th><th>Preset 적용 후</th></tr></thead>
+  <tbody>
+    <tr><td>비목(계정)</td><td>직접 선택</td><td>자동 <span class="tag no">무입력</span></td></tr>
+    <tr><td>Cost Center</td><td>직접 입력</td><td>자동 <span class="tag no">무입력</span></td></tr>
+    <tr><td>전결라인</td><td>규정 찾아 다단계 지정</td><td>자동 <span class="tag no">무입력</span></td></tr>
+    <tr><td>적요</td><td>양식 맞춰 타이핑</td><td>양식 자동 생성 <span class="tag no">무입력</span></td></tr>
+    <tr><td>금액</td><td>확인</td><td>OCR 자동, 확인만</td></tr>
+    <tr><td><b>사용자 조작</b></td><td>다수 필드 입력</td><td><b style="color:#2e8b40">상신 탭 1회</b></td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============ SECTION 3: 모바일 - 영수증 처리 워크플로우 ============ -->
+<section class="page-break">
+<h2>3. 모바일 — 영수증 처리 워크플로우</h2>
+<p class="subtitle">촬영 → 크롭·OCR → Preset·비목 선택 → (적격증빙·부가세 확인) → 정산하기 → 전표 검토·상신. 모바일은 고르고 확인만 한다.</p>
+
+<div class="phones" style="margin-top:12px">
+  <div class="phone">
+    <div class="pt"><span>① 촬영 · OCR</span><span class="tm">0:55</span></div>
+    <div class="pbd">
+      <div class="imgph">📷 원본보존 + 크롭본 분리저장</div>
+      <div>OCR: 스시로 신주쿠점<br>¥8,800 → ₩79,200</div>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:4px">가맹점·금액·통화·일시·품목·부가세 자동 추출</div>
+      <div class="op">셔터 1회 → 크롭·파싱 자동. 실패 시 원본 사용</div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="pt"><span>② 리뷰 — Preset·비목</span><span class="tm">0:55</span></div>
+    <div class="pbd">
+      <div style="font-size:9.5px;color:#6b7488">Preset (자동추천)</div>
+      <span class="chip hi">✓ 도쿄 출장</span><span class="chip">일반</span>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">비목 (허용 3개)</div>
+      <span class="chip hi">식대</span><span class="chip">교통</span><span class="chip">숙박</span>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">부가세</div>
+      <div class="row">₩720 (추출값 · 확인/수정)</div>
+      <div class="op">추천 칩 확인 + 비목 <b>탭</b>. 허용비목 1개면 자동</div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="pt"><span>③ 적격증빙 경고</span><span class="tm">1:30</span></div>
+    <div class="pbd">
+      <div class="imgph">📷 GS25 영수증</div>
+      <div>OCR: GS25 강남점 · ₩12,400</div>
+      <div class="warn">⚠️ 편의점 — 상세내역 증빙 필요 (상신은 가능)</div>
+      <span class="chip hi">✓ 일반</span>
+      <div class="btn">그냥 진행</div>
+      <div class="op">경고 배지 <b>자동 표시</b>, 막지 않음</div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="pt"><span>④ 정산하기 — 매칭</span><span class="tm">1:50</span></div>
+    <div class="pbd">
+      <div class="row hi">스시로 ↔ tx_001 · 98점 ✓</div>
+      <div class="row hi">GS25 ↔ tx_007 · 92점 ✓</div>
+      <div class="row">택시 ↔ ? · 55점 확인필요</div>
+      <div class="btn">매칭 확정 → 전표 생성</div>
+      <div class="op">영수증↔카드내역 <b>자동 매칭</b>, 낮은 점수만 확인</div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="pt"><span>⑤ 전표 검토·상신</span><span class="tm">2:20</span></div>
+    <div class="pbd">
+      <div style="font-weight:700;margin-bottom:3px">7월 도쿄 출장비 (초안)</div>
+      <div class="row">식대 · 스시로 · ₩79,200</div>
+      <div class="row">간식비 · GS25 · ₩12,400</div>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:3px">계정·적요·결재선 자동 기입</div>
+      <div class="btn">상신</div>
+      <div class="op">Preset 규칙 반영 초안 <b>검토만</b> → 상신</div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="pt"><span>⑥ AI 구독/교육 자동인식</span><span class="tm">2:55</span></div>
+    <div class="pbd">
+      <div class="imgph">📷 AI Frontier 교육비</div>
+      <div>OCR: ₩120,000</div>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:4px">Preset (키워드 자동매칭)</div>
+      <span class="chip hi">✓ AI Frontier 교육</span>
+      <div class="row" style="margin-top:5px;border-color:#8fce9e;background:#f0f9f2">교육훈련비 잔여 ₩300,000 → ₩180,000</div>
+      <div class="op">배포된 Preset <b>자동 추천</b> → 한도 차감</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============ SECTION 4: 모바일 - Preset 상태 대시보드 ============ -->
+<section class="page-break">
+<h2>4. 모바일 — Preset 상태 대시보드 (읽기 전용)</h2>
+<p class="subtitle">배정된 Preset의 사용 현황을 한눈에. 생성·수정은 이어카운팅에서만, 모바일은 조회만 한다.</p>
+
+<div class="dash" style="margin-top:12px">
+  <div class="panel">
+    <div class="pt" style="border-radius:0">📊 내 정산 현황</div>
+    <div style="padding:12px">
+      <div class="pcard">
+        <div class="r1"><span class="nm">7월 도쿄 출장</span><span class="badge trip">TRIP</span></div>
+        <div class="pmeta">7/14–7/17 · 일일 Cap ₩200,000 · 전체 ₩800,000</div>
+        <div class="bar"><span style="width:47%;background:#3f6fd6"></span></div>
+        <div class="fig"><span class="used">사용 ₩377,000</span><span class="rem">잔여 ₩423,000</span></div>
+        <div class="days">
+          <div class="day"><div class="db"><span style="height:88%;background:#e0894f"></span></div>14</div>
+          <div class="day"><div class="db"><span style="height:89%;background:#e0894f"></span></div>15</div>
+          <div class="day"><div class="db"><span style="height:40%;background:#3f6fd6"></span></div>16</div>
+          <div class="day"><div class="db"><span style="height:0%"></span></div>17</div>
+        </div>
+        <div style="font-size:9px;color:#8b93a5;margin-top:5px">일별 사용 — 15일 일일 Cap 근접(주황)</div>
+      </div>
+      <div class="pcard">
+        <div class="r1"><span class="nm">AI Frontier 교육</span><span class="badge recur">월 한도</span></div>
+        <div class="pmeta">7월 · 교육훈련비</div>
+        <div class="bar"><span style="width:40%;background:#2e8b40"></span></div>
+        <div class="fig"><span class="used">사용 ₩120,000</span><span class="rem">잔여 ₩180,000</span></div>
+      </div>
+      <div class="pcard">
+        <div class="r1"><span class="nm">복지-도서</span><span class="badge recur">월 한도</span></div>
+        <div class="pmeta">7월</div>
+        <div class="bar"><span style="width:17%;background:#2e8b40"></span></div>
+        <div class="fig"><span class="used">사용 ₩33,000</span><span class="rem">잔여 ₩167,000</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h3 style="margin-top:0">대시보드가 보여주는 것</h3>
+    <ul style="padding-left:18px;line-height:1.7">
+      <li><b>출장(TRIP)</b>: 기간 + 전체 한도 대비 사용/잔여, 일별 사용 막대(일일 Cap 근접 시 색 경고)</li>
+      <li><b>월 한도(RECURRING)</b>: 교육·도서 등 배정 예산의 사용/잔여 게이지</li>
+      <li>영수증을 상신하면 해당 Preset 사용량이 <b>자동 반영</b>되어 갱신</li>
+    </ul>
+    <h3>데이터 출처</h3>
+    <p style="line-height:1.6">이미 설계된 <span class="tpl">GET /api/presets?active=true</span> 의 <span class="tpl">usage</span> · <span class="tpl">rules.limitKRW</span> 를 그대로 읽어 렌더링. 신규 API 없이 표시 화면만 추가.</p>
+    <h3>정산 흐름과의 연결</h3>
+    <p style="line-height:1.6">이어카운팅에서 Preset을 배포 → 모바일에서 영수증 처리 시 자동 적용 → 사용량이 이 대시보드에 실시간으로 쌓인다. "규정을 배포하면 정산이 알아서 따라간다"는 구조를 사용자가 눈으로 확인하는 화면.</p>
+  </div>
+</div>
+</section>
+
+</body>
+</html>
