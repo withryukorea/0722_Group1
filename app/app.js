@@ -55,6 +55,9 @@ const escapeHtml = (value = '') => String(value)
   .replaceAll("'", '&#039;');
 
 const won = (value) => `${Number(value || 0).toLocaleString('ko-KR')}원`;
+const now = new Date();
+const reportingMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+const reportingMonthLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
 const shortDate = (value) => value ? new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric' }).format(new Date(value)) : '-';
 const dateTime = (value) => value
   ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
@@ -136,10 +139,36 @@ function categoryKey(item = {}) {
   return 'etc';
 }
 
-function categorySummary() {
-  return state.transactions.reduce((summary, item) => {
-    const key = categoryKey(item);
-    summary[key] = (summary[key] || 0) + Number(item.amountKRW || 0);
+function isDuplicateReceipt(receipt) {
+  return receipt.status === 'duplicate'
+    || (receipt.checks || []).some((check) => check.type === 'DUPLICATE_DOCUMENT');
+}
+
+function receiptAmountKRW(receipt) {
+  if (receipt.amountKRW !== undefined && receipt.amountKRW !== null) return Number(receipt.amountKRW || 0);
+  return receipt.ocr?.currency === 'KRW' ? Number(receipt.ocr?.amount || 0) : 0;
+}
+
+function validReceipts() {
+  return state.receipts.filter((receipt) => !isDuplicateReceipt(receipt));
+}
+
+function receiptMetrics() {
+  const valid = validReceipts();
+  const monthly = valid.filter((receipt) => String(receipt.ocr?.paidAt || receipt.createdAt || '').startsWith(reportingMonth));
+  return {
+    valid,
+    monthly,
+    allTotal: valid.reduce((total, receipt) => total + receiptAmountKRW(receipt), 0),
+    monthTotal: monthly.reduce((total, receipt) => total + receiptAmountKRW(receipt), 0),
+    duplicateCount: state.receipts.length - valid.length,
+  };
+}
+
+function categorySummary(receipts = validReceipts()) {
+  return receipts.reduce((summary, receipt) => {
+    const key = categoryKey({ merchant: receipt.ocr?.merchant, accountCode: receipt.accountCode });
+    summary[key] = (summary[key] || 0) + receiptAmountKRW(receipt);
     return summary;
   }, {});
 }
@@ -196,13 +225,14 @@ function transactionRow(item, compact = false) {
 function screenDashboard() {
   state.route = 'dashboard';
   renderNav('dashboard');
+  const metrics = receiptMetrics();
+  const metricSourceLabel = state.mode === 'live' ? '라이브 증빙 기준' : '데모 데이터';
   if (!state.tripPreset) {
-    const monthTotal = state.transactions.reduce((total, item) => total + Number(item.amountKRW || 0), 0);
     const recentRows = state.receipts.length
       ? state.receipts.slice(0, 4).map(receiptRow).join('')
       : state.transactions.slice(0, 4).map((item) => transactionRow(item, true)).join('');
     root.innerHTML = `<section class="dashboard-screen">
-      <article class="design-hero"><span class="hero-label">2026년 7월 사용 총액</span><strong>${won(monthTotal)}</strong><p>법인카드 ${state.transactions.length}건 · 저장된 영수증 ${state.receipts.length}건</p><div class="hero-trip"><div><span>배정된 출장 정산단위</span><b>없음</b></div><small><span>일반 경비 영수증은 바로 저장할 수 있습니다.</span></small></div></article>
+      <article class="design-hero"><span class="hero-label">${reportingMonthLabel} 사용 총액</span><strong>${won(metrics.monthTotal)}</strong><p>영수증 ${metrics.monthly.length}건 · 중복 ${metrics.duplicateCount}건 제외 · ${metricSourceLabel}</p><div class="hero-trip"><div><span>배정된 출장 정산단위</span><b>없음</b></div><small><span>일반 경비 영수증은 바로 저장할 수 있습니다.</span></small></div></article>
       <button class="dashboard-capture" type="button" data-route="capture"><span class="mini-camera" aria-hidden="true"></span><div><b>영수증 촬영하기</b><small>자동 크롭·OCR 확인 후 서버에 저장</small></div><strong>→</strong></button>
       <div class="section-label"><b>배정된 정산단위</b><button type="button" data-route="setup">확인하기 ›</button></div>
       <div class="preset-list">${state.presets.map(presetCard).join('') || '<div class="empty-state small">배정된 정산단위가 없습니다.</div>'}</div>
@@ -216,23 +246,21 @@ function screenDashboard() {
   const trip = tripView();
   const cap = Number(trip.totalCapKRW);
   const rate = cap ? Math.round((spent / cap) * 100) : 0;
-  const matched = state.transactions.filter((item) => ['matched', 'vouchered', 'settled'].includes(item.status)).length;
-  const monthTotal = state.transactions.reduce((total, item) => total + Number(item.amountKRW || 0), 0);
-  const categories = categorySummary();
+  const categories = categorySummary(metrics.valid);
   const recentRows = state.receipts.length
     ? state.receipts.slice(0, 4).map(receiptRow).join('')
     : state.transactions.slice(0, 4).map((item) => transactionRow(item, true)).join('');
   root.innerHTML = `
     <section class="dashboard-screen">
       <article class="design-hero">
-        <span class="hero-label">2026년 7월 사용 총액</span>
-        <strong>${won(monthTotal)}</strong>
-        <p>법인카드 ${state.transactions.length}건 · 영수증 ${state.receipts.length}건 · ${matched}건 매칭</p>
+        <span class="hero-label">${reportingMonthLabel} 사용 총액</span>
+        <strong>${won(metrics.monthTotal)}</strong>
+        <p>영수증 ${metrics.monthly.length}건 · 중복 ${metrics.duplicateCount}건 제외 · ${metricSourceLabel}</p>
         <div class="hero-trip"><div><span>✈ ${escapeHtml(state.tripPreset.name)} · 잔여 한도</span><b>${won(Math.max(0, cap - spent))}</b></div><div class="gauge-track"><i style="width:${Math.min(rate, 100)}%"></i></div><small><span>사용 ${won(spent)}</span><span>${shortDate(trip.startDate)}–${shortDate(trip.endDate)} · ${trip.members}명</span></small></div>
       </article>
       <button class="dashboard-capture" type="button" data-route="capture"><span class="mini-camera" aria-hidden="true"></span><div><b>영수증 촬영하기</b><small>자동 크롭·OCR 확인 후 서버에 저장</small></div><strong>→</strong></button>
       <div class="section-label"><b>카테고리별 사용 현황</b><span>전체 누적</span></div>
-      <div class="category-card">${Object.entries(categories).sort((a, b) => b[1] - a[1]).map(([key, total]) => categoryUsageRow(key, total, monthTotal)).join('')}</div>
+      <div class="category-card">${Object.entries(categories).sort((a, b) => b[1] - a[1]).map(([key, total]) => categoryUsageRow(key, total, metrics.allTotal)).join('')}</div>
       <div class="section-label"><b>출장비 기준 대비 사용</b><span>읽기 전용</span></div>
       <article class="trip-usage-card"><div class="trip-usage-head"><div><b>${trip.tripType === 'overseas' ? '✈' : '🚄'} ${escapeHtml(state.tripPreset.name)}</b><span>${shortDate(trip.startDate)}–${shortDate(trip.endDate)} · ${trip.days}일</span></div><em>${rate > 100 ? '기준 초과' : '기준 이내'}</em></div><div class="gauge-row"><span>누적 사용</span><b>${won(spent)} / ${won(cap)}</b></div><div class="gauge-track"><i style="width:${Math.min(rate, 100)}%"></i></div><div class="gauge-foot"><span>${won(trip.dailyCapPerPersonKRW)}/인 × ${trip.members}명</span><strong>잔여 ${won(Math.max(0, cap - spent))}</strong></div></article>
       <div class="section-label"><b>배정된 정산단위</b><span>${state.presets.length}개 활성</span></div>
