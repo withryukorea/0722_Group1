@@ -20,6 +20,7 @@ const connectionLabel = document.querySelector('#connection-label');
 const connectionDot = document.querySelector('.connection-dot');
 const bottomNav = document.querySelector('#bottom-nav');
 const settingsButton = document.querySelector('#reset-button');
+const headerSub = document.querySelector('#header-sub');
 
 const state = {
   route: 'setup',
@@ -35,6 +36,23 @@ const state = {
   voucher: null,
   result: null,
   mode: 'checking',
+  receiptFilter: 'all',
+};
+
+const HEADER_COPY = {
+  dashboard: '영수증 사진 한 장으로 정산 끝',
+  capture: '촬영 · 자동 크롭 · OCR · Preset 추천',
+  receipts: '촬영한 영수증과 카드 매칭 현황',
+  transactions: '법인카드 승인내역과 증빙 연결',
+  setup: '국내·해외 출장 일정과 한도 관리',
+};
+
+const CATEGORY_META = {
+  travel: { name: '출장비', color: '#EA002C' },
+  ai: { name: 'AI Tool 구독', color: '#D96414' },
+  meal: { name: '식대·간식', color: '#0E9F6E' },
+  transport: { name: '교통', color: '#2563EB' },
+  etc: { name: '일반경비', color: '#8B5CF6' },
 };
 
 const escapeHtml = (value = '') => String(value)
@@ -55,10 +73,10 @@ function setMode(mode) {
   connectionDot.classList.toggle('is-live', mode === 'live');
   connectionDot.classList.toggle('is-demo', mode === 'demo');
   connectionLabel.textContent = mode === 'live'
-    ? '실제 서버 연결됨'
+    ? '서버 연결'
     : mode === 'demo'
-      ? '안전한 데모 데이터 사용 중'
-      : '서버 연결 확인 중';
+      ? '데모 모드'
+      : '연결 확인 중';
 }
 
 function modeBadge() {
@@ -69,6 +87,7 @@ function modeBadge() {
 
 function renderNav(route = state.route, focused = false) {
   bottomNav.hidden = !state.tripPreset || focused;
+  headerSub.textContent = HEADER_COPY[route] || HEADER_COPY.dashboard;
   bottomNav.querySelectorAll('[data-route]').forEach((button) => {
     button.classList.toggle('active', button.dataset.route === route);
   });
@@ -116,6 +135,23 @@ function statusMeta(status) {
   return ['영수증 필요', 'needed'];
 }
 
+function categoryKey(item = {}) {
+  const raw = `${item.merchant || ''} ${item.accountCode || ''}`;
+  if (/ANTHROPIC|OPENAI|CLAUDE|CHATGPT|AI/i.test(raw)) return 'ai';
+  if (/택시|철도|KTX|항공|공항|메트로|지하철|교통/i.test(raw)) return 'transport';
+  if (/출장|HOTEL|호텔|숙박/i.test(raw)) return 'travel';
+  if (/카페|커피|식당|치킨|식대|간식|폴바셋/i.test(raw)) return 'meal';
+  return 'etc';
+}
+
+function categorySummary() {
+  return state.transactions.reduce((summary, item) => {
+    const key = categoryKey(item);
+    summary[key] = (summary[key] || 0) + Number(item.amountKRW || 0);
+    return summary;
+  }, {});
+}
+
 function receiptVisual(preferCropped = false) {
   const serverImage = preferCropped && state.receipt?.croppedUrl
     ? (state.receipt.croppedUrl.startsWith('http') ? state.receipt.croppedUrl : `${APP_CONFIG.apiBase}${state.receipt.croppedUrl}`)
@@ -129,17 +165,21 @@ function screenTripSetup() {
   state.route = 'setup';
   renderNav('setup');
   const trip = state.tripPreset ? tripView() : { destination: '부산', tripType: 'domestic', members: 1, startDate: '2026-07-21', endDate: '2026-07-23' };
+  const tripPresets = state.presets.filter((preset) => preset.type === 'TRIP');
   root.innerHTML = `
-    <section class="setup-screen">
-      <div class="setup-visual"><span class="map-pin" aria-hidden="true"></span><small>출장 영수증 자동 정산</small><h1>출장 정보를<br>먼저 알려주세요</h1><p>기간과 장소를 기준으로 사용 가능한 출장여비를 계산합니다.</p></div>
-      <form class="trip-form" id="trip-form">
+    <section class="schedule-screen">
+      <div class="page-heading-mobile schedule-heading"><div><span class="eyebrow">출장 일정 관리</span><h1>일정을 미리 등록해두세요</h1><p>기간 내 결제를 출장비로 분류하고 한도를 자동 계산합니다.</p></div>${modeBadge()}</div>
+      ${tripPresets.length ? `<div class="section-label"><b>등록된 출장 일정</b><span>${tripPresets.length}건</span></div><div class="schedule-list">${tripPresets.map((preset, index) => scheduleTripCard(preset, index)).join('')}</div>` : '<div class="schedule-empty"><b>등록된 출장 일정이 없습니다.</b><span>첫 일정을 등록하면 홈 대시보드가 열립니다.</span></div>'}
+      <div class="section-label"><b>새 출장 일정 등록</b><span>Preset으로 저장</span></div>
+      <form class="trip-form schedule-form" id="trip-form">
         <fieldset class="segment-field"><legend>출장 구분</legend><label><input type="radio" name="tripType" value="domestic" ${trip.tripType !== 'overseas' ? 'checked' : ''}><span>국내 출장<small>일 30,000원</small></span></label><label><input type="radio" name="tripType" value="overseas" ${trip.tripType === 'overseas' ? 'checked' : ''}><span>해외 출장<small>일 80,000원</small></span></label></fieldset>
-        <label>출장 장소<input name="destination" value="${escapeHtml(trip.destination)}" placeholder="예: 부산" required></label>
+        <label>출장명·목적지<input name="destination" value="${escapeHtml(trip.destination)}" placeholder="예: 부산·울산 현장 방문" required><small>여러 지역이면 이동 순서대로 입력하세요.</small></label>
         <div class="form-grid"><label>시작일<input type="date" name="startDate" value="${trip.startDate}" required></label><label>종료일<input type="date" name="endDate" value="${trip.endDate}" required></label></div>
         <label>출장 인원<input type="number" name="members" min="1" max="20" value="${trip.members || 1}" required></label>
         <div class="cap-preview" id="cap-preview"></div>
-        <button class="button primary full" type="submit">출장 시작하기 <span>→</span></button>
+        <button class="button primary full" type="submit">일정 등록하기 <span>→</span></button>
       </form>
+      <article class="schedule-tip"><b>일정을 등록하면</b><ul><li>기간 내 카드 결제가 출장 Preset으로 추천됩니다.</li><li>국내·해외 기준과 인원에 맞춰 잔여 한도가 표시됩니다.</li><li>영수증 저장 전 Preset과 비목은 사용자가 최종 확정합니다.</li></ul></article>
     </section>`;
   const form = document.querySelector('#trip-form');
   const updateCap = () => {
@@ -152,6 +192,20 @@ function screenTripSetup() {
   form.addEventListener('input', updateCap);
   form.addEventListener('submit', saveTrip);
   updateCap();
+}
+
+function scheduleTripCard(preset, index) {
+  const trip = tripView(preset);
+  const used = Number(preset.usage?.usedKRW || 0);
+  const cap = Number(trip.totalCapKRW || 0);
+  const rate = cap ? Math.min(100, Math.round((used / cap) * 100)) : 0;
+  const active = preset.id === state.tripPreset?.id;
+  return `<article class="schedule-card ${trip.tripType === 'overseas' ? 'foreign' : ''}">
+    <div class="schedule-card-head"><div><b>${trip.tripType === 'overseas' ? '✈' : '🚄'} ${escapeHtml(preset.name)}</b><span>${shortDate(trip.startDate)} – ${shortDate(trip.endDate)} · ${trip.days}일 · ${trip.members}명</span></div><em>${active ? '진행중' : `일정 #${index + 1}`}</em></div>
+    <p>${escapeHtml(trip.destination)} · ${trip.tripType === 'overseas' ? '해외출장' : '국내출장'} 기준</p>
+    <div class="gauge-row"><span>사용 ${won(used)}</span><b>${won(cap)}</b></div><div class="gauge-track"><i style="width:${rate}%"></i></div>
+    <div class="gauge-foot"><span>${won(trip.dailyCapPerPersonKRW)}/인 × ${trip.members}명 × ${trip.days}일</span><strong>잔여 ${won(Math.max(0, cap - used))}</strong></div>
+  </article>`;
 }
 
 async function saveTrip(event) {
@@ -190,22 +244,36 @@ function screenDashboard() {
   const cap = Number(trip.totalCapKRW);
   const rate = cap ? Math.round((spent / cap) * 100) : 0;
   const matched = state.transactions.filter((item) => ['matched', 'vouchered', 'settled'].includes(item.status)).length;
+  const monthTotal = state.transactions.reduce((total, item) => total + Number(item.amountKRW || 0), 0);
+  const categories = categorySummary();
+  const recentRows = state.receipts.length
+    ? state.receipts.slice(0, 4).map(receiptRow).join('')
+    : state.transactions.slice(0, 4).map((item) => transactionRow(item, true)).join('');
   root.innerHTML = `
     <section class="dashboard-screen">
-      <div class="trip-heading"><div><span class="eyebrow">내 정산 현황</span><h1>${escapeHtml(state.tripPreset.name)}</h1><p>${shortDate(trip.startDate)} – ${shortDate(trip.endDate)} · ${trip.days}일 · ${trip.members}명</p></div>${modeBadge()}</div>
-      <article class="budget-hero">
-        <div class="budget-top"><span>출장여비 소진율</span><b>${Math.min(rate, 999)}<small>%</small></b></div>
-        <div class="budget-track"><i style="width:${Math.min(rate, 100)}%"></i></div>
-        <div class="budget-values"><div><span>사용금액</span><strong>${won(spent)}</strong></div><div><span>남은 한도</span><strong>${won(Math.max(0, cap - spent))}</strong></div></div>
+      <article class="design-hero">
+        <span class="hero-label">2026년 7월 사용 총액</span>
+        <strong>${won(monthTotal)}</strong>
+        <p>법인카드 ${state.transactions.length}건 · 영수증 ${state.receipts.length}건 · ${matched}건 매칭</p>
+        <div class="hero-trip"><div><span>✈ ${escapeHtml(state.tripPreset.name)} · 잔여 한도</span><b>${won(Math.max(0, cap - spent))}</b></div><div class="gauge-track"><i style="width:${Math.min(rate, 100)}%"></i></div><small><span>사용 ${won(spent)}</span><span>${shortDate(trip.startDate)}–${shortDate(trip.endDate)} · ${trip.members}명</span></small></div>
       </article>
-      <div class="metric-grid"><article><span>일당 한도</span><b>${won(trip.dailyCapKRW)}</b><small>${won(trip.dailyCapPerPersonKRW)} × ${trip.members}명</small></article><article><span>매칭 현황</span><b>${matched}<em> / ${state.transactions.length}</em></b><small>영수증 연결 완료</small></article></div>
-      <button class="dashboard-capture" type="button" data-route="capture"><span class="mini-camera" aria-hidden="true"></span><div><b>영수증 촬영하기</b><small>사진을 찍으면 자동으로 분석해요</small></div><strong>→</strong></button>
-      <div class="list-heading"><h2>배정된 Preset</h2><span class="readonly-label">읽기 전용</span></div>
+      <button class="dashboard-capture" type="button" data-route="capture"><span class="mini-camera" aria-hidden="true"></span><div><b>영수증 촬영하기</b><small>자동 크롭·OCR·Preset 추천까지 한 번에</small></div><strong>→</strong></button>
+      <div class="section-label"><b>카테고리별 사용 현황</b><span>전체 누적</span></div>
+      <div class="category-card">${Object.entries(categories).sort((a, b) => b[1] - a[1]).map(([key, total]) => categoryUsageRow(key, total, monthTotal)).join('')}</div>
+      <div class="section-label"><b>출장비 기준 대비 사용</b><span>읽기 전용</span></div>
+      <article class="trip-usage-card"><div class="trip-usage-head"><div><b>${trip.tripType === 'overseas' ? '✈' : '🚄'} ${escapeHtml(state.tripPreset.name)}</b><span>${shortDate(trip.startDate)}–${shortDate(trip.endDate)} · ${trip.days}일</span></div><em>${rate > 100 ? '기준 초과' : '기준 이내'}</em></div><div class="gauge-row"><span>누적 사용</span><b>${won(spent)} / ${won(cap)}</b></div><div class="gauge-track"><i style="width:${Math.min(rate, 100)}%"></i></div><div class="gauge-foot"><span>${won(trip.dailyCapPerPersonKRW)}/인 × ${trip.members}명</span><strong>잔여 ${won(Math.max(0, cap - spent))}</strong></div></article>
+      <div class="section-label"><b>배정된 Preset</b><span>${state.presets.length}개 활성</span></div>
       <div class="preset-list">${state.presets.map(presetCard).join('')}</div>
-      <div class="list-heading"><h2>최근 카드내역</h2><button type="button" data-route="transactions">전체보기</button></div>
-      <div class="transaction-list">${state.transactions.slice(0, 3).map((item) => transactionRow(item, true)).join('') || '<div class="empty-state small">카드내역을 불러오는 중입니다.</div>'}</div>
+      <div class="section-label"><b>${state.receipts.length ? '최근 영수증' : '최근 카드 승인내역'}</b><button type="button" data-route="${state.receipts.length ? 'receipts' : 'transactions'}">전체보기 ›</button></div>
+      <div class="recent-card">${recentRows || '<div class="empty-state small">최근 내역이 없습니다.</div>'}</div>
       <button class="settle-button" type="button" data-action="settle"><span>출장끝</span><b>e-Accounting 전송</b><small>${matched ? `${matched}건의 연결된 거래를 확인합니다` : '영수증을 먼저 연결해주세요'}</small></button>
     </section>`;
+}
+
+function categoryUsageRow(key, total, grandTotal) {
+  const category = CATEGORY_META[key] || CATEGORY_META.etc;
+  const rate = grandTotal ? Math.round((total / grandTotal) * 100) : 0;
+  return `<div class="category-row"><div><span><i style="background:${category.color}"></i>${category.name}</span><b>${won(total)}</b></div><div class="gauge-track"><i style="width:${rate}%;background:${category.color}"></i></div><small>${rate}% · 자동 분류 누적</small></div>`;
 }
 
 function presetCard(preset) {
@@ -224,21 +292,38 @@ function screenTransactions() {
   root.innerHTML = `<section class="list-screen"><div class="page-heading-mobile"><span class="eyebrow">법인카드</span><h1>거래 내역</h1><p>영수증이 필요한 거래 ${needed}건</p></div><div class="filter-chips"><button class="active">전체 ${state.transactions.length}</button><button>영수증 필요 ${needed}</button><button>매칭 완료 ${state.transactions.length - needed}</button></div><div class="transaction-list full-list">${state.transactions.map((item) => transactionRow(item)).join('')}</div></section>`;
 }
 
+function receiptThumbnail(receipt) {
+  const source = receipt?.croppedUrl || receipt?.imageUrl || '';
+  if (!source) return '<span class="receipt-placeholder" aria-hidden="true">영수증</span>';
+  const url = source.startsWith('http') ? source : `${APP_CONFIG.apiBase}${source}`;
+  return `<img class="receipt-image" src="${escapeHtml(url)}" alt="">`;
+}
+
 function receiptRow(receipt) {
   const ocr = receipt.ocr || {};
-  return `<article class="receipt-row"><div class="receipt-mini">${receipt.id === state.receipt?.id ? receiptVisual() : '<span>영수증</span>'}</div><div><b>${escapeHtml(ocr.merchant || '분석 중인 영수증')}</b><small>${dateTime(ocr.paidAt)} · ${escapeHtml(receipt.id)}</small><span class="status ${receipt.matchedTxId ? 'matched' : 'needed'}">${receipt.matchedTxId ? '매칭완료' : '확인 필요'}</span></div><strong>${won(ocr.amount)}</strong></article>`;
+  const key = categoryKey({ merchant: ocr.merchant, accountCode: receipt.accountCode });
+  const category = CATEGORY_META[key];
+  return `<article class="receipt-row"><div class="receipt-mini">${receipt.id === state.receipt?.id ? receiptVisual() : receiptThumbnail(receipt)}</div><div><b>${escapeHtml(ocr.merchant || '분석 중인 영수증')}</b><small><i style="background:${category.color}"></i>${category.name} · ${dateTime(ocr.paidAt)}</small><span class="status ${receipt.matchedTxId ? 'matched' : 'needed'}">${receipt.matchedTxId ? '매칭완료' : '확인 필요'}</span></div><strong>${won(ocr.amount)}</strong></article>`;
 }
 
 function screenReceipts() {
   state.route = 'receipts';
   renderNav('receipts');
-  root.innerHTML = `<section class="list-screen"><div class="page-heading-mobile"><span class="eyebrow">증빙 보관함</span><h1>촬영한 영수증</h1><p>원본과 OCR 결과를 함께 보관합니다.</p></div>${state.receipts.length ? `<div class="receipt-list">${state.receipts.map(receiptRow).join('')}</div>` : '<div class="empty-state"><span class="empty-receipt" aria-hidden="true"></span><h2>아직 촬영한 영수증이 없어요</h2><p>출장 중 받은 영수증을 바로 찍어두세요.</p><button class="button primary" data-route="capture">첫 영수증 촬영</button></div>'}</section>`;
+  const filters = [['all', '전체'], ['review', '확인 필요'], ['matched', '매칭 완료'], ['travel', '출장비'], ['ai', 'AI Tool']];
+  const visible = state.receipts.filter((receipt) => {
+    if (state.receiptFilter === 'all') return true;
+    if (state.receiptFilter === 'review') return !receipt.matchedTxId;
+    if (state.receiptFilter === 'matched') return Boolean(receipt.matchedTxId);
+    return categoryKey({ merchant: receipt.ocr?.merchant, accountCode: receipt.accountCode }) === state.receiptFilter;
+  });
+  const total = visible.reduce((sum, receipt) => sum + Number(receipt.ocr?.amount || 0), 0);
+  root.innerHTML = `<section class="list-screen receipt-screen"><div class="page-heading-mobile"><span class="eyebrow">증빙 보관함</span><h1>촬영한 영수증</h1><p>원본·크롭본·OCR 결과와 카드 매칭 상태를 함께 보관합니다.</p></div><div class="filter-chips sticky-filters">${filters.map(([key, label]) => `<button class="${state.receiptFilter === key ? 'active' : ''}" type="button" data-receipt-filter="${key}">${label}</button>`).join('')}</div><article class="receipt-total"><span>${filters.find(([key]) => key === state.receiptFilter)?.[1]} ${visible.length}건</span><b>${won(total)}</b></article>${visible.length ? `<div class="section-label"><b>2026년 7월</b><span>${visible.length}건</span></div><div class="receipt-list receipt-card">${visible.map(receiptRow).join('')}</div>` : '<div class="empty-state"><span class="empty-receipt" aria-hidden="true"></span><h2>해당 조건의 영수증이 없어요</h2><p>새 영수증을 촬영하면 자동으로 분류됩니다.</p><button class="button primary" data-route="capture">영수증 촬영</button></div>'}<div class="section-label"><b>카드 매칭이 필요하신가요?</b><button type="button" data-route="transactions">승인내역 보기 ›</button></div></section>`;
 }
 
 function screenCapture() {
   state.route = 'capture';
   renderNav('capture');
-  root.innerHTML = `<section class="hero-screen">${progress('capture')}<div class="eyebrow">${escapeHtml(state.tripPreset.name)} · 영수증 자동 정산</div><h1>영수증을 찍으면<br><em>Preset을 추천해드려요.</em></h1><p class="lead">원본은 보존하고 자동 크롭·OCR 후 적용할 Preset과 비목만 확인합니다.</p><button class="capture-card" type="button" data-action="camera"><span class="camera-orbit" aria-hidden="true"><span class="camera-icon"></span></span><b>영수증 촬영하기</b><small>휴대폰 뒷면 카메라를 사용합니다</small></button><div class="button-row"><button class="button secondary" type="button" data-action="gallery">사진에서 선택</button><button class="button ghost" type="button" data-action="sample">샘플로 체험</button></div><div class="trust-note"><span aria-hidden="true">✓</span><p><b>추천은 참고용입니다.</b><br>Preset과 비목은 저장 전에 사용자가 직접 확정합니다.</p></div></section>`;
+  root.innerHTML = `<section class="hero-screen capture-screen">${progress('capture')}<div class="capture-heading"><span class="eyebrow">${escapeHtml(state.tripPreset.name)}</span><h1>영수증을 프레임에<br>맞춰주세요</h1><p>촬영 후 자동 크롭 → OCR → Preset 추천이 이어집니다.</p></div><button class="camera-stage" type="button" data-action="camera" aria-label="영수증 촬영"><span class="camera-guide"><i></i><i></i><i></i><i></i></span><span class="camera-stage-copy"><b>영수증 전체가 보이게 촬영하세요</b><small>빛 반사와 그림자를 피하면 더 정확합니다</small></span></button><div class="capture-controls"><button class="capture-side" type="button" data-action="gallery"><span aria-hidden="true">▧</span><b>갤러리</b></button><button class="shutter" type="button" data-action="camera" aria-label="촬영"><span class="camera-icon" aria-hidden="true"></span></button><button class="capture-side" type="button" data-action="sample"><span aria-hidden="true">▤</span><b>샘플</b></button></div><div class="trust-note"><span aria-hidden="true">✓</span><p><b>추천은 자동 적용되지 않습니다.</b><br>OCR 결과·Preset·비목·부가세는 저장 전 직접 확정합니다.</p></div></section>`;
 }
 
 function screenProcessing(label = '영수증을 읽고 있어요') {
@@ -414,6 +499,12 @@ function settleTrip() {
 }
 
 root.addEventListener('click', async (event) => {
+  const receiptFilter = event.target.closest('[data-receipt-filter]')?.dataset.receiptFilter;
+  if (receiptFilter) {
+    state.receiptFilter = receiptFilter;
+    screenReceipts();
+    return;
+  }
   const route = event.target.closest('[data-route]')?.dataset.route;
   if (route) return navigate(route);
   const action = event.target.closest('[data-action]')?.dataset.action;
