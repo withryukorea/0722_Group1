@@ -26,6 +26,7 @@
 | 변경 | `POST /api/receipts` 응답에 `suggestedPresetId`, `checks[]` 추가 |
 | 추가 | `PATCH /api/receipts/:id` — 사용자가 `presetId`·`accountCode` 확정, `vat.confirmed` 저장 |
 | 변경 | `POST /api/vouchers/preview` — `receipt.presetId` 있으면 그 정산단위 규칙 사용, 없으면 기존 P4 자동분류 + fallback |
+| 추가 | `GET /api/travel-policy` — 국내·해외 출장비 화면이 공통 지급기준을 조회 |
 | 유지 | `/api/transactions`, `/api/match`, `/api/vouchers`, `/api/fx`, `/api/approval-rules` |
 
 ## REST API 전체 (:4000)
@@ -46,6 +47,7 @@
 | PATCH | `/api/presets/:id` | 정산단위 수정/비활성화 |
 | GET | `/api/accounts` | 계정과목 코드표 (기존 유지) |
 | GET | `/api/fx` | 환율 테이블 (기존 유지) |
+| GET | `/api/travel-policy` | `fixtures/travel-policy.json` 기반 국내·해외 직급·지역별 출장비 지급기준 |
 
 ## Frontend Routes
 

@@ -15,6 +15,7 @@ const initial = {
   presets: readJSON("presets.json"),
   fx: readJSON("fx.json"),
   accounts: readJSON("accounts.json"),
+  travelPolicy: readJSON("travel-policy.json"),
 };
 
 const db = {
@@ -23,6 +24,7 @@ const db = {
   presets: JSON.parse(JSON.stringify(initial.presets)),
   fx: initial.fx,
   accounts: initial.accounts,
+  travelPolicy: initial.travelPolicy,
   vouchers: [], // 상신된 전표가 여기 쌓인다 (관리자 화면이 이걸 보여줌)
   receipts: [], // 업로드된 영수증 (P3 /api/receipts 가 쌓는다)
   _voucherSeq: 1,

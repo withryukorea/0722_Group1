@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>e-Accounting - 국내출장비 정산</title>
 <link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/travel-policy.css">
 </head>
 <body>
 
@@ -60,12 +61,19 @@
         <tr>
           <td class="lbl-left">👤 출장자 <span class="req">*</span></td>
           <td>
-            <input type="text" id="t-name" value="홍길동" style="width:220px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
-            <input type="date" id="t-from" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px; margin-left:10px;">
-            ~ <input type="date" id="t-to" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px;">
-            <input type="text" id="t-nights" disabled style="width:60px; height:32px; border:1px solid #cdd3dc; border-radius:4px; background:#f1f2f5; text-align:center; margin-left:10px;"> 박
-            <input type="text" id="t-days" disabled style="width:60px; height:32px; border:1px solid #cdd3dc; border-radius:4px; background:#f1f2f5; text-align:center; margin-left:6px;"> 일
-            <span style="color:var(--blue); font-size:18px; cursor:pointer; margin-left:6px;" onclick="alert('데모 버전에서는 출장자 추가를 지원하지 않습니다.')">⊕</span>
+            <div class="traveler-controls">
+              <input class="traveler-name" type="text" id="t-name" value="홍길동" aria-label="출장자 이름">
+              <select class="traveler-rank" id="t-rank" onchange="renderSummary()" aria-label="출장자 직급">
+                <option value="CEO">CEO</option><option value="DIVISION_HEAD">부문장</option>
+                <option value="HQ_HEAD">본부장</option><option value="TEAM_LEAD">팀장</option>
+                <option value="TEAM_MEMBER" selected>팀원</option>
+              </select>
+              <input class="traveler-date" type="date" id="t-from" onchange="calcNights()">
+              <span>~</span><input class="traveler-date" type="date" id="t-to" onchange="calcNights()">
+              <input class="traveler-count" type="text" id="t-nights" disabled> 박
+              <input class="traveler-count" type="text" id="t-days" disabled> 일
+              <span style="color:var(--blue); font-size:18px; cursor:pointer;" onclick="alert('데모 버전에서는 출장자 추가를 지원하지 않습니다.')">⊕</span>
+            </div>
           </td>
         </tr>
         <tr>
@@ -95,6 +103,7 @@
         <tr><th>기 정산(a)</th><th>현 정산(b)</th><th>기 정산(c)</th><th>현 정산(d)</th></tr>
         <tbody id="sum-body"></tbody>
       </table>
+      <div class="policy-box" id="policy-box" aria-live="polite"></div>
     </section>
 
     <!-- 예산정보 -->
@@ -238,6 +247,7 @@
 <script src="js/org-data.js"></script>
 <script src="js/approval-line.js"></script>
 <script src="js/accounts-data.js"></script>
+<script src="js/travel-policy.js"></script>
 <script>
 renderChrome({
   top: '전불/출장비',
@@ -261,6 +271,7 @@ function calcNights() {
   const nights = Math.max(0, (new Date(t) - new Date(f)) / 86400000);
   document.getElementById('t-nights').value = nights;
   document.getElementById('t-days').value = nights + 1;
+  renderSummary();
 }
 
 /* ── 현금이용내역 ── */
@@ -305,32 +316,62 @@ function deleteCashRows() {
 }
 function toggleAll(m, cls) { document.querySelectorAll('.' + cls).forEach(c => { c.checked = m.checked; }); }
 
-/* ── 출장비 정산 요약표 (국내: 임원/팀장·팀원 구분) ── */
+/* ── 출장비 정산 요약표 (docs/출장비 정산 기준.md) ── */
 function sums(type) {
   return cashLines.filter(l => l.type === type).reduce((s, l) => s + l.amount, 0);
 }
 const fmt = n => n ? n.toLocaleString('ko-KR') : '';
+function domesticCap(limit, actual) {
+  if (limit.mode === 'ACTUAL') return '<span class="policy-cap-main">실비</span>';
+  if (limit.mode === 'UNSPECIFIED') return '기준표 미기재';
+  const main = limit.amount ? `${fmt(limit.amount)}원` : EACC_TRAVEL_POLICY.formatUnitRate(limit);
+  let status = EACC_TRAVEL_POLICY.formatUnitRate(limit);
+  if (limit.amount && actual > limit.amount) {
+    status = limit.approvedAmount && actual <= limit.approvedAmount
+      ? `승인 필요 · 최대 ${fmt(limit.approvedAmount)}원`
+      : `한도 초과 · 기본 ${fmt(limit.amount)}원`;
+  }
+  return `<span class="policy-cap-main">${main}</span><span class="policy-cap-sub ${limit.amount && actual > limit.amount ? 'policy-over' : ''}">${status}</span>`;
+}
+function renderDomesticPolicy(role, dailyLimit, lodgeLimit) {
+  const p = EACC_TRAVEL_POLICY.getPolicy();
+  document.getElementById('policy-box').innerHTML = `
+    <div><strong>적용 기준 · ${EACC_TRAVEL_POLICY.roleLabel(role)}</strong>
+      <div class="policy-rates">
+        <span class="policy-rate">일당 ${EACC_TRAVEL_POLICY.formatUnitRate(dailyLimit)}</span>
+        <span class="policy-rate">숙박 ${EACC_TRAVEL_POLICY.formatUnitRate(lodgeLimit)}</span>
+        <span class="policy-rate">대중교통 실비</span>
+      </div>
+    </div>
+    <div class="policy-note">${role === 'TEAM_MEMBER' ? p.domestic.notes[0] : p.domestic.notes[1]}</div>
+    <div class="policy-source">기준: ${p.source}</div>`;
+}
 function renderSummary() {
   const daily = sums('일당'), lodge = sums('숙박비'), trans = sums('교통비'), etc = sums('기타'), over = sums('일당초과');
   const days = Number(document.getElementById('t-days').value) || 0;
   const nights = Number(document.getElementById('t-nights').value) || 0;
-  const capDaily = days ? days * 50000 : '';      // 국내 일당 한도(데모): 50,000/일
-  const capLodge = nights ? nights * 150000 : ''; // 국내 숙박 한도(데모): 150,000/박
+  const role = document.getElementById('t-rank').value;
+  const dailyLimit = EACC_TRAVEL_POLICY.domesticLimit('perDiem', role, days);
+  const lodgeLimit = EACC_TRAVEL_POLICY.domesticLimit('lodging', role, nights);
   const total = daily + lodge + trans + etc + over;
   const row = (c1, c2, v, cap) => `
     <tr>${c1}${c2}<td class="r"></td><td class="r">${fmt(v)}</td><td class="r"></td><td class="r"></td>
-    <td class="r">${fmt(v)}</td><td class="cap">${typeof cap === 'number' ? fmt(cap) : cap}</td></tr>`;
+    <td class="r">${fmt(v)}</td><td class="cap">${cap}</td></tr>`;
   document.getElementById('sum-body').innerHTML =
-    row(`<td class="grp" rowspan="2" style="width:10%;">일당</td>`, `<td class="grp">임원</td>`, 0, '') +
-    row('', `<td class="grp">팀장/팀원</td>`, daily, capDaily) +
-    row(`<td class="grp" rowspan="2">숙박비</td>`, `<td class="grp">임원/팀장</td>`, 0, '') +
-    row('', `<td class="grp">팀원</td>`, lodge, capLodge) +
-    row(`<td class="grp" colspan="2">교통비</td>`, '', trans, '') +
-    row(`<td class="grp" colspan="2">기타</td>`, '', etc, '') +
-    row(`<td class="grp" colspan="2">일당초과</td>`, '', over, '') +
+    row(`<td class="grp" style="width:10%;">일당</td>`, `<td class="grp">${EACC_TRAVEL_POLICY.roleLabel(role)}</td>`, daily, domesticCap(dailyLimit, daily)) +
+    row(`<td class="grp">숙박비</td>`, `<td class="grp">${EACC_TRAVEL_POLICY.roleLabel(role)}</td>`, lodge, domesticCap(lodgeLimit, lodge)) +
+    row(`<td class="grp" colspan="2">교통비</td>`, '', trans, '<span class="policy-cap-main">실비</span>') +
+    row(`<td class="grp" colspan="2">기타</td>`, '', etc, '업무사용료 실비') +
+    row(`<td class="grp" colspan="2">일당초과</td>`, '', over, '기준 외') +
     `<tr><td class="grp" colspan="2">총계</td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td>
      <td class="r"></td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td><td class="cap">-</td></tr>`;
+  renderDomesticPolicy(role, dailyLimit, lodgeLimit);
   if (!window._apvLine) document.getElementById('review-1').innerHTML = total > 300000 ? '전력사업본부<br><b>박아무개 부장</b>' : '';
+}
+
+async function syncTravelPolicy() {
+  const serverPolicy = await eaccApi('/api/travel-policy');
+  if (serverPolicy && EACC_TRAVEL_POLICY.setPolicy(serverPolicy)) renderSummary();
 }
 
 /* ── 첨부파일 ── */
@@ -378,6 +419,7 @@ async function submitVoucher() {
 
 renderCashLines();
 renderSummary();
+syncTravelPolicy();
 
 /* 미리보기 편의: ?demo=1 이면 팝업 닫힌 상태로 시작 */
 if (location.search.includes('demo')) closeTripModal();

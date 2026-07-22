@@ -25,7 +25,8 @@
 | 거래 매칭 라우트 | `server/routes/match.js` | 영수증 ↔ 카드내역 매칭 (기존 유지, 정산단위와 무관) |
 | 전표 라우트 | `server/routes/vouchers.js` | 전표 초안 생성, 상신, 목록 (정산단위 반영하도록 확장) |
 | 정산단위 라우트 | `server/routes/presets.js` | 정산단위 CRUD, 활성 목록 조회 |
-| 참조 데이터 라우트 | `server/routes/reference.js` | 계정과목, 환율, 전결규정(fallback) |
+| 참조 데이터 라우트 | `server/routes/reference.js` | 계정과목, 환율, 전결규정(fallback), 출장비 지급기준 |
+| 관리자 콘솔 | `server/public/index.html`, `admin.js`, `admin.css` | 카드내역/전표/정산단위 화면 |
 | 이어카운팅 화면 | `eaccounting/` | 법인카드 정산(`card-settlement`, `voucher-create`), 해외/국내 출장비 정산(`travel-foreign/domestic`), 문서함(`mydocs-all`) + **신규: 정산단위 관리, 영수증 업로드, 매칭 화면** |
 | 모바일 웹앱 | `app/`, `design/screens/mobile/` | 촬영·크롭확인·파싱확인·저장, 정산단위 대시보드(읽기 전용) |
 | ~~출장 라우트~~ | ~~`server/routes/trips.js`~~ | **제거됨** — `정산단위(type=TRIP)`으로 흡수 (구현 반영 완료) |
@@ -143,7 +144,7 @@ AI구독료처럼 PDF 인보이스로 오는 건은 이어카운팅에서 직접
 
 ### 유지되는 엔티티 (변경 없음)
 
-CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accounts — `docs/02-API-CONTRACT.md` 정의 그대로.
+CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accounts — `docs/02-API-CONTRACT.md` 정의 그대로. 출장비 지급기준은 `fixtures/travel-policy.json`을 단일 서버 원본으로 두고 `/api/travel-policy`로 제공한다.
 
 ## 모바일 정산단위 대시보드 (읽기 전용)
 
