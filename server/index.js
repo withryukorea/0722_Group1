@@ -28,6 +28,9 @@ app.post("/api/reset", (req, res) => {
   res.json({ ok: true });
 });
 
+// ── 업로드된 영수증 이미지 (P3) ───────────────────────────────
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 // ── 직원용 이어카운팅 화면 (배포 데모 홈) ─────────────────────
 // 루트(/)와 /eaccounting 양쪽에서 서빙 → 배포 홈 URL 및 절대경로 링크 모두 동작
 app.use("/", express.static(path.join(__dirname, "..", "eaccounting")));

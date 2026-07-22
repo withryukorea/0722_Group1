@@ -176,3 +176,18 @@ fixtures/
 ```
 
 프론트·엔진 개발자는 서버 없이 이 파일들을 import해서 개발 → H6 통합 때 실제 API로 스위치.
+
+## 5. v1.1 변경사항 (구현 확정 — 팀 공지용)
+
+> P3(영수증)·P4(매칭/초안)가 구현되면서 확정된 내용. 기존 계약과 호환되는 추가/명확화만 포함.
+
+- **fixtures/transactions.json 재배치**: WoZ 데모 영수증과 1:1이 되도록 ID 체계 변경
+  - `tx_001~007` 국내 실데모 7건(폴바셋/치킨/ANTHROPIC/택시x2/오피스디포/OPENAI — receipts-ocr과 1:1)
+  - `tx_101~108` 도쿄 출장(JPY) / `tx_201~203` 간식·도서
+- **CardTransaction 선택 필드**: `biz`(업종), `apprNo`(승인번호) — 화면 표시용, 없어도 동작
+- **POST /api/receipts** ✅: multipart(`image`) 또는 JSON `{key}` (데모키: coffee/chicken/anthropic/taxi1/taxi2/officedepot/openai, 생략 시 미사용 데모건 자동 배정). 실제 OCR 실패/미호출 시 WoZ 폴백
+  - `GET /api/receipts`, `GET /api/receipts/:id`, `GET /api/receipts/:id/image`(업로드 원본 또는 OCR 값으로 그린 데모 SVG)
+- **POST /api/match** ✅: 금액60/일시30/가맹점10 점수제, score≥70이면 서버가 즉시 매칭 확정(tx.status=matched)
+- **POST /api/vouchers/preview** ✅: 계정과목 자동분류 + 부가세 분리(`supplyKRW`/`vatKRW`, 면세·구독은 0) + 전결라인(approval-rules 기반)
+- **POST /api/vouchers**: 이미 vouchered된 txId 재상신 시 **409 DUPLICATE_SUBMISSION**
+- **Voucher.lines[].receiptId** 를 그대로 보존 → 이어카운팅 나의 문서함에서 증빙(📎) 열람 가능

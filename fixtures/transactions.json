@@ -1,134 +1,22 @@
 [
-  {
-    "id": "tx_001",
-    "cardLast4": "1234",
-    "merchant": "스시로 신주쿠점",
-    "amount": 8800,
-    "currency": "JPY",
-    "amountKRW": 79200,
-    "approvedAt": "2026-07-15T19:32:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_002",
-    "cardLast4": "1234",
-    "merchant": "도쿄메트로",
-    "amount": 400,
-    "currency": "JPY",
-    "amountKRW": 3600,
-    "approvedAt": "2026-07-15T09:10:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_003",
-    "cardLast4": "1234",
-    "merchant": "TOKYO CITY HOTEL",
-    "amount": 42000,
-    "currency": "JPY",
-    "amountKRW": 378000,
-    "approvedAt": "2026-07-14T15:02:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_004",
-    "cardLast4": "1234",
-    "merchant": "이치란 시부야점",
-    "amount": 1200,
-    "currency": "JPY",
-    "amountKRW": 10800,
-    "approvedAt": "2026-07-16T12:40:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_005",
-    "cardLast4": "1234",
-    "merchant": "하네다공항 택시",
-    "amount": 6800,
-    "currency": "JPY",
-    "amountKRW": 61200,
-    "approvedAt": "2026-07-17T08:05:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_006",
-    "cardLast4": "1234",
-    "merchant": "STARBUCKS SHIBUYA",
-    "amount": 720,
-    "currency": "JPY",
-    "amountKRW": 6480,
-    "approvedAt": "2026-07-16T08:30:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_007",
-    "cardLast4": "1234",
-    "merchant": "이자카야 토리키조쿠 신주쿠",
-    "amount": 15600,
-    "currency": "JPY",
-    "amountKRW": 140400,
-    "approvedAt": "2026-07-15T21:12:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_008",
-    "cardLast4": "1234",
-    "merchant": "게이세이 스카이라이너",
-    "amount": 2570,
-    "currency": "JPY",
-    "amountKRW": 23130,
-    "approvedAt": "2026-07-14T13:20:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_009",
-    "cardLast4": "1234",
-    "merchant": "GS25 판교테크노밸리점",
-    "amount": 12400,
-    "currency": "KRW",
-    "amountKRW": 12400,
-    "approvedAt": "2026-07-20T15:20:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_010",
-    "cardLast4": "1234",
-    "merchant": "CU 코엑스몰점",
-    "amount": 9800,
-    "currency": "KRW",
-    "amountKRW": 9800,
-    "approvedAt": "2026-07-21T14:05:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_011",
-    "cardLast4": "1234",
-    "merchant": "ANTHROPIC",
-    "amount": 20,
-    "currency": "USD",
-    "amountKRW": 27600,
-    "approvedAt": "2026-07-19T03:00:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_012",
-    "cardLast4": "1234",
-    "merchant": "교보문고 광화문점",
-    "amount": 33000,
-    "currency": "KRW",
-    "amountKRW": 33000,
-    "approvedAt": "2026-07-18T18:30:00+09:00",
-    "category": null,
-    "status": "unmatched"
-  }
+  { "id": "tx_001", "cardLast4": "3059", "merchant": "폴바셋광화문예금보험공사점", "amount": 20500,  "currency": "KRW", "amountKRW": 20500,  "approvedAt": "2026-07-21T12:24:31+09:00", "biz": "커피숍",          "apprNo": "00045125", "category": null, "status": "unmatched" },
+  { "id": "tx_002", "cardLast4": "3059", "merchant": "둘둘치킨종로1가점",          "amount": 64000,  "currency": "KRW", "amountKRW": 64000,  "approvedAt": "2026-07-20T21:41:32+09:00", "biz": "일반주점",        "apprNo": "00528952", "category": null, "status": "unmatched" },
+  { "id": "tx_003", "cardLast4": "3059", "merchant": "ANTHROPIC* CLAUDE SUB",     "amount": 167435, "currency": "KRW", "amountKRW": 167435, "approvedAt": "2026-07-19T08:33:24+09:00", "biz": "컴퓨터소프트웨어", "apprNo": "153578",   "category": null, "status": "unmatched" },
+  { "id": "tx_004", "cardLast4": "3059", "merchant": "카카오_택시9",               "amount": 34500,  "currency": "KRW", "amountKRW": 34500,  "approvedAt": "2026-07-16T02:58:44+09:00", "biz": "택시",            "apprNo": "00279355", "category": null, "status": "unmatched" },
+  { "id": "tx_005", "cardLast4": "3059", "merchant": "카카오_택시9",               "amount": 5000,   "currency": "KRW", "amountKRW": 5000,   "approvedAt": "2026-07-16T02:58:42+09:00", "biz": "택시",            "apprNo": "00443612", "category": null, "status": "unmatched" },
+  { "id": "tx_006", "cardLast4": "3059", "merchant": "오피스디포코리아",           "amount": 58650,  "currency": "KRW", "amountKRW": 58650,  "approvedAt": "2026-07-16T15:57:35+09:00", "biz": "기타사무용품",     "apprNo": "00564890", "category": null, "status": "unmatched" },
+  { "id": "tx_007", "cardLast4": "3059", "merchant": "OPENAI *CHATGPT SUBSCR",    "amount": 162612, "currency": "KRW", "amountKRW": 162612, "approvedAt": "2026-07-10T09:02:39+09:00", "biz": "컴퓨터소프트웨어", "apprNo": "038232",   "category": null, "status": "unmatched" },
+
+  { "id": "tx_101", "cardLast4": "1234", "merchant": "스시로 신주쿠점",            "amount": 8800,  "currency": "JPY", "amountKRW": 79200,  "approvedAt": "2026-07-15T19:32:00+09:00", "category": null, "status": "unmatched" },
+  { "id": "tx_102", "cardLast4": "1234", "merchant": "도쿄메트로",                 "amount": 400,   "currency": "JPY", "amountKRW": 3600,   "approvedAt": "2026-07-15T09:10:00+09:00", "category": null, "status": "unmatched" },
+  { "id": "tx_103", "cardLast4": "1234", "merchant": "TOKYO CITY HOTEL",          "amount": 42000, "currency": "JPY", "amountKRW": 378000, "approvedAt": "2026-07-14T15:02:00+09:00", "category": null, "status": "unmatched" },
+  { "id": "tx_104", "cardLast4": "1234", "merchant": "이치란 시부야점",            "amount": 1200,  "currency": "JPY", "amountKRW": 10800,  "approvedAt": "2026-07-16T12:40:00+09:00", "category": null, "status": "unmatched" },
+  { "id": "tx_105", "cardLast4": "1234", "merchant": "하네다공항 택시",            "amount": 6800,  "currency": "JPY", "amountKRW": 61200,  "approvedAt": "2026-07-17T08:05:00+09:00", "category": null, "status": "unmatched" },
+  { "id": "tx_106", "cardLast4": "1234", "merchant": "STARBUCKS SHIBUYA",         "amount": 720,   "currency": "JPY", "amountKRW": 6480,   "approvedAt": "2026-07-16T08:30:00+09:00", "category": null, "status": "unmatched" },
+  { "id": "tx_107", "cardLast4": "1234", "merchant": "이자카야 토리키조쿠 신주쿠", "amount": 15600, "currency": "JPY", "amountKRW": 140400, "approvedAt": "2026-07-15T21:12:00+09:00", "category": null, "status": "unmatched" },
+  { "id": "tx_108", "cardLast4": "1234", "merchant": "게이세이 스카이라이너",      "amount": 2570,  "currency": "JPY", "amountKRW": 23130,  "approvedAt": "2026-07-14T13:20:00+09:00", "category": null, "status": "unmatched" },
+
+  { "id": "tx_201", "cardLast4": "3059", "merchant": "GS25 판교테크노밸리점",      "amount": 12400, "currency": "KRW", "amountKRW": 12400,  "approvedAt": "2026-07-20T15:20:00+09:00", "biz": "편의점", "category": null, "status": "unmatched" },
+  { "id": "tx_202", "cardLast4": "3059", "merchant": "CU 코엑스몰점",              "amount": 9800,  "currency": "KRW", "amountKRW": 9800,   "approvedAt": "2026-07-21T14:05:00+09:00", "biz": "편의점", "category": null, "status": "unmatched" },
+  { "id": "tx_203", "cardLast4": "3059", "merchant": "교보문고 광화문점",          "amount": 33000, "currency": "KRW", "amountKRW": 33000,  "approvedAt": "2026-07-18T18:30:00+09:00", "biz": "서적",   "category": null, "status": "unmatched" }
 ]
