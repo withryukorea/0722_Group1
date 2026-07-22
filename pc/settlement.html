@@ -75,6 +75,7 @@ const UNITS = [
 ];
 let unit = UNITS[0];
 let submitted = {};
+let submitError = {};    // 상신 실패 상태 — 서버 미접수를 성공으로 위장하지 않는다
 const manualPick = {};   // F2: 수동 매칭 결과 rid → txId | "personal"
 const aiPolicyOn = {};   // F1: 정산단위별 AI구독료 정책 적용 여부
 const lineChoice = {};   // F8: 정산단위별 결재라인 선택 (auto|team|dept)
@@ -236,7 +237,9 @@ function renderVoucher(rows) {
       ? `<div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin-top:16px">
           ✓ <b>상신 완료</b> — Mock E-Accounting에 전표가 접수되었습니다 (결재 대기)</div>`
       : unit.ready
-        ? `<button class="btn primary block" style="margin-top:16px" id="btnSubmit">검토 완료 · 상신하기</button>
+        ? `${submitError[unit.id] ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:16px">
+             ⚠️ <b>상신 실패 · 저장되지 않았습니다</b> — 서버(E-Accounting)에 전표가 접수되지 않았습니다. 잠시 후 다시 시도하세요.${submitError[unit.id] !== true ? ` <span class="muted">(${submitError[unit.id]})</span>` : ""}</div>` : ""}
+           <button class="btn primary block" style="margin-top:16px" id="btnSubmit">${submitError[unit.id] ? "다시 상신하기" : "검토 완료 · 상신하기"}</button>
            <p class="muted" style="margin-top:8px;text-align:center">상신 시 E-Accounting(4000 포트 목업)으로 전표가 접수됩니다</p>`
         : `<button class="btn block" style="margin-top:16px" disabled>${unit.id === "trip_tokyo" ? "출장 종료(7/23) 후 상신 가능" : "분류 확정 후 상신 가능"}</button>`}`;
 
@@ -251,8 +254,10 @@ function renderVoucher(rows) {
     try {
       const saved = await PC_API.submitVoucher(voucher); // 공유 서버로 실제 전표 접수 → E-Accounting 노출
       submitted[unit.id] = (saved && saved.id) ? saved.id : true;
+      delete submitError[unit.id];
     } catch (e) {
-      submitted[unit.id] = true; // 서버 실패 시에도 데모상 완료 표시(폴백)
+      // 서버 미접수 → 성공으로 위장하지 않는다. 실패를 표시하고 재시도 가능하게 둔다.
+      submitError[unit.id] = (e && e.message) ? e.message : true;
     }
     render();
   };
