@@ -135,7 +135,11 @@ function createPreset(b) {
 
 // POST /api/presets — 관리자 배포(RECURRING/CAMPAIGN) 또는 직원 국내출장 생성(TRIP, 표준 기본값 자동)
 router.post("/", (req, res) => {
-  res.status(201).json(createPreset(req.body || {}));
+  const b = req.body || {};
+  if (b.id && db.presets.some((p) => p.id === b.id)) {
+    return res.status(409).json({ error: "PRESET_ID_EXISTS", id: b.id, hint: "이미 존재하는 Preset id 입니다. id 를 비우면 자동 부여됩니다." });
+  }
+  res.status(201).json(createPreset(b));
 });
 
 // PATCH /api/presets/:id — 수정/비활성화 (active:false)
@@ -156,17 +160,37 @@ router.patch("/:id", (req, res) => {
   res.json(p);
 });
 
-/* ── 영수증 → Preset 자동추천 (sot/02: 단순 문자열 포함 수준, 최종 선택은 항상 사용자) ── */
+/* ── 영수증 → Preset 자동추천 (sot/02: 단순 문자열 포함 수준, 최종 선택은 항상 사용자) ──
+ * 우선순위를 "특정 규정 > 기간이 맞는 출장 > 나머지 키워드" 로 둔다.
+ * (기간만으로 TRIP 을 무조건 1순위로 잡으면, 출장 기간 중 결제한 AI구독·도서 같은
+ *  전혀 다른 성격의 지출까지 전부 출장비로 추천돼 오탐이 커진다 — #7) */
 function suggestPreset(ocr, serviceDate) {
   const hay = `${ocr.merchant || ""} ${ocr.currency || ""}`.toUpperCase();
   const day = serviceDate || (ocr.paidAt || "").slice(0, 10);
   const active = db.presets.filter((p) => p.active !== false);
-  // 1순위: 기간이 맞는 TRIP
-  const trip = active.find((p) => p.type === "TRIP" && p.period && day && p.period.start <= day && day <= p.period.end);
+  const kwMatch = (p) => (p.rules.matchKeywords || []).some((k) => k && hay.includes(k.toUpperCase()));
+
+  // 1순위: 특정 규정(RECURRING/CAMPAIGN)의 키워드 일치 — 구독·캠페인은 출장 기간과 무관하게 성격이 분명하다
+  const specific = active.find((p) => p.type !== "TRIP" && kwMatch(p));
+  if (specific) return specific.id;
+
+  // 2순위: 기간이 맞는 TRIP — 단, "여행성 신호"가 있을 때만 (키워드 일치 or 해당 국가 통화의 해외결제)
+  const isTravelSignal = (p) => {
+    const kws = p.rules.matchKeywords || [];
+    if (kws.length === 0) return true;                 // 키워드 미설정 TRIP 은 기간만으로 추천
+    if (kwMatch(p)) return true;                       // 목적지·교통수단 등 키워드 일치
+    const country = p.meta && p.meta.country;
+    if (country && country !== "KR" && ocr.currency && ocr.currency !== "KRW") return true; // 해외출장 + 외화결제
+    return false;
+  };
+  const trip = active.find(
+    (p) => p.type === "TRIP" && p.period && day && p.period.start <= day && day <= p.period.end && isTravelSignal(p)
+  );
   if (trip) return trip.id;
-  // 2순위: matchKeywords 부분일치
-  const kw = active.find((p) => (p.rules.matchKeywords || []).some((k) => k && hay.includes(k.toUpperCase())));
-  return kw ? kw.id : null;
+
+  // 3순위: 남은 키워드 일치 (TRIP 포함)
+  const any = active.find(kwMatch);
+  return any ? any.id : null;
 }
 
 /* ── 구 /api/trips 호환 별칭 — sot/05에서 trips 삭제, 기존 화면(해외출장비 등) 안 깨지게 유지 ── */

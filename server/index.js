@@ -23,9 +23,22 @@ app.use("/api/presets", require("./routes/presets")); // Preset 엔진 (sot/05)
 app.use("/api/trips", require("./routes/presets").tripsAlias); // 구 trips 호환 별칭 → TRIP Preset
 
 // 데모 리셋: POST /api/reset → 시드 초기값으로 복구
+// 배포처럼 아무나 못 지우게 하려면 환경변수 RESET_TOKEN 설정 → 헤더 x-reset-token 또는 body.token 일치 요구.
+// (미설정 시 기존처럼 무인증 허용 — 로컬 데모 편의. 공개 배포에는 RESET_TOKEN 설정 권장)
 app.post("/api/reset", (req, res) => {
+  const need = process.env.RESET_TOKEN;
+  if (need) {
+    const got = req.get("x-reset-token") || (req.body && req.body.token);
+    if (got !== need) return res.status(403).json({ error: "FORBIDDEN", hint: "reset 토큰이 필요합니다 (x-reset-token)" });
+  }
   reset();
   res.json({ ok: true });
+});
+
+// 매칭되지 않은 /api/* 요청은 HTML(정적 폴백) 대신 JSON 404 로 명확히 응답한다
+// (모든 실제 /api 라우트는 위에서 이미 등록됨 — 여기 오면 없는 엔드포인트)
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: "NOT_FOUND", method: req.method, path: req.originalUrl });
 });
 
 // ── 업로드된 영수증 이미지 (P3) ───────────────────────────────
@@ -56,6 +69,17 @@ app.use("/admin", express.static(path.join(__dirname, "public")));
 // ── PC 웹(분석·정산 대시보드) → /pc ───────────────────────────
 // 모바일 웹과 "동일한 데이터"를 같은 서버 API(same-origin)로 읽는 독립 페이지.
 app.use("/pc", express.static(path.join(__dirname, "..", "pc")));
+
+// ── 전역 에러 핸들러 (4-arg) ──────────────────────────────────
+// 라우트에서 던진 예외·multer 업로드 오류 등이 여기로 모인다.
+// 없으면 Express 기본 HTML 오류페이지가 나가 API 소비자(fetch)가 JSON 파싱에 실패한다.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error("[error]", req.method, req.originalUrl, "-", (err && err.message) || err);
+  if (res.headersSent) return next(err);
+  const status = (err && (err.status || err.statusCode)) || 500;
+  res.status(status).json({ error: err && err.code ? err.code : "SERVER_ERROR", message: (err && err.message) || "internal error" });
+});
 
 app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);

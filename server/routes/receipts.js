@@ -27,11 +27,23 @@ const WOZ_DIR = path.join(__dirname, "..", "..", "fixtures", "receipts-ocr");
 const WOZ_INDEX = JSON.parse(fs.readFileSync(path.join(WOZ_DIR, "index.json"), "utf-8")).receipts;
 const wozData = (file) => JSON.parse(fs.readFileSync(path.join(WOZ_DIR, file), "utf-8"));
 
-/* WoZ 폴백 선택: ① body.key/query.key 로 지정  ② 아직 안 쓴 데모 영수증 중 첫 번째 */
+/* WoZ 폴백 선택:
+ *   ① body.key/query.key 로 지정하면 그대로
+ *   ② 아직 안 쓴 데모 영수증 중, "기대 매칭 거래(expectedTxId)가 아직 미매칭"인 것을 우선 고른다.
+ *      (시드 영수증이 이미 tx_001/003/007 을 매칭 소비한 상태라, 예전엔 첫 업로드가 coffee→tx_001 로
+ *       잡혀 매칭에 실패했다. 소비된 거래를 겨냥하는 WoZ 는 건너뛰어 첫 업로드가 바로 매칭되게 한다 — #8) */
 function pickWoz(key) {
   if (key) return WOZ_INDEX.find((w) => w.key === key) || null;
   const used = new Set(db.receipts.map((r) => r.wozKey).filter(Boolean));
-  return WOZ_INDEX.find((w) => !used.has(w.key)) || null;
+  const txFree = (txId) => {
+    const tx = db.transactions.find((t) => t.id === txId);
+    return tx && tx.status === "unmatched"; // 아직 아무 영수증과도 안 물린 거래
+  };
+  return (
+    WOZ_INDEX.find((w) => !used.has(w.key) && txFree(w.expectedTxId)) || // 미사용 + 매칭 가능한 거래 겨냥
+    WOZ_INDEX.find((w) => !used.has(w.key)) ||                            // 폴백: 남은 게 겹쳐도 아무거나
+    null
+  );
 }
 
 /* ── 실 OCR (Letsur AI Gateway, server/.env) — 실패 시 WoZ 폴백 (sot: 서버 OCR + WoZ) ── */

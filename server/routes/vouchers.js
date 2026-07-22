@@ -1,6 +1,6 @@
 // [P1] 전표 접수/조회 API
 const express = require("express");
-const { db, nextVoucherId } = require("../store");
+const { db, nextVoucherId, recomputeUsage } = require("../store");
 const router = express.Router();
 
 // GET /api/vouchers  → 접수된 전표 목록 (관리자 화면용)
@@ -60,24 +60,9 @@ router.post("/", (req, res) => {
     if (tx) tx.status = "vouchered";
   }
 
-  // Preset 사용량 차감: submitted 전표만 합산 (초안 합산 금지 — 이중 차감 방지)
-  for (const line of voucher.lines) {
-    const receipt = line.receiptId ? db.receipts.find((r) => r.id === line.receiptId) : null;
-    const presetId = line.presetId || (receipt && receipt.presetId);
-    if (!presetId) continue;
-    const p = db.presets.find((x) => x.id === presetId);
-    if (!p) continue;
-    if (!p.usage) p.usage = { usedKRW: 0, byDay: {}, byAccountCode: {} };
-    if (!p.usage.byDay) p.usage.byDay = {};
-    if (!p.usage.byAccountCode) p.usage.byAccountCode = {};
-    const amount = line.amountKRW || 0;
-    p.usage.usedKRW += amount;
-    const day = (receipt && receipt.serviceDate) || voucher.submittedAt.slice(0, 10);
-    p.usage.byDay[day] = (p.usage.byDay[day] || 0) + amount;
-    // TRIP 대시보드는 비목별 누적으로 표시 (sot/02 usage.byAccountCode)
-    const acct = line.accountCode || (receipt && receipt.accountCode) || "UNSPECIFIED";
-    p.usage.byAccountCode[acct] = (p.usage.byAccountCode[acct] || 0) + amount;
-  }
+  // Preset 사용량은 "실제 상태"에서 다시 계산 — 매칭 영수증 + 현금성 라인을 usage 단일 소스로 집계.
+  // (증분 합산 대신 재집계 → 이미 매칭돼 집계된 영수증을 상신해도 이중 차감되지 않음)
+  recomputeUsage(db);
 
   res.status(201).json(voucher);
 });
