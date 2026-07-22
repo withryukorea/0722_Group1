@@ -258,7 +258,8 @@ window.SKD = (function () {
   const activeTrip = () => TRIPS.find(t => t.status === "active") || null;
   const valid = () => RECEIPTS.filter(r => r.status !== "duplicate");
 
-  function imgUrl(name) { return name ? "/data_sample/images/" + encodeURIComponent(name) : null; }
+  /* 화면 파일(design/screens/모바일|pc/*.html) 기준 상대경로 — 서버 없이 file:// 로 열어도 동작 */
+  function imgUrl(name) { return name ? "../../../data_sample/images/" + encodeURIComponent(name) : null; }
 
   /* 차트 툴팁 */
   function attachTip() {
