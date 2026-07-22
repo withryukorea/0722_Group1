@@ -259,6 +259,43 @@ table.kv td.lbl { background: #eef1f5; font-weight: 700; width: 150px; text-alig
 .info-bar { padding: 13px 18px; background: #fbfbfd; border: 1px solid var(--line-soft);
   border-radius: 8px; font-size: 13px; color: var(--blue); }
 
+/* ---------------- 전표작성: 고정 헤더 + 탭 ---------------- */
+.vc-sticky { position: sticky; top: 0; z-index: 40; background: var(--bg); padding: 8px 0 0; }
+.vc-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.vc-title-row h2 { font-size: 23px; font-weight: 700; }
+.tabs { display: flex; background: #fff; }
+.tab { flex: 1; text-align: center; padding: 14px 0; font-size: 15px; font-weight: 600;
+  border: 1px solid var(--line); border-left: none; background: #fff; cursor: pointer; color: var(--text); }
+.tab:first-child { border-left: 1px solid var(--line); }
+.tab.on { color: var(--pink); font-weight: 700;
+  border-top: 2px solid var(--pink); border-left: 1px solid var(--pink); border-right: 1px solid var(--pink);
+  border-bottom-color: #fff; }
+
+/* 결재선 표 */
+table.appr { width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: center; }
+table.appr th { background: #e9ecf2; border: 1px solid var(--line); padding: 9px; font-weight: 700; }
+table.appr td { border: 1px solid var(--line); padding: 10px; height: 46px; color: var(--blue); line-height: 1.5; }
+
+/* 계정과목 검색 인풋 */
+.acct-input { display: flex; align-items: center; border: 1px solid #cdd3dc; border-radius: 4px;
+  background: #fff; height: 30px; }
+.acct-input input { border: none; outline: none; flex: 1; min-width: 0; padding: 0 8px; font-size: 12.5px; background: transparent; }
+.acct-input .mag { cursor: pointer; padding: 0 8px; color: #667; flex-shrink: 0; }
+
+/* 계정목록 참고 박스 */
+.acct-ref-title { font-size: 13px; color: var(--text-sub); margin: 18px 0 6px; }
+.acct-ref { border: 1px solid var(--line); background: #fff; padding: 12px 18px;
+  display: flex; flex-wrap: wrap; gap: 5px 22px; font-size: 13px; color: var(--blue); }
+
+/* 첨부 섹션 */
+.attach-panel { border: 1px solid var(--line); background: #fff; padding: 18px 22px; }
+.attach-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.attach-head .cnt { font-size: 14.5px; font-weight: 700; }
+.attach-head .cnt b { color: var(--red); }
+.attach-empty { min-height: 70px; padding: 14px; font-size: 13px; color: var(--text-sub); }
+.attach-note { background: #f4f5f8; border-radius: 6px; padding: 12px 16px; font-size: 13px;
+  color: #555; line-height: 1.9; margin: 14px 0 20px; }
+
 /* ---------------- 준비중 화면 ---------------- */
 .placeholder { background: #fff; border: 1px dashed #c6ccd6; border-radius: 10px;
   padding: 90px 20px; text-align: center; color: var(--text-sub); }
