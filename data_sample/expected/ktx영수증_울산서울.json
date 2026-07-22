@@ -1,0 +1,25 @@
+{
+  "merchant": "한국철도공사 (KTX)",
+  "amount": 53500,
+  "currency": "KRW",
+  "paidAt": "2026-04-13T00:00:00+09:00",
+  "cardLast4": null,
+  "items": [
+    { "name": "KTX 062 울산→서울 일반실 12호차 2A 어른 1매", "qty": 1, "amount": 53500 }
+  ],
+  "confidence": null,
+
+  "_expectedCategory": "TRAVEL_TRANSPORT",
+  "_tax": { "supplyKRW": 53500, "vatKRW": null, "note": "영수증에 부가세 내역 없음. 역산하지 않음" },
+  "_categoryDependsOnTrip": false,
+  "_fxRate": 1,
+  "_amountKRW": 53500,
+  "_approvalNo": "00331034",
+  "_serviceDate": "2026-04-15",
+  "_tripDateBasis": "serviceDate",
+  "_usedAt": "2026-04-15T20:46:00+09:00",
+  "_issuedAt": "2026-04-15T20:04:00+09:00",
+  "_tripId": "trip_2026-04-15",
+  "_location": "울산 → 서울 (귀환편)",
+  "_note": "2026-04-15 당일 출장의 **귀환편**. 서울부산 편(ktx영수증_서울부산.jpg)과 세트다.\n⚠️ 승인일자(2026-04-13)와 이용일(2026-04-15)이 2일 차이나는 예매 건 → 서울부산 편(6일 차)과 함께 예매성 결제의 paidAt 규칙을 검증할 수 있다.\n⚠️ **출발지와 도착지가 다르다.** 갈 때는 서울→부산인데 올 때는 **울산→서울**이다. 출장지를 '부산'으로 단정하면 이 건이 안 맞는다. 출장 경로가 복수 지역에 걸칠 수 있음을 보여주는 케이스.\n같은 카드(40259610****510*)로 결제됐고 뒤 4자리는 가려져 있다."
+}

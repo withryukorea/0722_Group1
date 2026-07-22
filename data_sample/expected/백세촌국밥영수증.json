@@ -1,0 +1,24 @@
+{
+  "merchant": "백세촌24시순대돼지국밥",
+  "amount": 12000,
+  "currency": "KRW",
+  "paidAt": "2026-04-15T12:47:19+09:00",
+  "cardLast4": null,
+  "items": [
+    { "name": "전부섞어국밥", "unitPrice": 12000, "qty": 1, "amount": 12000 }
+  ],
+  "confidence": null,
+
+  "_expectedCategory": "TRAVEL_MEAL",
+  "_categoryDependsOnTrip": true,
+  "_fxRate": 1,
+  "_amountKRW": 12000,
+  "_tax": { "supplyKRW": 10909, "vatKRW": 1091, "taxFreeKRW": 0 },
+  "_approvalNo": "00330947",
+  "_cardName": "현대비자법인",
+  "_paymentMethod": "삼성페이 (현대비자법인 카드 승인)",
+  "_orderNo": "20260415 01 00042",
+  "_tripId": "trip_2026-04-15",
+  "_location": "부산 기장군 정관읍 → 출장지",
+  "_note": "**출장 식대(TRAVEL_MEAL)가 확정되는 첫 샘플.** 2026-04-15 당일 출장 중 부산 기장에서 결제했다. 식당이므로 근무지였다면 SNACK이 아니라 식대 판단이 필요했을 건인데, 출장지 결제라 TRAVEL_MEAL로 확정된다.\n**간편결제(삼성페이)이지만 법인카드 승인 정보가 함께 찍혀 있다** → 예스24 네이버페이 건과 달리 카드 매칭이 가능하다. 간편결제라고 무조건 매칭 불가가 아니라는 반례.\n'5만원 이하 무서명 거래' 문구가 있어 소액 결제 특성을 보여준다.\n같은 기장군 정관읍에 플루토커피 샘플도 있으나 그쪽은 2025-07-02로 연도가 달라 다른 건이다."
+}
