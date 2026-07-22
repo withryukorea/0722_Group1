@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>전표자동화 데모 · 접속 포털</title>
+  <style>
+    :root {
+      --navy: #262b40;
+      --navy-2: #2b3152;
+      --pink: #ee3d6d;
+      --pink-grad: linear-gradient(120deg, #f46e9c, #d955a4);
+      --bg: #eef0f4;
+      --panel: #ffffff;
+      --line: #d9dee6;
+      --muted: #6b7280;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Pretendard", -apple-system, "Malgun Gothic", sans-serif;
+      background: var(--bg);
+      color: var(--navy);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+    }
+    header { text-align: center; margin-bottom: 40px; }
+    .brand {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 15px; font-weight: 700; letter-spacing: .02em;
+      color: #fff; background: var(--navy);
+      padding: 8px 16px; border-radius: 999px; margin-bottom: 20px;
+    }
+    .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--pink); }
+    h1 { font-size: 28px; margin: 0 0 10px; font-weight: 800; }
+    header p { margin: 0; color: var(--muted); font-size: 15px; }
+    .cards {
+      display: grid; gap: 20px; width: 100%; max-width: 900px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 720px) { .cards { grid-template-columns: 1fr; max-width: 420px; } }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-decoration: none;
+      color: inherit;
+      display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 1px 2px rgba(38,43,64,.04);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(38,43,64,.14);
+      border-color: var(--pink);
+    }
+    .icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; background: #f3f4f8;
+    }
+    .card h2 { margin: 0; font-size: 19px; font-weight: 800; }
+    .card .desc { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.55; flex: 1; }
+    .card .go {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 700; color: var(--pink);
+    }
+    .card .url {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px; color: #9aa1ad; margin-top: 2px;
+    }
+    .card.primary .icon { background: var(--pink-grad); color: #fff; }
+    footer { margin-top: 40px; color: #9aa1ad; font-size: 12.5px; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="dot"></span>전표 자동화 데모</div>
+    <h1>접속 포털</h1>
+    <p>영수증 → OCR → 자동 배분 → 전표 첨부까지, 3개 화면으로 이어지는 흐름</p>
+  </header>
+
+  <main class="cards">
+    <a class="card primary" href="/eaccounting/">
+      <div class="icon">💳</div>
+      <h2>이어카운팅</h2>
+      <p class="desc">법인카드 정산·전표 작성·예산 조회·출장비 결재. 카드 내역과 영수증을 매칭해 전표로 상신하는 PC 회계 시스템.</p>
+      <span class="go">바로가기 →</span>
+      <span class="url">/eaccounting/</span>
+    </a>
+
+    <a class="card" href="/app/">
+      <div class="icon">📱</div>
+      <h2>모바일웹</h2>
+      <p class="desc">영수증을 촬영·업로드하면 OCR로 금액·가맹점을 자동 인식. 현장에서 바로 올리는 모바일 PWA.</p>
+      <span class="go">바로가기 →</span>
+      <span class="url">/app/</span>
+    </a>
+
+    <a class="card" href="/pc/">
+      <div class="icon">🖥️</div>
+      <h2>PC웹</h2>
+      <p class="desc">정산·분석 대시보드. 모바일과 동일한 실데이터를 같은 서버에서 읽어 집계·현황을 보여주는 화면.</p>
+      <span class="go">바로가기 →</span>
+      <span class="url">/pc/</span>
+    </a>
+  </main>
+
+  <footer>0722_Group1 · 전표자동화 해커톤 데모</footer>
+</body>
+</html>

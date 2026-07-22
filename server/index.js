@@ -58,9 +58,13 @@ app.use("/design/screens/pc", (req, res) => res.redirect(302, "/pc/"));
 app.use("/design", express.static(path.join(__dirname, "..", "design")));
 app.use("/data_sample", express.static(path.join(__dirname, "..", "data_sample"))); // 시안이 참조하는 샘플 이미지
 
-// ── 직원용 이어카운팅 화면 (배포 데모 홈) ─────────────────────
-// 루트(/)와 /eaccounting 양쪽에서 서빙 → 배포 홈 URL 및 절대경로 링크 모두 동작
-app.use("/", express.static(path.join(__dirname, "..", "eaccounting")));
+// ── 메인 접속 포털 (꼬리 없는 루트 URL) ───────────────────────
+// 루트(/)는 3개 접속링크(이어카운팅·모바일웹·PC웹)만 있는 랜딩 페이지.
+// 실제 화면은 각자 꼬리 URL(/eaccounting, /app, /pc)로 분리해 서빙한다.
+app.use("/", express.static(path.join(__dirname, "..", "landing")));
+
+// ── 직원용 이어카운팅 화면 → /eaccounting ─────────────────────
+// (eaccounting 내부 링크는 모두 상대경로라 이 서브패스에서 그대로 동작)
 app.use("/eaccounting", express.static(path.join(__dirname, "..", "eaccounting")));
 
 // ── 관리자 웹화면 (정적 파일) → /admin ────────────────────────
@@ -83,9 +87,9 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);
-  console.log(`  ├ 직원용 화면 : http://localhost:${PORT}/`);
+  console.log(`  ├ 메인 포털   : http://localhost:${PORT}/          ← 접속링크 3개`);
+  console.log(`  ├ 이어카운팅  : http://localhost:${PORT}/eaccounting/`);
   console.log(`  ├ 모바일웹    : http://localhost:${PORT}/app/`);
-  console.log(`  ├ PC웹(시안)  : /design/screens/pc/ → /pc/ 로 리다이렉트(데모 혼선 방지)`);
   console.log(`  ├ PC 웹(라이브): http://localhost:${PORT}/pc/  ← 실데이터, 모바일과 동일`);
   console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/admin/`);
   console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
