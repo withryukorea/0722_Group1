@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 법인카드 전표작성</title>
+<link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <h2 class="page-title" style="margin-bottom:0;">법인카드 전표작성</h2>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-dark" onclick="alert('데모 버전에서는 임시저장을 지원하지 않습니다.')">🖫 임시저장</button>
+        <button class="btn btn-dark" onclick="submitVoucher()">🗗 미리보기(기안)</button>
+      </div>
+    </div>
+    <div style="margin:14px 0 4px; font-size:13.5px; color:var(--text-sub);">
+      전표유형: <b id="slip-type-label" style="color:var(--pink);">선택 전</b>
+    </div>
+
+    <!-- 결재선지정 -->
+    <div class="sect">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <h3 style="margin:0;">결재선지정</h3>
+        <button class="btn btn-line" onclick="alert('데모 버전에서는 결재선 변경을 지원하지 않습니다.')">⇆ 결재선 변경</button>
+      </div>
+      <table class="kv">
+        <tr><td class="lbl">신청</td><td>전력사업기획팀 <b>유상욱</b></td>
+            <td class="lbl">승인</td><td id="approval-cell">전력사업기획팀 <b>김예섭 팀장</b></td></tr>
+      </table>
+    </div>
+
+    <!-- 전표정보 -->
+    <div class="sect">
+      <h3>전표정보</h3>
+      <table class="kv">
+        <tr>
+          <td class="lbl">회사구분</td><td>SK E&amp;S - A000</td>
+          <td class="lbl">사업장</td><td>07</td>
+        </tr>
+        <tr>
+          <td class="lbl">증빙일자 <span style="color:var(--red)">*</span></td><td id="evid-date"></td>
+          <td class="lbl">작성자</td><td>유상욱 - 전력사업기획팀</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 예산정보 -->
+    <div class="sect">
+      <h3>예산정보</h3>
+      <div class="info-bar">ⓘ 아래의 이용내역을 작성하시면 예산정보가 표시됩니다.</div>
+    </div>
+
+    <!-- 카드이용내역 -->
+    <div class="sect">
+      <h3>카드이용내역</h3>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead>
+            <tr><th>No.</th><th>이용일자</th><th>가맹점</th><th>업종</th><th>승인금액</th><th>카드번호</th><th>승인번호</th></tr>
+          </thead>
+          <tbody id="line-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 전표 유형 선택 팝업 (페이지 진입 시 먼저 표시) -->
+<div class="modal-back" id="slip-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="mi">i</span>작성할 전표 유형을 선택하세요.<br>
+      <span style="margin-left:25px;">전표 유형에 마우스를 올리면 각 전표의 계정과목을 확인하실 수 있습니다.</span>
+    </div>
+    <div class="modal-body">
+      <div class="slip-types" id="slip-types"></div>
+      <div class="slip-detail" id="slip-detail"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/layout.js"></script>
+<script>
+renderChrome({
+  top: '법인카드',
+  active: '법인카드 정산',
+  breadcrumb: ['메뉴', '법인카드', '법인카드 정산'],
+});
+
+/* ── 전표 유형별 계정과목 (실제 화면 캡쳐 기준) ── */
+const SLIP_TYPES = [
+  {
+    name: '현업완결 전표',
+    accounts: [
+      ['705905', '복리후생-신체검사료'], ['705910', '복리후생-의료관리비'], ['705918', '복리후생-음료대'],
+      ['705920', '복리후생-임원'], ['706201', '여비교통비-시내교통'], ['706901', '여비교통비-이전비'],
+      ['707103', '통신비-우편료'], ['707150', '통신비-기타'], ['710203', '도서-일반도서구입비'],
+      ['710205', '도서-신문대'], ['710301', '소모품비-사무용품'],
+      ['710404', '인쇄제본-기타'], ['710902', '소모품비-기타'], ['723102', '교육훈련비-사외'],
+      ['723103', '교육훈련비-임원'], ['723104', '교육훈련비-관계사'], ['723105', '교육훈련비-DIY100'],
+      ['726350', '수수료-기타'], ['734102', '접대비-1만초과'], ['734105', '접대비_골프'],
+      ['735901', '회의비-경상회의비'], ['743950', '기타판매비와관리비'],
+    ],
+  },
+  {
+    name: '차량 비용 정산',
+    accounts: [['718101', '차량유지비-유류대'], ['718301', '차량유지비-주차통행'], ['718903', '차량유지비-수리비']],
+  },
+  {
+    name: '회계팀 검토 전표',
+    note: '현업완결 전표에서 사용하는 계정과목을 포함한 모든 계정과목이 사용 가능합니다.',
+  },
+  {
+    name: '자산처리 전표',
+    accounts: [['279201', '무형자산-회원권']],
+  },
+];
+
+/* ── 법인카드 정산 화면에서 넘어온 선택 내역 ── */
+let draft = JSON.parse(sessionStorage.getItem('voucherDraft') || 'null');
+if (!draft || !draft.rows || !draft.rows.length) {
+  if (location.search.includes('demo')) {
+    // 미리보기용 샘플 (개발/스크린샷 편의)
+    draft = { apiMode: false, rows: [
+      { id: 'demo1', useDate: '2026.07.21', payAt: '2026.07.21 12:24:31', merchant: '폴바셋광화문예금보험공사점', biz: '커피숍', amount: 20500, cardNo: '4025961080293059', apprNo: '00045125' },
+      { id: 'demo2', useDate: '2026.07.19', payAt: '2026.07.19 08:33:24', merchant: 'ANTHROPIC* CLAUDE SUB', biz: '컴퓨터소프트웨어', amount: 167435, cardNo: '4025961080293059', apprNo: '153578' },
+    ]};
+  } else {
+    alert('법인카드 정산에서 전표를 작성할 카드내역을 먼저 선택해 주세요.');
+    location.href = 'card-settlement.html';
+  }
+}
+let slipType = null;
+
+/* ── 본문 렌더링 ── */
+function renderPage() {
+  document.getElementById('evid-date').textContent = draft.rows[0].useDate;
+  const total = draft.rows.reduce((s, r) => s + r.amount, 0);
+  document.getElementById('line-body').innerHTML = draft.rows.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td><td>${r.payAt}</td><td class="l">${r.merchant}</td><td>${r.biz}</td>
+      <td class="r">${r.amount.toLocaleString('ko-KR')}</td><td>${r.cardNo}</td><td>${r.apprNo}</td>
+    </tr>`).join('')
+    + `<tr style="font-weight:700; background:#f8f9fc;"><td colspan="4">합계</td>
+       <td class="r">${total.toLocaleString('ko-KR')}</td><td colspan="2"></td></tr>`;
+  // 전결규정(간이): 30만원 이하 팀장 전결, 초과 시 부장까지
+  document.getElementById('approval-cell').innerHTML = total <= 300000
+    ? '전력사업기획팀 <b>김예섭 팀장</b>'
+    : '전력사업기획팀 <b>김예섭 팀장</b> → 전력사업본부 <b>박정민 부장</b>';
+}
+
+/* ── 유형 선택 팝업 ── */
+function renderSlipDetail(idx) {
+  const t = SLIP_TYPES[idx];
+  document.querySelectorAll('.slip-type').forEach((b, i) => b.classList.toggle('on', i === idx));
+  let html = `<h4>${t.name}</h4>`;
+  if (t.note) {
+    html += `<div class="slip-note">${t.note}</div>`;
+  } else if (t.accounts.length > 6) {
+    // 계정과목이 많으면 2단 표 (좌/우 반씩)
+    const half = Math.ceil(t.accounts.length / 2);
+    const L = t.accounts.slice(0, half), R = t.accounts.slice(half);
+    html += `<table class="acct-table"><tr><th>계정과목번호</th><th>계정과목명</th><th>계정과목번호</th><th>계정과목명</th></tr>`
+      + L.map((a, i) => `<tr><td class="code">${a[0]}</td><td>${a[1]}</td>`
+        + (R[i] ? `<td class="code">${R[i][0]}</td><td>${R[i][1]}</td>` : '<td class="code"></td><td></td>')
+        + `</tr>`).join('') + `</table>`;
+  } else {
+    html += `<table class="acct-table"><tr><th>계정과목번호</th><th>계정과목명</th></tr>`
+      + t.accounts.map(a => `<tr><td class="code">${a[0]}</td><td>${a[1]}</td></tr>`).join('') + `</table>`;
+  }
+  document.getElementById('slip-detail').innerHTML = html;
+}
+
+function chooseSlipType(idx) {
+  slipType = SLIP_TYPES[idx].name;
+  document.getElementById('slip-type-label').textContent = slipType;
+  document.getElementById('slip-modal').style.display = 'none';
+}
+
+document.getElementById('slip-types').innerHTML = SLIP_TYPES.map((t, i) =>
+  `<div class="slip-type" onmouseenter="renderSlipDetail(${i})" onclick="chooseSlipType(${i})">${t.name}</div>`).join('');
+renderSlipDetail(0);
+
+// 팝업 바깥(어두운 영역) 클릭 → 취소하고 목록으로
+document.getElementById('slip-modal').addEventListener('click', e => {
+  if (e.target.id === 'slip-modal') history.back();
+});
+
+/* ── 상신 (미리보기(기안) 버튼) ── */
+async function submitVoucher() {
+  if (!slipType) { document.getElementById('slip-modal').style.display = 'flex'; return; }
+  const total = draft.rows.reduce((s, r) => s + r.amount, 0);
+  const voucher = await eaccApi('/api/vouchers', {
+    body: {
+      title: `${slipType} (${draft.rows[0].merchant}${draft.rows.length > 1 ? ` 외 ${draft.rows.length - 1}건` : ''})`,
+      lines: draft.rows.map(r => ({ txId: r.id, amountKRW: r.amount, description: `${r.merchant} · ${r.biz}` })),
+      approvalLine: total <= 300000 ? ['김예섭 팀장'] : ['김예섭 팀장', '박정민 부장'],
+    },
+  });
+  sessionStorage.removeItem('voucherDraft');
+  if (voucher) {
+    alert(`전표 [${voucher.id}]가 상신되었습니다.\n결재라인: ${voucher.approvalLine.join(' → ')}`);
+    location.href = 'mydocs-all.html';
+  } else {
+    alert('전표가 상신되었습니다. (오프라인 모드 — 서버 연결 시 나의 문서함에 표시됩니다)');
+    location.href = 'card-settlement.html';
+  }
+}
+
+renderPage();
+</script>
+</body>
+</html>

@@ -167,31 +167,13 @@ function toggleAll(master) {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = master.checked; });
 }
 
-async function createVoucher() {
+function createVoucher() {
   const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
   if (checked.length === 0) { alert('전표를 작성할 카드내역을 선택해 주세요.'); return; }
+  // 선택 내역을 들고 전표작성 화면으로 이동 → 거기서 유형 선택 팝업이 먼저 뜬다
   const rows = ALL.filter(t => checked.includes(t.id));
-  const totalKRW = rows.reduce((s, t) => s + t.amount, 0);
-
-  if (apiMode) {
-    // 실제 서버에 전표 상신 → 나의 문서함/관리자 화면에도 뜬다
-    const voucher = await eaccApi('/api/vouchers', {
-      body: {
-        title: `법인카드 정산 (${rows[0].merchant}${rows.length > 1 ? ` 외 ${rows.length - 1}건` : ''})`,
-        lines: rows.map(t => ({ txId: t.id, amountKRW: t.amount, description: `${t.merchant} · ${t.biz}` })),
-        approvalLine: totalKRW <= 300000 ? ['김팀장'] : ['김팀장', '박부장'],
-      },
-    });
-    if (voucher) {
-      await load();
-      alert(`전표 [${voucher.id}]가 상신되었습니다.\n결재라인: ${voucher.approvalLine.join(' → ')}\n(나의 문서함 > 전체조회에서 확인 가능)`);
-      return;
-    }
-  }
-  // 서버가 없을 때의 폴백: 화면 안에서만 상태 변경
-  ALL.forEach(t => { if (checked.includes(t.id)) { t.status = '정산완료'; t.registrant = '유상욱'; } });
-  applyFilter();
-  alert(`선택한 ${checked.length}건으로 전표가 작성되었습니다. (오프라인 모드)`);
+  sessionStorage.setItem('voucherDraft', JSON.stringify({ apiMode, rows }));
+  location.href = 'voucher-create.html';
 }
 
 load();

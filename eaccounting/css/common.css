@@ -228,6 +228,37 @@ body.home-bg { background: #fff; }
 .panel .people .role { color: var(--text-sub); font-size: 12.5px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---------------- 팝업(모달) — 전표 유형 선택 등 ---------------- */
+.modal-back { position: fixed; inset: 0; background: rgba(28,32,48,.45);
+  display: flex; align-items: flex-start; justify-content: center; z-index: 100; padding: 66px 16px 30px; }
+.modal { background: #fff; border-radius: 4px; width: 1060px; max-width: 96vw; max-height: 84vh;
+  overflow-y: auto; box-shadow: 0 18px 60px rgba(10,14,30,.4); }
+.modal-head { background: linear-gradient(90deg, #e0407a, #c84f9e); color: #fff;
+  padding: 16px 24px; font-size: 14.5px; line-height: 1.65; }
+.modal-head .mi { display: inline-block; width: 17px; height: 17px; line-height: 16px; text-align: center;
+  border: 1.5px solid #fff; border-radius: 50%; font-size: 11px; font-weight: 700; font-style: normal; margin-right: 8px; }
+.modal-body { padding: 24px 32px 34px; }
+.slip-types { display: flex; gap: 14px; }
+.slip-type { flex: 1; padding: 16px 8px; background: #f1f2f5; border: 1px solid #e3e5ea; border-radius: 4px;
+  font-size: 16.5px; font-weight: 700; text-align: center; cursor: pointer; }
+.slip-type:hover, .slip-type.on { background: #e7e9ef; border-color: var(--pink); }
+.slip-detail { margin-top: 28px; }
+.slip-detail h4 { text-align: center; font-size: 18px; margin-bottom: 14px; }
+.acct-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.acct-table th, .acct-table td { border: 1px solid var(--line); padding: 9px 14px; }
+.acct-table th { font-weight: 700; text-align: center; }
+.acct-table td.code { width: 110px; text-align: center; }
+.slip-note { border: 1px solid var(--line); padding: 62px 20px; text-align: center; font-size: 15px; }
+
+/* ---------------- 전표작성 화면 섹션 ---------------- */
+.sect { margin-top: 26px; }
+.sect > h3 { font-size: 16.5px; margin-bottom: 10px; }
+table.kv { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.kv td { border: 1px solid var(--line); padding: 9px 12px; }
+table.kv td.lbl { background: #eef1f5; font-weight: 700; width: 150px; text-align: center; }
+.info-bar { padding: 13px 18px; background: #fbfbfd; border: 1px solid var(--line-soft);
+  border-radius: 8px; font-size: 13px; color: var(--blue); }
+
 /* ---------------- 준비중 화면 ---------------- */
 .placeholder { background: #fff; border: 1px dashed #c6ccd6; border-radius: 10px;
   padding: 90px 20px; text-align: center; color: var(--text-sub); }
