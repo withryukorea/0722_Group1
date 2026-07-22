@@ -96,11 +96,15 @@ function buildChecks(ocr, receiptId) {
   return checks;
 }
 
-// POST /api/receipts — multipart(image) 또는 JSON { key, tripId, serviceDate }
-router.post("/", upload.single("image"), async (req, res) => {
+// POST /api/receipts — multipart(image[, cropped]) 또는 JSON { key, tripId, serviceDate, source }
+// 원본(image)은 항상 보존, 크롭본(cropped)은 별도 파일 — 없으면 원본을 그대로 크롭본으로 사용 (sot/02 유입 흐름 3단계)
+router.post("/", upload.fields([{ name: "image", maxCount: 1 }, { name: "cropped", maxCount: 1 }]), async (req, res) => {
   const id = nextReceiptId();
-  // 1) 실 OCR (키가 있고 이미지가 올라온 경우) → 2) WoZ 폴백
-  let ocr = req.file ? await realOcr(req.file.path, req.file.mimetype) : null;
+  const original = req.files && req.files.image ? req.files.image[0] : null;
+  const cropped = req.files && req.files.cropped ? req.files.cropped[0] : null;
+  // 1) 실 OCR (키가 있고 이미지가 올라온 경우 — 크롭본 우선) → 2) WoZ 폴백
+  const ocrTarget = cropped || original;
+  let ocr = ocrTarget ? await realOcr(ocrTarget.path, ocrTarget.mimetype) : null;
   let woz = null;
   if (!ocr) {
     woz = pickWoz((req.body && req.body.key) || req.query.key);
@@ -112,8 +116,11 @@ router.post("/", upload.single("image"), async (req, res) => {
   const serviceDate = (req.body && req.body.serviceDate) || ocr.serviceDate || (ocr.paidAt || "").slice(0, 10) || null;
   const receipt = {
     id,
-    imageUrl: req.file ? `/uploads/${req.file.filename}` : `/api/receipts/${id}/image`,
-    croppedUrl: req.file ? `/uploads/${req.file.filename}` : `/api/receipts/${id}/image`,
+    source: (req.body && req.body.source) === "pc" ? "pc" : "mobile", // mobile(촬영) | pc(이어카운팅 업로드)
+    imageUrl: original ? `/uploads/${original.filename}` : `/api/receipts/${id}/image`,
+    croppedUrl: cropped ? `/uploads/${cropped.filename}`
+      : original ? `/uploads/${original.filename}` : `/api/receipts/${id}/image`,
+    crop: { status: cropped ? "auto" : "original", updatedAt: new Date().toISOString() }, // auto|manual|original
     ocr,
     ...fxFields(ocr),                       // fxRate, amountKRW — 화면·한도차감은 amountKRW 사용
     serviceDate,                            // 출장 기간 판정용 (매칭은 paidAt)
@@ -125,18 +132,50 @@ router.post("/", upload.single("image"), async (req, res) => {
     matchedTxId: null,
     tripId: (req.body && req.body.tripId) || null,
     wozKey: woz ? woz.key : null,
-    uploadedFile: req.file ? req.file.filename : null,
+    uploadedFile: original ? original.filename : null,
+    croppedFile: cropped ? cropped.filename : null,
     createdAt: new Date().toISOString(),
   };
   db.receipts.push(receipt);
   res.status(201).json(receipt);
 });
 
-// PATCH /api/receipts/:id — 사용자가 Preset·비목·부가세를 확정 (sot/05)
+// POST /api/receipts/:id/crop — 재크롭(파일 교체) 또는 크롭 실패 시 원본 사용 확정 (sot/02 유입 흐름 4단계)
+// multipart(cropped) → 크롭본 교체 / JSON { useOriginal: true } → 원본으로 폴백
+router.post("/:id/crop", upload.single("cropped"), (req, res) => {
+  const r = db.receipts.find((x) => x.id === req.params.id);
+  if (!r) return res.status(404).json({ error: "receipt not found" });
+  if (req.file) {
+    r.croppedFile = req.file.filename;
+    r.croppedUrl = `/uploads/${req.file.filename}`;
+    r.crop = { status: "manual", updatedAt: new Date().toISOString() };
+  } else if (req.body && req.body.useOriginal) {
+    r.croppedFile = null;
+    r.croppedUrl = r.imageUrl;
+    r.crop = { status: "original", updatedAt: new Date().toISOString() };
+  } else {
+    return res.status(400).json({ error: "NO_CROP_INPUT", hint: "multipart 'cropped' 파일 또는 { useOriginal: true } 를 보내주세요" });
+  }
+  res.json(r);
+});
+
+// PATCH /api/receipts/:id — 사용자가 OCR 파싱값 수정·Preset·비목·부가세를 확정 (sot/05, 유입 흐름 6단계)
 router.patch("/:id", (req, res) => {
   const r = db.receipts.find((x) => x.id === req.params.id);
   if (!r) return res.status(404).json({ error: "receipt not found" });
   const b = req.body || {};
+
+  // OCR 부분 수정 (예: { ocr: { amount: 9000, merchant: "..." } }) → 환산액·경고·자동추천 재계산
+  if (b.ocr && typeof b.ocr === "object") {
+    Object.assign(r.ocr, b.ocr);
+    const fx = fxFields(r.ocr);
+    r.fxRate = fx.fxRate;
+    r.amountKRW = fx.amountKRW;
+    if (b.ocr.vat !== undefined) r.vat.extracted = b.ocr.vat;
+    if (b.ocr.serviceDate && b.serviceDate === undefined) r.serviceDate = b.ocr.serviceDate;
+    r.checks = buildChecks(r.ocr, r.id);
+    r.suggestedPresetId = suggestPreset(r.ocr, r.serviceDate); // 추천만 갱신 — 사용자가 고른 presetId 는 유지
+  }
 
   if (b.presetId !== undefined) {
     if (b.presetId === null) {
@@ -163,6 +202,7 @@ router.patch("/:id", (req, res) => {
   if (b.vat !== undefined) r.vat = { ...r.vat, confirmed: typeof b.vat === "object" ? b.vat.confirmed : b.vat };
   if (b.serviceDate !== undefined) r.serviceDate = b.serviceDate;
   if (b.tripId !== undefined) r.tripId = b.tripId;
+  if (b.source === "mobile" || b.source === "pc") r.source = b.source;
   res.json(r);
 });
 

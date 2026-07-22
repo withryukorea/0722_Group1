@@ -5,18 +5,26 @@
     "type": "RECURRING",
     "source": "admin",
     "assignees": ["u_me"],
+    "target": { "scope": "company", "teams": [], "users": [] },
+    "limitBasis": "perPerson",
     "period": null,
     "active": true,
     "rules": {
       "allowedAccountCodes": ["WELFARE_AI"],
+      "costCenter": "AQ131",
       "limitKRW": 300000,
       "limitPeriod": "monthly",
-      "approvalLine": ["김아무개 팀장"],
-      "descriptionTemplate": "[AI구독료] {merchant}_홍길동",
+      "approvalLineTemplate": {
+        "draft": "$DRAFTER",
+        "reviewers": ["최아무개 매니저"],
+        "approve": "$SUPERIOR"
+      },
+      "approvalLine": ["최아무개 매니저", "김아무개 팀장"],
+      "descriptionTemplate": "[AI구독료] {merchant}_[이름]",
       "matchKeywords": ["ANTHROPIC", "OPENAI", "CLAUDE", "CHATGPT", "GITHUB", "CURSOR"],
       "requireItemized": false
     },
-    "usage": { "usedKRW": 120000, "byDay": {} }
+    "usage": { "usedKRW": 120000, "byDay": {}, "byAccountCode": { "WELFARE_AI": 120000 } }
   },
   {
     "id": "ps_book",
@@ -24,18 +32,26 @@
     "type": "RECURRING",
     "source": "admin",
     "assignees": ["u_me"],
+    "target": { "scope": "company", "teams": [], "users": [] },
+    "limitBasis": "perPerson",
     "period": null,
     "active": true,
     "rules": {
       "allowedAccountCodes": ["WELFARE_BOOK"],
+      "costCenter": "AQ131",
       "limitKRW": 200000,
       "limitPeriod": "monthly",
+      "approvalLineTemplate": {
+        "draft": "$DRAFTER",
+        "reviewers": [],
+        "approve": "$SUPERIOR"
+      },
       "approvalLine": ["김아무개 팀장"],
-      "descriptionTemplate": "[도서비] {merchant}_홍길동",
+      "descriptionTemplate": "[도서비] {merchant}_[이름]",
       "matchKeywords": ["문고", "서점", "YES24", "알라딘"],
       "requireItemized": false
     },
-    "usage": { "usedKRW": 33000, "byDay": {} }
+    "usage": { "usedKRW": 33000, "byDay": {}, "byAccountCode": { "WELFARE_BOOK": 33000 } }
   },
   {
     "id": "ps_welfare_etc",
@@ -43,18 +59,26 @@
     "type": "RECURRING",
     "source": "admin",
     "assignees": ["u_me"],
+    "target": { "scope": "team", "teams": ["전력사업기획팀"], "users": [] },
+    "limitBasis": "shared",
     "period": null,
     "active": true,
     "rules": {
       "allowedAccountCodes": ["WELFARE_ETC"],
+      "costCenter": "AQ131",
       "limitKRW": 100000,
       "limitPeriod": "monthly",
+      "approvalLineTemplate": {
+        "draft": "$DRAFTER",
+        "reviewers": [],
+        "approve": "$SUPERIOR"
+      },
       "approvalLine": ["김아무개 팀장"],
-      "descriptionTemplate": "[복지] {merchant}_홍길동",
+      "descriptionTemplate": "[복지] {merchant}_[이름]",
       "matchKeywords": [],
       "requireItemized": false
     },
-    "usage": { "usedKRW": 0, "byDay": {} }
+    "usage": { "usedKRW": 0, "byDay": {}, "byAccountCode": {} }
   },
   {
     "id": "ps_tokyo_trip",
@@ -62,38 +86,56 @@
     "type": "TRIP",
     "source": "trip_request",
     "assignees": ["u_me"],
+    "target": { "scope": "users", "teams": [], "users": ["u_me"] },
+    "limitBasis": "shared",
     "period": { "start": "2026-07-14", "end": "2026-07-17" },
     "active": true,
-    "meta": { "destination": "도쿄", "country": "JP", "members": 2 },
+    "meta": { "destination": "도쿄", "country": "JP", "members": 2, "rank": "TEAM_MEMBER" },
     "rules": {
       "allowedAccountCodes": ["TRAVEL_MEAL", "TRAVEL_TRANSPORT", "TRAVEL_LODGING"],
+      "realAccountCode": "706102",
+      "costCenter": "AQ131",
       "limitKRW": 200000,
       "limitPeriod": "daily",
+      "approvalLineTemplate": {
+        "draft": "$DRAFTER",
+        "reviewers": [],
+        "approve": "$SUPERIOR"
+      },
       "approvalLine": ["김아무개 팀장"],
       "descriptionTemplate": "도쿄출장 {merchant}",
       "matchKeywords": ["JPY", "도쿄", "TOKYO"],
       "requireItemized": false
     },
-    "usage": { "usedKRW": 0, "byDay": {} }
+    "usage": { "usedKRW": 0, "byDay": {}, "byAccountCode": {} }
   },
   {
     "id": "ps_busan_daytrip",
     "name": "4/15 부산·울산 당일 출장",
     "type": "TRIP",
-    "source": "trip_request",
+    "source": "employee",
     "assignees": ["u_me"],
+    "target": { "scope": "users", "teams": [], "users": ["u_me"] },
+    "limitBasis": "shared",
     "period": { "start": "2026-04-15", "end": "2026-04-15" },
     "active": true,
-    "meta": { "destination": "부산·울산", "country": "KR", "members": 1 },
+    "meta": { "destination": "부산·울산", "country": "KR", "members": 1, "rank": "TEAM_MEMBER" },
     "rules": {
       "allowedAccountCodes": ["TRAVEL_MEAL", "TRAVEL_TRANSPORT"],
+      "realAccountCode": "706101",
+      "costCenter": "AQ131",
       "limitKRW": 150000,
       "limitPeriod": "daily",
+      "approvalLineTemplate": {
+        "draft": "$DRAFTER",
+        "reviewers": [],
+        "approve": "$SUPERIOR"
+      },
       "approvalLine": ["김아무개 팀장"],
       "descriptionTemplate": "부산출장 {merchant}",
       "matchKeywords": ["부산", "울산", "KTX", "철도", "서울역"],
       "requireItemized": false
     },
-    "usage": { "usedKRW": 0, "byDay": {} }
+    "usage": { "usedKRW": 0, "byDay": {}, "byAccountCode": {} }
   }
 ]
