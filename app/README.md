@@ -1,109 +1,48 @@
-# 출장 영수증 자동 정산 앱
+# 모바일 정산 PWA
 
-출장 중 법인카드로 결제한 영수증을 사진으로 촬영하면, Claude API(비전 모델)가 영수증을 분석해 법인카드 거래 내역과 자동으로 매칭하고, 출장 한도 대비 소진율까지 보여주는 데모 웹앱입니다.
+`docs/05-APP-README.md`의 출장 중심 사용자 여정을 반영하되, 최신 `sot/` 기준과 저장소의 공용 Express API에 맞춘 모바일 우선 정적 웹앱입니다.
 
-## 주요 기능
+## 현재 포함된 최소 흐름
 
-- **출장 개요 입력**: 출장 장소·기간을 입력하면 국내/해외 여부에 따른 일당 한도, 출장여비 한도(=일당 한도 × 출장일수)를 자동 계산
-- **영수증 촬영/분석**: 모바일 카메라로 영수증을 촬영하면 Claude API가 가맹점명/금액/날짜/카테고리를 자동 추출
-- **자동 매칭**: 추출된 금액·날짜를 기준으로 법인카드 거래 내역과 자동 매칭 (모호하면 수동 선택 UI 제공)
-- **대시보드**: 일당 한도, 현재까지 사용 금액, 소진율(진행률 바)을 표시
-- **정산 전송(목업)**: "출장끝 e-accounting 전송" 버튼으로 매칭 완료된 거래를 정산완료 처리 (실제 사내 시스템 연동은 없음 — 자체 DB 기반 데모)
+1. 국내/해외 출장 장소·기간 설정과 한도 계산
+2. 사용금액·남은 한도·소진율 대시보드
+3. 영수증 촬영 또는 사진 선택과 크롭 확인
+4. OCR 결과 확인·수정
+5. Preset·허용 비목·부가세 사용자 확정
+6. 카드 승인내역 자동매칭 및 모호한 결과 확인
+7. 전표 초안과 증빙 연결 검토
+8. 상신 후 e-Accounting 이동
 
-## 기술 스택
+서버 API가 아직 구현되지 않았거나 연결되지 않으면 같은 구조의 데모 데이터로 화면 흐름을 확인합니다. 실제 상신처럼 오해하지 않도록 완료 화면에 데모 상태를 명시합니다.
 
-- Next.js 14 (App Router, TypeScript)
-- Prisma ORM + SQLite (파일 기반 DB, 별도 서버 설치 불필요)
-- Anthropic Claude API (`@anthropic-ai/sdk`) — 영수증 이미지 분석
-- Tailwind CSS
+## 서버 경계
 
-## 사전 요구사항
+- `POST /api/receipts`
+- `PATCH /api/receipts/:id`
+- `POST /api/match`
+- `POST /api/vouchers/preview`
+- `POST /api/vouchers`
+- `GET/POST /api/presets`
 
-- Node.js 18 이상 (LTS 권장)
-- Anthropic API 키 ([console.anthropic.com](https://console.anthropic.com)에서 발급)
+API 호출은 `api.js`, 주소·기능 설정은 `config.js`, 화면 상태는 `app.js`에 있습니다. 서버·fixtures는 이 앱에서 수정하지 않습니다.
 
-## 설치 및 실행 방법
+배포 환경에서 서버 주소가 달라지면 `app.js`보다 먼저 아래 값을 선언합니다.
 
-```bash
-# 1. 의존성 설치
-npm install
-
-# 2. 환경변수 설정
-cp .env.example .env
-# .env 파일을 열어 ANTHROPIC_API_KEY 값을 실제 API 키로 채워넣기
-
-# 3. DB 마이그레이션 적용 + Prisma Client 생성
-npx prisma migrate dev
-
-# 4. 목업(시드) 데이터 생성 — 3일간 부산 출장을 가정한 법인카드 거래 7건
-npx prisma db seed
-
-# 5. 개발 서버 실행
-npm run dev
+```html
+<script>
+  window.RECEIPT_APP_CONFIG = {
+    apiBase: 'https://example-api.invalid',
+    demoFallback: true
+  };
+</script>
 ```
 
-브라우저에서 `http://localhost:3000` 접속. 최초 접속 시 출장 개요 입력 화면(`/trip-setup`)으로 자동 이동합니다.
+## 구현 기준
 
-모바일 카메라로 테스트하려면, PC와 같은 Wi-Fi에 연결된 휴대폰 브라우저에서 `http://<PC의 로컬 IP>:3000`으로 접속하세요 (예: `http://192.168.0.10:3000`). PC의 로컬 IP는 `ipconfig`(Windows) / `ifconfig`(Mac/Linux)로 확인할 수 있습니다.
+- `sot/`이 현재 Source of Truth입니다. Trip/Budget 별도 엔티티를 만들지 않고 Preset(`TRIP`/`RECURRING`/`CAMPAIGN`)으로 통합합니다.
+- `docs/05-APP-README.md`의 Next.js·Prisma·Claude API 설명은 초기 별도 앱 기획안입니다. 현재 구현은 SoT가 정한 기존 Express + 인메모리 store 패턴과 새 DB 금지 원칙을 따릅니다.
+- 출장모드 시작은 `POST /api/presets`로 TRIP Preset을 만들고, 대시보드는 `GET /api/presets?active=true`의 `usage`를 읽기 전용으로 표시합니다.
+- Preset 추천은 하이라이트일 뿐이며, 사용자가 Preset·허용 비목·부가세를 직접 확정합니다.
+- 브라우저 상태는 화면 시연용이며 영수증·전표의 진실 원본은 서버입니다.
 
-## 환경변수
-
-| 변수 | 설명 |
-|---|---|
-| `ANTHROPIC_API_KEY` | Anthropic API 키. 비어있으면 영수증 업로드 시 인증 오류가 발생합니다. |
-| `ANTHROPIC_MODEL` | 사용할 Claude 모델명 (기본값: `claude-sonnet-5`) |
-| `DATABASE_URL` | SQLite DB 파일 경로 (기본값: `file:./dev.db`, 수정 불필요) |
-
-`.env`를 수정한 뒤에는 반드시 `npm run dev`를 재시작해야 반영됩니다 (Next.js는 서버 시작 시점에만 환경변수를 읽습니다).
-
-## 프로젝트 구조
-
-```
-prisma/
-  schema.prisma        # CardTransaction, Receipt, TripInfo 데이터 모델
-  seed.ts              # 목업 법인카드 거래 데이터
-src/
-  app/
-    page.tsx                       # 메인 대시보드
-    trip-setup/page.tsx            # 출장 개요 입력 화면
-    capture/page.tsx               # 영수증 촬영 화면
-    transactions/                  # 법인카드 거래 목록/상세
-    receipts/                      # 촬영한 영수증 목록/상세
-    api/
-      trip/route.ts                # 출장 정보 생성/조회
-      trip/settle/route.ts         # 정산 전송(목업) — MATCHED → SETTLED
-      receipts/route.ts            # 영수증 업로드 → Claude 분석 → 자동 매칭
-      transactions/[id]/match/route.ts  # 수동 매칭
-  lib/
-    anthropic.ts        # Claude 비전 API 호출
-    matching.ts          # 금액/날짜 기반 매칭 알고리즘
-    tripPolicy.ts         # 국내/해외 일당 한도 정책 및 총한도 계산
-    db.ts                 # Prisma 싱글턴
-  components/            # UI 컴포넌트 (카메라 캡처, 상태 배지 등)
-public/uploads/          # 업로드된 영수증 이미지 저장 위치 (git 미포함)
-```
-
-## 매칭 규칙
-
-1. 상태가 "영수증 필요"인 거래 중, 추출된 금액과 **정확히 일치**하는 거래를 후보로 조회
-2. 거래일과 영수증 촬영일이 **±3일 이내**인 후보만 필터링
-3. 후보가 **정확히 1건**이면 자동 매칭, **0건 또는 2건 이상**이면 미매칭 처리 후 수동 선택 UI 제공
-
-## 출장 한도 정책 (`src/lib/tripPolicy.ts`)
-
-- 국내 출장: 일당 한도 30,000원
-- 해외 출장: 일당 한도 80,000원
-- 출장여비 한도 = 일당 한도 × 출장일수(시작일~종료일 포함)
-- 소진율 = 출장 기간 내 법인카드 사용 금액 합계 / 출장여비 한도 × 100
-
-## 트러블슈팅
-
-- **"Could not resolve authentication method..." 오류**: `.env`의 `ANTHROPIC_API_KEY`가 비어있는 경우 발생합니다. 키를 입력한 뒤 개발 서버를 재시작하세요.
-- **Windows에서 `node`/`npm` 명령을 찾을 수 없음**: Node.js 설치 경로가 PATH에 없는 경우입니다. Node.js를 재설치하거나 PATH에 설치 경로를 직접 추가하세요.
-- **Prisma Client 생성 시 `EPERM: operation not permitted` 오류**: 개발 서버가 실행 중인 상태에서 `prisma generate`/`migrate`를 실행하면 발생할 수 있습니다. 개발 서버를 잠시 중지한 뒤 다시 실행하세요.
-
-## 알려진 제한사항 (해커톤 데모 범위)
-
-- 실제 사내 정산 시스템과의 연동은 없으며, 자체 SQLite DB에 데이터를 저장/조회하는 목업입니다.
-- 인증/다중 사용자 기능은 없습니다 (단일 사용자, 단일 출장 기준 데모).
-- 출장 정보를 새로 입력하면 기존 출장 정보는 대체됩니다 (이력 관리 없음).
+복지비, 다건 전표, 항목 분리 플래그는 별도 기획이 확정될 때 추가합니다.

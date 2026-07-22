@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17233d">
+  <meta name="description" content="영수증을 촬영하면 카드내역 매칭과 전표 초안까지 이어지는 모바일 정산 웹앱">
+  <title>찍으면 끝 · 영수증 정산</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#dashboard" id="home-link" aria-label="찍으면 끝 대시보드로">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <span><b>찍으면 끝</b><small>Receipt to voucher</small></span>
+      </a>
+      <button class="icon-button" id="reset-button" type="button" aria-label="출장 정보 수정" title="출장 정보 수정">⚙</button>
+    </header>
+
+    <main id="screen-root" tabindex="-1"></main>
+
+    <nav class="bottom-nav" id="bottom-nav" aria-label="주요 메뉴" hidden>
+      <button type="button" data-route="dashboard"><span aria-hidden="true">⌂</span><b>홈</b></button>
+      <button type="button" data-route="transactions"><span aria-hidden="true">▤</span><b>카드내역</b></button>
+      <button class="nav-capture" type="button" data-route="capture"><span aria-hidden="true">＋</span><b>촬영</b></button>
+      <button type="button" data-route="receipts"><span aria-hidden="true">▧</span><b>영수증</b></button>
+      <button type="button" data-route="setup"><span aria-hidden="true">⚙</span><b>출장설정</b></button>
+    </nav>
+
+    <footer class="safe-footer">
+      <span class="connection-dot" aria-hidden="true"></span>
+      <span id="connection-label">서버 연결 확인 중</span>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <input id="receipt-camera" class="visually-hidden" type="file" accept="image/*" capture="environment">
+  <input id="receipt-gallery" class="visually-hidden" type="file" accept="image/*">
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
