@@ -16,7 +16,13 @@ const initial = {
   fx: readJSON("fx.json"),
   accounts: readJSON("accounts.json"),
   travelPolicy: readJSON("travel-policy.json"),
+  // 데모 시드 영수증: 서버 부팅 즉시 모바일웹·PC웹이 "동일한 영수증"을 공유하도록 미리 채운다.
+  // 카드거래(matchedTxId)·정산단위(presetId)와 연결돼 있어 매칭/한도/분류가 처음부터 채워진 상태로 보인다.
+  receiptsSeed: readJSON("receipts-seed.json"),
 };
+
+// 시드 영수증 id(rcpt_101~)와 런타임 업로드 id가 겹치지 않도록 시퀀스 시작값을 계산
+const seedSeqStart = initial.receiptsSeed.length + 1;
 
 const db = {
   transactions: JSON.parse(JSON.stringify(initial.transactions)),
@@ -26,9 +32,9 @@ const db = {
   accounts: initial.accounts,
   travelPolicy: initial.travelPolicy,
   vouchers: [], // 상신된 전표가 여기 쌓인다 (관리자 화면이 이걸 보여줌)
-  receipts: [], // 업로드된 영수증 (P3 /api/receipts 가 쌓는다)
+  receipts: JSON.parse(JSON.stringify(initial.receiptsSeed)), // 시드 영수증으로 시작 + 업로드분이 뒤에 쌓인다
   _voucherSeq: 1,
-  _receiptSeq: 1,
+  _receiptSeq: seedSeqStart, // 시드 다음 번호부터 (rcpt_101~110 이후 → rcpt_111)
   _presetSeq: 1,
 };
 
@@ -58,9 +64,9 @@ function reset() {
   db.transactions = JSON.parse(JSON.stringify(initial.transactions));
   db.presets = JSON.parse(JSON.stringify(initial.presets));
   db.vouchers = [];
-  db.receipts = [];
+  db.receipts = JSON.parse(JSON.stringify(initial.receiptsSeed));
   db._voucherSeq = 1;
-  db._receiptSeq = 1;
+  db._receiptSeq = seedSeqStart;
   db._presetSeq = 1;
 }
 

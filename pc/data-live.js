@@ -193,7 +193,7 @@ window.SKD = (function () {
     const ocr = rc.ocr || {};
     const category = classifyCategory(rc, presetsById);
     const tripId = findTripFor(rc, trips);
-    const dup = (rc.checks || []).some(c => (c.code || c) === "DUPLICATE_DOCUMENT");
+    const dup = (rc.checks || []).some(c => (c.code || c.type || c) === "DUPLICATE_DOCUMENT");
     const status = dup ? "duplicate" : (rc.matchedTxId ? "matched" : "review");
     const img = rc.imageUrl ? (CFG.apiBase + rc.imageUrl) : null;
     return {
