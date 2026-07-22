@@ -112,10 +112,10 @@ function adaptTx(t, i) {
     merchant: t.merchant + (t.currency !== 'KRW' ? ` (${t.currency} ${t.amount.toLocaleString()})` : ''),
     biz: guessBiz(t.merchant),
     amount: t.amountKRW,
-    owner: '유상욱', dept: '전력사업기획팀', cardNo: '4025961080293059',
+    owner: '홍길동', dept: '전력사업기획팀', cardNo: '4025961080293059',
     apprNo: String(45125 + i * 52371).padStart(8, '0'),
     status: t.status === 'vouchered' ? '정산완료' : '미정산',
-    registrant: t.status === 'vouchered' ? '유상욱' : '',
+    registrant: t.status === 'vouchered' ? '홍길동' : '',
   };
 }
 

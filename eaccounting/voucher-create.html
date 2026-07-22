@@ -37,7 +37,7 @@
     <section class="sect" id="sec-approval">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
         <h3 style="margin:0;">결재선지정 <span style="font-size:12.5px; color:var(--blue); font-weight:400;">ⓘ 주의사항</span></h3>
-        <button class="btn btn-line" onclick="alert('데모 버전에서는 결재선 변경을 지원하지 않습니다.')">⇆ 결재선 변경</button>
+        <button class="btn btn-line" onclick="openApprovalLine()">⇆ 결재선 변경</button>
       </div>
       <table class="appr">
         <tr>
@@ -46,11 +46,11 @@
           <th style="width:19%;">승인</th>
         </tr>
         <tr>
-          <td>전력사업기획팀<br><b>유상욱 팀원</b></td>
+          <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
           <td style="width:19%;" id="review-1"></td>
           <td style="width:19%;"></td>
           <td style="width:19%;"></td>
-          <td>전력사업기획팀<br><b>김예섭 팀장</b></td>
+          <td>전력사업기획팀<br><b>김아무개 팀장</b></td>
         </tr>
       </table>
     </section>
@@ -73,7 +73,7 @@
           <td class="lbl">전기일자 <span style="color:var(--red)">*</span></td>
           <td><input type="date" id="post-date" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;"></td>
           <td class="lbl">작성자</td>
-          <td>유상욱 - 전력사업기획팀</td>
+          <td>홍길동 - 전력사업기획팀</td>
         </tr>
       </table>
 
@@ -189,6 +189,8 @@
 </div>
 
 <script src="js/layout.js"></script>
+<script src="js/org-data.js"></script>
+<script src="js/approval-line.js"></script>
 <script src="js/accounts-data.js"></script>
 <script>
 renderChrome({
@@ -272,7 +274,7 @@ function renderCardDetail() {
   const addr = r.merchant.startsWith('폴바셋') ? '서울 중구 청계천로30 1층 (다동 예금보험공사)' : '-';
   const taxer = r.vat > 0 ? '일반과세자' : '면세사업자';
   document.getElementById('card-detail').innerHTML = `
-    <tr><td class="lbl">카드소지자</td><td style="width:34%;">유상욱 Manager - [전력사업기획팀]</td>
+    <tr><td class="lbl">카드소지자</td><td style="width:34%;">홍길동 Manager - [전력사업기획팀]</td>
         <td class="lbl">카드번호</td><td>${r.cardNo}</td></tr>
     <tr><td class="lbl">이용일자</td><td>${r.payAt} (${weekday(r.useDate)})</td>
         <td class="lbl">가맹점</td><td>${r.merchant}/${r.biz}/${taxer}</td></tr>
@@ -399,7 +401,7 @@ function initInfo() {
   document.getElementById('evid-date').value = `${y}-${m}-${d}`;
   document.getElementById('post-date').value = `${y}-${m}-${d}`;
   const total = lines.reduce((s, l) => s + l.amount, 0);
-  if (total > 300000) document.getElementById('review-1').innerHTML = '전력사업본부<br><b>박정민 부장</b>';
+  if (total > 300000 && !window._apvLine) document.getElementById('review-1').innerHTML = '전력사업본부<br><b>박아무개 부장</b>';
 }
 
 /* ── 유형 선택 팝업 ── */
@@ -463,7 +465,7 @@ async function submitVoucher() {
     body: {
       title: `${slipType} (${lines[0].merchant}${lines.length > 1 ? ` 외 ${lines.length - 1}건` : ''})`,
       lines: lines.map(l => ({ txId: l.id, accountCode: acctCode(l.acct) || l.acct, amountKRW: l.amount, description: l.memo || l.merchant })),
-      approvalLine: total <= 300000 ? ['김예섭 팀장'] : ['김예섭 팀장', '박정민 부장'],
+      approvalLine: apvLineNames() || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 부장']),
     },
   });
   sessionStorage.removeItem('voucherDraft');

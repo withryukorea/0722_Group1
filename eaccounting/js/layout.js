@@ -10,7 +10,7 @@
    ============================================================ */
 
 const EACC = {
-  user: { name: '유상욱', dept: '전력사업기획팀' },
+  user: { name: '홍길동', dept: '전력사업기획팀' },
 
   // 상단 메뉴 → 파일명 매핑 (다른 툴이 만드는 화면과 합칠 때 여기만 고치면 됨)
   topLinks: {
@@ -89,7 +89,7 @@ function renderChrome(opts) {
     <header class="gnb">
       <a class="logo" href="index.html">
         <span class="sk">SK</span>
-        <span class="sub">이노베이션<br>E&amp;S</span>
+        <span class="sub">ㅇㅇ컴퍼니<br>E&amp;S</span>
         <span class="sys">e-Accounting System</span>
       </a>
       <nav>${topMenu.map(m => {
