@@ -34,5 +34,14 @@ window.PC_API = (function () {
     return request('/api/vouchers', { method: 'POST', body: voucher });
   }
 
-  return { request, submitVoucher };
+  // 영수증 업로드(유입) — 파일을 image 필드로, 출처를 source=pc 로 실제 전송.
+  // 성공 시 서버가 저장한 receipt(JSON)를 반환. 실패(4xx/5xx·네트워크·타임아웃)는 throw.
+  async function uploadReceipt(file, source) {
+    const form = new FormData();
+    form.append('image', file);
+    form.append('source', source || 'pc');
+    return request('/api/receipts', { method: 'POST', body: form });
+  }
+
+  return { request, submitVoucher, uploadReceipt };
 })();
