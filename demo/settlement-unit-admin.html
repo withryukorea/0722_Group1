@@ -100,10 +100,10 @@
 <div class="wrap">
 
   <div class="cover">
-    <h1>이어카운팅 — <em style="font-style:normal;color:#ee3d6d">정산단위 관리</em> 목업</h1>
-    <p class="sub">PoC의 두 기둥 중 하나. 정산 규정을 <b>배포 가능한 객체(정산단위)</b>로 만드는 페이지 — 관리 목록(대시보드형) + 생성 폼(4블록).
-    결재선 팝업·계정과목 팝업은 기존 이어카운팅 컴포넌트를 차용한다.</p>
-    <div class="meta">작성일 2026-07-22 · sot/03 A1·A1-b 반영 · 직급은 전원 "매니저" · 데모 설계용 목업이며 최종 UI 아님</div>
+    <h1>이어카운팅 — <em style="font-style:normal;color:#ee3d6d">정산단위 관리·정산</em> 목업</h1>
+    <p class="sub">PoC의 두 기둥 중 하나. 정산 규정을 <b>배포 가능한 객체(정산단위)</b>로 만들고, 그 단위로 정산까지 잇는다 —
+    ① 관리 목록(대시보드형) ② 생성 폼(4블록) ③ <b>법인카드 정산의 정산단위 정산 모드</b>. 결재선 팝업·계정과목 팝업은 기존 이어카운팅 컴포넌트를 차용한다.</p>
+    <div class="meta">작성일 2026-07-22 · sot/03 A1·A1-b·E4 반영 · 직급은 전원 "매니저" · 데모 설계용 목업이며 최종 UI 아님</div>
   </div>
 
   <!-- ================ 1. 관리 목록 ================ -->
@@ -285,6 +285,62 @@
           <div class="hint">직급이 전원 "매니저"이므로 [상위자]/[차상위자]는 <b>조직도·직책 기준</b>으로 해석 (내 팀의 팀장 → 실장 → 본부장 순). 정산 시 상신자 기준으로 자동 전개된다 — 예: 홍길동 기안 시 [차상위자] → 전력사업기획실장.</div>
         </div>
       </div>
+
+    </div>
+  </div>
+
+  <!-- ================ 3. 정산단위 정산 모드 ================ -->
+  <div class="page-break"></div>
+  <div class="sec-t"><span class="dot"></span>3. 법인카드 정산 — 정산단위 정산 모드</div>
+  <p class="sub" style="margin:-2px 0 10px">일반 정산(낱개 선택) 외에, <b>정산단위를 선택해 그에 속한 건들을 한 번에 정산</b>하는 진입점. 기존 법인카드 정산 목록(`card-settlement`)에 방식 토글을 추가한다.</p>
+  <div class="ea">
+    <div class="ea-title"><span class="t">법인카드 정산</span>
+      <span class="btns"><span class="bl">🔍 조회</span><span class="bp">전표작성</span></span></div>
+    <div class="ea-body">
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:10.5px;font-weight:700;color:#5b6474">정산 방식</span>
+        <span class="seg"><span>일반 정산</span><span class="on">정산단위 정산</span></span>
+        <span class="in" style="flex:0 0 300px">AI Frontier 교육 — 미정산 2건 · ₩330,047 ▾</span>
+        <span style="font-size:9.8px;color:#8A90A0">배정된 활성 정산단위만 표시</span>
+      </div>
+
+      <table class="grid">
+        <thead><tr>
+          <th style="width:30px">✓</th><th style="width:74px">이용일자</th><th>가맹점</th><th style="width:92px">승인금액</th>
+          <th style="width:80px">증빙(영수증)</th><th style="width:120px">정산단위 태깅</th><th style="width:66px">상태</th>
+        </tr></thead>
+        <tbody>
+          <tr style="background:#fdf3f7;">
+            <td><b style="color:#ee3d6d">☑</b></td><td>07.19</td><td class="l">ANTHROPIC* CLAUDE SUB</td><td class="r num">167,435</td>
+            <td><span class="badge b-on">첨부됨</span></td><td><span class="badge b-rec">AI Frontier 교육</span></td><td><span class="badge b-on">자동선택</span></td>
+          </tr>
+          <tr style="background:#fdf3f7;">
+            <td><b style="color:#ee3d6d">☑</b></td><td>07.10</td><td class="l">OPENAI *CHATGPT SUBSCR</td><td class="r num">162,612</td>
+            <td><span class="badge b-on">첨부됨</span></td><td><span class="badge b-rec">AI Frontier 교육</span></td><td><span class="badge b-on">자동선택</span></td>
+          </tr>
+          <tr>
+            <td style="color:#c9cfda">☐</td><td style="color:#98a0b0">07.21</td><td class="l" style="color:#98a0b0">폴바셋광화문예금보험공사점</td><td class="r num" style="color:#98a0b0">20,500</td>
+            <td><span class="badge b-off">—</span></td><td><span class="badge b-off">일반 결제</span></td><td><span class="badge b-off">제외</span></td>
+          </tr>
+          <tr>
+            <td style="color:#c9cfda">☐</td><td style="color:#98a0b0">07.20</td><td class="l" style="color:#98a0b0">둘둘치킨종로1가점</td><td class="r num" style="color:#98a0b0">64,000</td>
+            <td><span class="badge b-off">—</span></td><td><span class="badge b-off">일반 결제</span></td><td><span class="badge b-off">제외</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <span class="hint" style="margin:0">정산단위를 선택하면 영수증 <b>presetId 태깅 기준</b>으로 미정산 건이 자동 필터·선택된다. 일반 결제 건은 흐리게 제외 표시.</span>
+        <span style="font-size:11px;font-weight:800;color:#c2255c" class="num">선택 2건 · 합계 ₩330,047</span>
+      </div>
+
+      <div style="border:1px solid #8fce9e;background:#E7F6EF;border-radius:7px;padding:9px 12px;margin-top:12px;font-size:10.5px;color:#0B7A55">
+        <b>[전표작성] 클릭 시 →</b> 전표작성 화면 상단에 정산단위 배너 표시:<br>
+        <span style="display:inline-block;margin-top:5px;background:#fff;border:1px dashed #8fce9e;border-radius:5px;padding:5px 10px">
+          🎫 <b>정산단위: AI Frontier 교육</b> — 계정과목 [723105]·예산부서 [A860]·적요·결재선 <b>자동 적용됨 🔒</b> (금액·부가세만 확인)
+        </span>
+      </div>
+      <div class="hint" style="margin-top:8px">출장(TRIP)도 같은 메커니즘 — 해외출장비 정산의 기존 "출장 개요조회" 팝업이 곧 TRIP 정산단위 선택이다.</div>
 
     </div>
   </div>
