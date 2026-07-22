@@ -1,12 +1,12 @@
 {
   "name": "찍으면 끝 · 영수증 정산",
   "short_name": "찍으면 끝",
-  "description": "영수증 촬영부터 전표 상신까지 이어지는 모바일 정산 웹앱",
+  "description": "영수증을 촬영하고 확인해 공용 서버에 저장하는 모바일 정산 웹앱",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f6f9",
-  "theme_color": "#17233d",
+  "background_color": "#f5f6f8",
+  "theme_color": "#ea002c",
   "orientation": "portrait-primary"
 }

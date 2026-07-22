@@ -1,6 +1,6 @@
 // [P1] 전표 접수/조회 API
 const express = require("express");
-const { db, nextVoucherId } = require("../store");
+const { db, nextVoucherId, recomputeUsage } = require("../store");
 const router = express.Router();
 
 // GET /api/vouchers  → 접수된 전표 목록 (관리자 화면용)
@@ -12,8 +12,27 @@ router.get("/", (req, res) => {
 // body: 02-API-CONTRACT.md 의 Voucher 형태 (approvalLine 포함해서 넘어옴)
 router.post("/", (req, res) => {
   const body = req.body || {};
+
+  // ── 라인 검증: 빈 전표·존재하지 않는 거래/영수증 참조는 상신 자체를 거부한다 ──
+  // (현금 지출 등 txId 없는 라인은 허용 — txId/receiptId 가 "있는데 가짜"인 경우만 400)
+  if (!Array.isArray(body.lines) || body.lines.length === 0) {
+    return res.status(400).json({ error: "EMPTY_LINES", hint: "전표에는 1개 이상의 정산 라인이 필요합니다." });
+  }
+  const unknownTx = body.lines
+    .map((l) => l.txId)
+    .filter((id) => id && !db.transactions.some((t) => t.id === id));
+  if (unknownTx.length) {
+    return res.status(400).json({ error: "UNKNOWN_TX", txIds: unknownTx, hint: "존재하지 않는 카드거래를 참조한 라인이 있습니다." });
+  }
+  const unknownReceipt = body.lines
+    .map((l) => l.receiptId)
+    .filter((id) => id && !db.receipts.some((r) => r.id === id));
+  if (unknownReceipt.length) {
+    return res.status(400).json({ error: "UNKNOWN_RECEIPT", receiptIds: unknownReceipt, hint: "존재하지 않는 영수증을 참조한 라인이 있습니다." });
+  }
+
   // 중복 상신 방지: 이미 전표 처리(vouchered)된 거래는 다시 상신 불가
-  const dupTx = (Array.isArray(body.lines) ? body.lines : [])
+  const dupTx = body.lines
     .map((l) => l.txId)
     .filter((id) => id && db.transactions.some((t) => t.id === id && t.status === "vouchered"));
   if (dupTx.length) {
@@ -29,6 +48,7 @@ router.post("/", (req, res) => {
         ? body.lines.reduce((s, l) => s + (l.amountKRW || 0), 0)
         : 0),
     approvalLine: body.approvalLine || [],
+    approvalLineDetail: body.approvalLineDetail || null, // { draft, reviewers[], approve } — 문서함 표시용
     status: "submitted",
     submittedAt: new Date().toISOString(),
   };
@@ -40,17 +60,9 @@ router.post("/", (req, res) => {
     if (tx) tx.status = "vouchered";
   }
 
-  // Preset 사용량 차감: submitted 전표만 합산 (초안 합산 금지 — 이중 차감 방지)
-  for (const line of voucher.lines) {
-    const receipt = line.receiptId ? db.receipts.find((r) => r.id === line.receiptId) : null;
-    const presetId = line.presetId || (receipt && receipt.presetId);
-    if (!presetId) continue;
-    const p = db.presets.find((x) => x.id === presetId);
-    if (!p) continue;
-    p.usage.usedKRW += line.amountKRW || 0;
-    const day = (receipt && receipt.serviceDate) || voucher.submittedAt.slice(0, 10);
-    p.usage.byDay[day] = (p.usage.byDay[day] || 0) + (line.amountKRW || 0);
-  }
+  // Preset 사용량은 "실제 상태"에서 다시 계산 — 매칭 영수증 + 현금성 라인을 usage 단일 소스로 집계.
+  // (증분 합산 대신 재집계 → 이미 매칭돼 집계된 영수증을 상신해도 이중 차감되지 않음)
+  recomputeUsage(db);
 
   res.status(201).json(voucher);
 });

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>이어카운팅 — 정산단위 관리 (목업)</title>
+<style>
+  @page { size: A4; margin: 11mm 11mm 13mm; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#333a49;font-size:12px;line-height:1.5;background:#fff;}
+  .wrap{max-width:800px;margin:0 auto;}
+  h1{font-size:21px;letter-spacing:-.02em;color:#1A1C22;}
+  .sub{color:#7b8494;font-size:12px;margin-top:6px;line-height:1.6;}
+  .num{font-variant-numeric:tabular-nums;}
+  .cover{padding:4px 0 14px;border-bottom:1px solid #E6E8EE;margin-bottom:16px;}
+  .meta{color:#8A90A0;font-size:11px;margin-top:8px;}
+  .sec-t{font-size:13px;font-weight:800;color:#454d5e;margin:18px 0 8px;display:flex;align-items:center;gap:7px;}
+  .sec-t .dot{width:7px;height:7px;border-radius:50%;background:#ee3d6d;}
+  .page-break{page-break-before:always;}
+
+  /* e-accounting window frame */
+  .ea{border:1px solid #d9dee6;border-radius:9px;overflow:hidden;background:#eef0f4;}
+  .ea-title{display:flex;align-items:center;justify-content:space-between;background:#fff;padding:10px 14px;border-bottom:1px solid #d9dee6;}
+  .ea-title .t{font-size:15px;font-weight:700;color:#1A1C22;}
+  .ea-title .btns{display:flex;gap:6px;}
+  .bd{background:#3f4660;color:#fff;font-size:10.5px;font-weight:600;border-radius:5px;padding:5px 10px;}
+  .bp{background:#ee3d6d;color:#fff;font-size:10.5px;font-weight:700;border-radius:5px;padding:5px 12px;}
+  .bl{background:#fff;color:#333a49;border:1px solid #c6ccd6;font-size:10px;font-weight:600;border-radius:5px;padding:4px 9px;display:inline-block;}
+  .ea-body{padding:12px 14px;}
+  .ea h3{font-size:12.5px;margin:0 0 7px;color:#1A1C22;display:flex;align-items:center;justify-content:space-between;}
+  .ea h3 .info{font-size:10px;color:#2f6fd8;font-weight:400;}
+
+  table.grid{width:100%;border-collapse:collapse;background:#fff;font-size:10.4px;}
+  table.grid th{background:#eef1f5;border:1px solid #d9dee6;padding:6px 5px;font-weight:700;color:#454d5e;}
+  table.grid td{border:1px solid #d9dee6;padding:6px 5px;text-align:center;color:#3c4354;vertical-align:middle;}
+  table.grid td.l{text-align:left;} table.grid td.r{text-align:right;}
+  .badge{display:inline-block;font-size:9px;font-weight:700;border-radius:999px;padding:2px 7px;}
+  .b-on{background:#E7F6EF;color:#0B7A55;} .b-off{background:#EEF0F4;color:#7b8494;}
+  .b-trip{background:#E8EFFD;color:#1D4ED8;} .b-rec{background:#FDECEF;color:#c2255c;} .b-camp{background:#FDF3E3;color:#B45309;}
+  .g{width:110px;} .g .gt{height:7px;background:#ECEEF3;border-radius:999px;overflow:hidden;}
+  .g .gf{height:100%;border-radius:999px;background:linear-gradient(90deg,#ee3d6d,#f47725);}
+  .g .gl{font-size:9px;color:#7b8494;margin-top:2px;text-align:left;}
+
+  /* detail panel */
+  .detail{border:1px solid #f2c2d2;background:#fdf3f7;border-radius:0 0 6px 6px;padding:9px 12px;font-size:10.3px;display:flex;gap:24px;}
+  .detail b{color:#c2255c;}
+  .detail .col{flex:1;}
+  .detail .row{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #ecd4dd;}
+
+  /* form blocks */
+  .blocks{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .blk{border:1px solid #d9dee6;border-radius:8px;background:#fff;overflow:hidden;}
+  .blk-h{background:#eef1f5;padding:7px 11px;font-size:11px;font-weight:800;color:#454d5e;display:flex;align-items:center;gap:6px;}
+  .blk-h .n{width:16px;height:16px;border-radius:50%;background:#ee3d6d;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;}
+  .blk-b{padding:10px 11px;}
+  .f{display:flex;align-items:center;gap:8px;margin:5px 0;}
+  .f .k{flex:0 0 84px;font-size:10.3px;font-weight:700;color:#5b6474;}
+  .f .k::before{content:'▪';color:#aab2c0;font-size:8px;margin-right:5px;vertical-align:1px;}
+  .in{flex:1;border:1px solid #cdd3dc;border-radius:4px;background:#fff;padding:5px 8px;font-size:10.3px;color:#333a49;min-height:24px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .in.dis{background:#f1f2f5;color:#888;}
+  .seg{display:inline-flex;border:1px solid #cdd3dc;border-radius:5px;overflow:hidden;}
+  .seg span{padding:4px 10px;font-size:10px;font-weight:600;color:#5b6474;border-left:1px solid #cdd3dc;}
+  .seg span:first-child{border-left:none;}
+  .seg span.on{background:#ee3d6d;color:#fff;}
+  .chip{display:inline-block;border:1px solid #cdd3dc;border-radius:999px;padding:2px 9px;font-size:9.8px;font-weight:600;color:#5b6474;background:#fff;}
+  .chip.sel{border-color:#ee3d6d;background:#fdf3f7;color:#c2255c;}
+  .hint{font-size:9.5px;color:#8A90A0;margin-top:4px;line-height:1.5;}
+  .notice{background:#fbfbfd;border:1px solid #e6e9ef;border-radius:6px;padding:7px 10px;font-size:10px;color:#2f6fd8;margin-top:6px;}
+
+  /* 적요양식 dropdown 시각화 */
+  .tplbox{position:relative;}
+  .dd{border:1px solid #ee3d6d;border-radius:6px;background:#fff;box-shadow:0 6px 16px rgba(30,20,40,.14);margin-top:4px;width:150px;font-size:10px;overflow:hidden;}
+  .dd .di{padding:5px 10px;border-bottom:1px solid #f0f1f4;color:#333a49;}
+  .dd .di.on{background:#fdf3f7;color:#c2255c;font-weight:700;}
+  .dd .di small{color:#98a0b0;margin-left:5px;}
+  .prev{background:#E7F6EF;border:1px dashed #8fce9e;border-radius:5px;padding:5px 9px;font-size:10.3px;color:#0B7A55;margin-top:6px;}
+  .prev b{font-weight:800;}
+
+  /* 결재선 팝업 재현 */
+  .apv{border:1px solid #d9dee6;border-radius:7px;overflow:hidden;background:#fff;}
+  .apv-h{background:linear-gradient(90deg,#e0407a,#c84f9e);color:#fff;padding:8px 12px;font-size:11px;font-weight:700;}
+  .apv-b{display:grid;grid-template-columns:1fr 1.25fr 1fr;font-size:9.8px;}
+  .apv-b>div{border-right:1px solid #e6e9ef;padding:8px;min-height:118px;}
+  .apv-b>div:last-child{border-right:none;}
+  .apv-b .ct{font-weight:800;color:#454d5e;font-size:9.6px;margin-bottom:5px;}
+  .tree div{padding:1.5px 0;color:#444c5c;}
+  .tree .sel{color:#ee3d6d;font-weight:700;}
+  .mrow{display:flex;justify-content:space-between;align-items:center;padding:2.5px 0;border-bottom:1px solid #f0f1f4;}
+  .mrow .add{border:1px solid #b8bfcc;border-radius:3px;font-size:8.6px;padding:1px 7px;color:#5b6474;background:#fff;}
+  .mrow.varrow{background:#E8EFFD;border-radius:4px;padding:3px 5px;margin:1.5px 0;border-bottom:none;}
+  .mrow.varrow b{color:#1D4ED8;}
+  .mrow.varrow .add{border-color:#1D4ED8;color:#1D4ED8;}
+  .lineitem{display:flex;align-items:center;gap:5px;background:#f4f6fb;border:1px solid #dde3ef;border-radius:5px;padding:5px 8px;margin:3px 0;color:#2f4a8a;font-size:9.8px;}
+  .lineitem.var{border-style:dashed;border-color:#1D4ED8;background:#E8EFFD;}
+  .lineitem .ty{font-size:8.6px;background:#fff;border-radius:3px;padding:1px 5px;color:#7b8494;}
+  .newtag{background:#1D4ED8;color:#fff;font-size:8px;font-weight:800;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <h1>이어카운팅 — <em style="font-style:normal;color:#ee3d6d">정산단위 관리·정산</em> 목업</h1>
+    <p class="sub">PoC의 두 기둥 중 하나. 정산 규정을 <b>배포 가능한 객체(정산단위)</b>로 만들고, 그 단위로 정산까지 잇는다 —
+    ① 관리 목록(대시보드형) ② 생성 폼(4블록) ③ <b>법인카드 정산의 정산단위 정산 모드</b>. 결재선 팝업·계정과목 팝업은 기존 이어카운팅 컴포넌트를 차용한다.</p>
+    <div class="meta">작성일 2026-07-22 · sot/03 A1·A1-b·E4 반영 · 직급은 전원 "매니저" · 데모 설계용 목업이며 최종 UI 아님</div>
+  </div>
+
+  <!-- ================ 1. 관리 목록 ================ -->
+  <div class="sec-t"><span class="dot"></span>1. 관리 목록 — 대시보드형</div>
+  <div class="ea">
+    <div class="ea-title"><span class="t">정산단위 관리</span>
+      <span class="btns"><span class="bl">⟳ 새로고침</span><span class="bp">＋ 새 정산단위</span></span></div>
+    <div class="ea-body">
+      <table class="grid">
+        <thead><tr>
+          <th style="width:150px">이름</th><th style="width:64px">유형</th><th style="width:96px">대상</th>
+          <th style="width:86px">기간/상태</th><th>한도 소진</th><th style="width:52px">사용자</th><th style="width:46px">건수</th><th style="width:88px">액션</th>
+        </tr></thead>
+        <tbody>
+          <tr style="background:#fdf3f7;">
+            <td class="l"><b>AI Frontier 교육</b></td>
+            <td><span class="badge b-rec">월 한도</span></td>
+            <td>전사 · <b>1인당</b></td>
+            <td><span class="badge b-on">활성</span></td>
+            <td class="l"><div class="g"><div class="gt"><div class="gf" style="width:40%"></div></div><div class="gl">평균 40% · 최고 92%</div></div></td>
+            <td>47</td><td>112</td>
+            <td><span class="bl">수정</span> <span class="bl">비활성</span></td>
+          </tr>
+          <tr>
+            <td class="l" colspan="8" style="padding:0;border-top:none;">
+              <div class="detail">
+                <div class="col"><b>사용자별 상위</b>
+                  <div class="row"><span>홍길동 매니저</span><span class="num">₩276,000 (92%)</span></div>
+                  <div class="row"><span>박한별 매니저</span><span class="num">₩167,435 (56%)</span></div>
+                  <div class="row"><span>김두리 매니저</span><span class="num">₩120,000 (40%)</span></div>
+                </div>
+                <div class="col"><b>비목별</b>
+                  <div class="row"><span>[723105] 교육훈련비-DIY100</span><span class="num">₩5,640,000</span></div>
+                  <div class="row"><span>처리 건수</span><span class="num">112건 (자동추천 채택 91%)</span></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="l"><b>기획실 팀빌딩</b></td>
+            <td><span class="badge b-camp">1회성</span></td>
+            <td>전력사업기획팀 · <b>공동</b></td>
+            <td><span class="badge b-on">활성</span></td>
+            <td class="l"><div class="g"><div class="gt"><div class="gf" style="width:63%"></div></div><div class="gl">전체 ₩315,000 / 500,000</div></div></td>
+            <td>5</td><td>3</td>
+            <td><span class="bl">수정</span> <span class="bl">비활성</span></td>
+          </tr>
+          <tr>
+            <td class="l"><b>7월 도쿄 출장</b></td>
+            <td><span class="badge b-trip">출장</span></td>
+            <td>홍길동 매니저</td>
+            <td>7/14–7/17</td>
+            <td class="l"><div class="g"><div class="gt"><div class="gf" style="width:75%"></div></div><div class="gl">일당 ₩150,000 / 200,000</div></div></td>
+            <td>1</td><td>8</td>
+            <td><span class="bl">상세</span></td>
+          </tr>
+          <tr>
+            <td class="l" style="color:#98a0b0"><b>신규 구성원 지원 (6월)</b></td>
+            <td><span class="badge b-camp">1회성</span></td>
+            <td style="color:#98a0b0">명단 3명 · 1인당</td>
+            <td><span class="badge b-off">비활성</span></td>
+            <td class="l"><div class="g"><div class="gt"><div class="gf" style="width:100%;background:#c9cfda"></div></div><div class="gl">종료 · 소진 100%</div></div></td>
+            <td>3</td><td>9</td>
+            <td><span class="bl">복제</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="hint">첫 행 클릭 시 상세 패널(분홍) 펼침 — 사용자별/비목별 사용 내역. 출장(TRIP)은 품의 자동생성(해외, PoC는 seed) 또는 직원 직접생성(국내)이며 이 목록에 함께 표시된다.</div>
+    </div>
+  </div>
+
+  <!-- ================ 2. 생성 폼 ================ -->
+  <div class="page-break"></div>
+  <div class="sec-t"><span class="dot"></span>2. 새 정산단위 — 생성 폼 (4블록)</div>
+  <div class="ea">
+    <div class="ea-title"><span class="t">새 정산단위</span>
+      <span class="btns"><span class="bl">취소</span><span class="bp">저장 → 배포</span></span></div>
+    <div class="ea-body">
+      <div class="blocks">
+
+        <!-- ① 기본 -->
+        <div class="blk">
+          <div class="blk-h"><span class="n">1</span>기본</div>
+          <div class="blk-b">
+            <div class="f"><span class="k">이름</span><span class="in">AI Frontier 교육</span></div>
+            <div class="f"><span class="k">유형</span>
+              <span class="seg"><span>국내출장</span><span class="on">월 한도</span><span>1회성</span></span></div>
+            <div class="notice">ⓘ 해외출장 정산단위는 <b>출장 품의 승인 시 자동 생성</b>됩니다 — 여기서 만들지 않습니다.<br>
+            ⓘ "국내출장" 선택 시 목적지·기간만 입력하면 일비·비목·전결라인은 <b>표준 기본값이 자동</b> 세팅됩니다.</div>
+          </div>
+        </div>
+
+        <!-- ② 회계 요소 -->
+        <div class="blk">
+          <div class="blk-h"><span class="n">2</span>회계 요소</div>
+          <div class="blk-b">
+            <div class="f"><span class="k">허용 비목</span>
+              <span class="in"><span class="chip sel">[723105] 교육훈련비-DIY100</span><span class="chip">＋ 계정과목 조회</span></span></div>
+            <div class="f"><span class="k">Cost Center</span><span class="in">[A860] SSC 교육 ▾</span></div>
+            <div class="f"><span class="k">한도</span>
+              <span class="in num">₩ 300,000</span>
+              <span class="seg"><span class="on">1인당</span><span>공동</span></span>
+              <span class="seg"><span>일</span><span class="on">월</span><span>총액</span></span></div>
+            <div class="hint">계정과목 조회는 기존 팝업 차용 · 복수 비목 선택 가능(출장형은 숙박/식대/교통). 한도 = 금액 × 집계기준(1인당/공동) × 기간.</div>
+          </div>
+        </div>
+
+        <!-- ③ 배포 대상 -->
+        <div class="blk">
+          <div class="blk-h"><span class="n">3</span>배포 대상</div>
+          <div class="blk-b">
+            <div class="f"><span class="k">범위</span>
+              <span class="seg"><span class="on">전사</span><span>팀</span><span>개인</span></span></div>
+            <div class="f"><span class="k">대상</span><span class="in dis">전사 구성원 전체 (신청자 자동 적용)</span></div>
+            <div class="hint">팀 선택 시: 조직도에서 팀 지정 (예: 전력사업기획팀 → 팀빌딩 공동한도). 개인 선택 시: 명단 추가.
+            대상의 영수증 처리에만 이 정산단위가 후보로 노출되고, 한도도 이 기준으로 집계된다.</div>
+            <div class="prev" style="background:#E8EFFD;border-color:#9db8ee;color:#1D4ED8">조합 예: AI구독=전사×1인당 · 팀빌딩=팀×공동 · 신규구성원지원=명단×1인당</div>
+          </div>
+        </div>
+
+        <!-- ④-a 적요양식 -->
+        <div class="blk">
+          <div class="blk-h"><span class="n">4</span>자동화 양식 — 적요</div>
+          <div class="blk-b">
+            <div class="f"><span class="k">적요양식</span>
+              <span class="in">[이름][직급]_[월]월 AI Frontier<b style="color:#ee3d6d">|</b></span></div>
+            <div class="tplbox">
+              <div class="dd">
+                <div class="di" style="background:#eef1f5;font-weight:700;color:#7b8494;font-size:9px">[ 입력 → 변수 선택</div>
+                <div class="di on">[이름]<small>프로필</small></div>
+                <div class="di">[직급]<small>항상 "매니저"</small></div>
+                <div class="di">[월]<small>결제월</small></div>
+                <div class="di">[팀]<small>소속팀</small></div>
+                <div class="di">[출장지]<small>TRIP 전용</small></div>
+              </div>
+            </div>
+            <div class="prev">미리보기: <b>정성훈매니저_7월 AI Frontier</b></div>
+            <div class="f" style="margin-top:8px"><span class="k">매칭 키워드</span>
+              <span class="in"><span class="chip sel">ANTHROPIC</span><span class="chip sel">OPENAI</span><span class="chip sel">AI Frontier</span><span class="chip">＋</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④-b 전결라인 -->
+      <div class="blk" style="margin-top:12px">
+        <div class="blk-h"><span class="n">4</span>자동화 양식 — 전결라인 <span style="font-weight:400;color:#7b8494;font-size:9.5px;margin-left:6px">기존 "결재선 변경" 팝업 차용 + 상대 직책 항목 추가</span></div>
+        <div class="blk-b">
+          <div class="apv">
+            <div class="apv-h">결재선 변경 <span style="font-weight:400;opacity:.85;font-size:9.5px;margin-left:8px">ⓘ 기안자는 자동으로 추가됩니다</span></div>
+            <div class="apv-b">
+              <div>
+                <div class="ct">조직도</div>
+                <div class="tree">
+                  <div>− SKㅇㅇ</div>
+                  <div style="padding-left:10px">− 전력사업본부</div>
+                  <div style="padding-left:20px">− 전력사업기획실</div>
+                  <div style="padding-left:30px" class="sel">전력사업기획팀</div>
+                  <div style="padding-left:30px">전력사업추진팀</div>
+                  <div style="padding-left:10px">+ 기업문화실</div>
+                </div>
+              </div>
+              <div>
+                <div class="ct">구성원 <span style="color:#98a0b0;font-weight:400">· 전력사업기획팀</span></div>
+                <div class="mrow varrow"><span><b>[상위자]</b> <small style="color:#7b8494">조직도 기준 자동</small><span class="newtag">신규</span></span><span class="add">추가</span></div>
+                <div class="mrow varrow"><span><b>[차상위자]</b></span><span class="add">추가</span></div>
+                <div class="mrow varrow"><span><b>[차차상위자]</b></span><span class="add">추가</span></div>
+                <div class="mrow"><span>김아무개 <small style="color:#98a0b0">팀장 · 매니저</small></span><span class="add">추가</span></div>
+                <div class="mrow"><span>박한별 <small style="color:#98a0b0">팀원 · 매니저</small></span><span class="add">추가</span></div>
+                <div class="mrow"><span>이진현 <small style="color:#98a0b0">팀원 · 매니저</small></span><span class="add">추가</span></div>
+              </div>
+              <div>
+                <div class="ct">결재선</div>
+                <div class="lineitem var"><span class="ty">기안</span><b>[기안자]</b> <small>자동</small></div>
+                <div class="lineitem"><span class="ty">검토</span><b>이진현 매니저</b> <span style="margin-left:auto;color:#99a3b8">⊗</span></div>
+                <div class="lineitem var"><span class="ty">승인</span><b>[차상위자]</b> <span style="margin-left:auto;color:#99a3b8">⊗</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="hint">직급이 전원 "매니저"이므로 [상위자]/[차상위자]는 <b>조직도·직책 기준</b>으로 해석 (내 팀의 팀장 → 실장 → 본부장 순). 정산 시 상신자 기준으로 자동 전개된다 — 예: 홍길동 기안 시 [차상위자] → 전력사업기획실장.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================ 3. 정산단위 정산 모드 ================ -->
+  <div class="page-break"></div>
+  <div class="sec-t"><span class="dot"></span>3. 법인카드 정산 — 정산단위 정산 모드</div>
+  <p class="sub" style="margin:-2px 0 10px">일반 정산(낱개 선택) 외에, <b>정산단위를 선택해 그에 속한 건들을 한 번에 정산</b>하는 진입점. 기존 법인카드 정산 목록(`card-settlement`)에 방식 토글을 추가한다.</p>
+  <div class="ea">
+    <div class="ea-title"><span class="t">법인카드 정산</span>
+      <span class="btns"><span class="bl">🔍 조회</span><span class="bp">전표작성</span></span></div>
+    <div class="ea-body">
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:10.5px;font-weight:700;color:#5b6474">정산 방식</span>
+        <span class="seg"><span>일반 정산</span><span class="on">정산단위 정산</span></span>
+        <span class="in" style="flex:0 0 300px">AI Frontier 교육 — 미정산 2건 · ₩330,047 ▾</span>
+        <span style="font-size:9.8px;color:#8A90A0">배정된 활성 정산단위만 표시</span>
+      </div>
+
+      <table class="grid">
+        <thead><tr>
+          <th style="width:30px">✓</th><th style="width:74px">이용일자</th><th>가맹점</th><th style="width:92px">승인금액</th>
+          <th style="width:80px">증빙(영수증)</th><th style="width:120px">정산단위 태깅</th><th style="width:66px">상태</th>
+        </tr></thead>
+        <tbody>
+          <tr style="background:#fdf3f7;">
+            <td><b style="color:#ee3d6d">☑</b></td><td>07.19</td><td class="l">ANTHROPIC* CLAUDE SUB</td><td class="r num">167,435</td>
+            <td><span class="badge b-on">첨부됨</span></td><td><span class="badge b-rec">AI Frontier 교육</span></td><td><span class="badge b-on">자동선택</span></td>
+          </tr>
+          <tr style="background:#fdf3f7;">
+            <td><b style="color:#ee3d6d">☑</b></td><td>07.10</td><td class="l">OPENAI *CHATGPT SUBSCR</td><td class="r num">162,612</td>
+            <td><span class="badge b-on">첨부됨</span></td><td><span class="badge b-rec">AI Frontier 교육</span></td><td><span class="badge b-on">자동선택</span></td>
+          </tr>
+          <tr>
+            <td style="color:#c9cfda">☐</td><td style="color:#98a0b0">07.21</td><td class="l" style="color:#98a0b0">폴바셋광화문예금보험공사점</td><td class="r num" style="color:#98a0b0">20,500</td>
+            <td><span class="badge b-off">—</span></td><td><span class="badge b-off">일반 결제</span></td><td><span class="badge b-off">제외</span></td>
+          </tr>
+          <tr>
+            <td style="color:#c9cfda">☐</td><td style="color:#98a0b0">07.20</td><td class="l" style="color:#98a0b0">둘둘치킨종로1가점</td><td class="r num" style="color:#98a0b0">64,000</td>
+            <td><span class="badge b-off">—</span></td><td><span class="badge b-off">일반 결제</span></td><td><span class="badge b-off">제외</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <span class="hint" style="margin:0">정산단위를 선택하면 영수증 <b>presetId 태깅 기준</b>으로 미정산 건이 자동 필터·선택된다. 일반 결제 건은 흐리게 제외 표시.</span>
+        <span style="font-size:11px;font-weight:800;color:#c2255c" class="num">선택 2건 · 합계 ₩330,047</span>
+      </div>
+
+      <div style="border:1px solid #8fce9e;background:#E7F6EF;border-radius:7px;padding:9px 12px;margin-top:12px;font-size:10.5px;color:#0B7A55">
+        <b>[전표작성] 클릭 시 →</b> 전표작성 화면 상단에 정산단위 배너 표시:<br>
+        <span style="display:inline-block;margin-top:5px;background:#fff;border:1px dashed #8fce9e;border-radius:5px;padding:5px 10px">
+          🎫 <b>정산단위: AI Frontier 교육</b> — 계정과목 [723105]·예산부서 [A860]·적요·결재선 <b>자동 적용됨 🔒</b> (금액·부가세만 확인)
+        </span>
+      </div>
+      <div class="hint" style="margin-top:8px">출장(TRIP)도 같은 메커니즘 — 해외출장비 정산의 기존 "출장 개요조회" 팝업이 곧 TRIP 정산단위 선택이다.</div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

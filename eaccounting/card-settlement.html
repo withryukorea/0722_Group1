@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>e-Accounting - 법인카드 정산</title>
 <link rel="stylesheet" href="css/common.css">
+<style>
+/* [일반 정산 | 정산단위 정산] 토글 (sot/02 정산 방식 선택) */
+.seg { display:inline-flex; border:1px solid #c6ccd6; border-radius:6px; overflow:hidden; background:#fff; }
+.seg button { height:34px; padding:0 18px; border:none; background:#fff; font-size:13px; color:#555; cursor:pointer; }
+.seg button + button { border-left:1px solid #c6ccd6; }
+.seg button.on { background:var(--pink, #e6007e); color:#fff; font-weight:700; }
+.preset-bar { display:none; align-items:center; gap:10px; }
+.preset-bar select { height:34px; min-width:240px; border:1px solid #c6ccd6; border-radius:5px; padding:0 8px; font-size:13px; }
+.preset-summary { font-size:13px; color:#555; }
+</style>
 </head>
 <body>
 
@@ -16,6 +26,18 @@
   <main class="content">
     <div id="breadcrumb" class="breadcrumb"></div>
     <h2 class="page-title">법인카드 정산 <span class="fav">★</span></h2>
+
+    <!-- 정산 방식 선택: 일반(낱개 선택) | 정산단위(배정된 정산단위로 태깅된 미정산 건 자동 필터·선택) -->
+    <div style="display:flex; align-items:center; gap:14px; margin:0 0 14px;">
+      <div class="seg">
+        <button type="button" id="seg-normal" class="on" onclick="setMode('normal')">일반 정산</button>
+        <button type="button" id="seg-preset" onclick="setMode('preset')">정산단위 정산</button>
+      </div>
+      <div class="preset-bar" id="preset-bar">
+        <select id="preset-select" onchange="applyPresetFilter()"><option value="">정산단위 선택</option></select>
+        <span class="preset-summary" id="preset-summary"></span>
+      </div>
+    </div>
 
     <!-- 검색 필터 (안내문 포함) -->
     <div class="filter-box" style="display:block;">
@@ -33,7 +55,7 @@
         </div></div>
 
         <div class="field"><label>회사구분</label><div class="ctrl">
-          <select><option>SK E&amp;S - A000</option></select>
+          <select><option>SKㅇㅇ - A000</option></select>
         </div></div>
         <div class="field"><label>사용자명/사번</label><div class="ctrl"><input type="text" id="f-owner"></div></div>
         <div class="field"><label>가맹점</label><div class="ctrl"><input type="text" id="f-merchant"></div></div>
@@ -47,6 +69,7 @@
     <div class="toolbar">
       <button class="btn btn-dark" onclick="createVoucher()">✎ 전표작성</button>
       <button class="btn btn-pink" onclick="openVoucherPreview()">🧾 미리보기(기안)</button>
+      <button class="btn btn-line" id="btn-match" onclick="openMatchModal()">📎 증빙 매칭</button>
       <button class="btn btn-line" onclick="applyFilter()">🔍 카드검색</button>
       <button class="btn btn-line" onclick="alert('데모 버전에서는 엑셀다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 엑셀다운로드</button>
     </div>
@@ -78,6 +101,29 @@
       <div class="psize"><select><option>100</option><option>50</option><option>20</option></select></div>
     </div>
   </main>
+</div>
+
+<!-- 미매칭 증빙 매칭 팝업: POST /api/match 결과를 보여주고, confirm 건은 사용자가 확정 -->
+<div class="modal-back" id="match-modal" style="display:none;">
+  <div class="modal" style="width:1100px;">
+    <div class="modal-head">
+      <span class="x" onclick="document.getElementById('match-modal').style.display='none'">✕</span>
+      <span class="mi">i</span>미매칭 증빙 매칭 — 자동 매칭(70점 이상)은 즉시 연결되고, 확인 필요(40~70점)는 후보를 보고 직접 확정하세요.
+    </div>
+    <div class="modal-body">
+      <div id="match-summary" style="margin-bottom:12px; font-size:13px; color:#555;"></div>
+      <div style="max-height:480px; overflow-y:auto; border:1px solid var(--line);">
+        <table class="grid" style="border:none;">
+          <colgroup><col style="width:250px"><col style="width:110px"><col style="width:120px"><col><col style="width:110px"></colgroup>
+          <thead><tr><th>증빙(영수증)</th><th>금액</th><th>상태</th><th>카드내역 후보</th><th>확정</th></tr></thead>
+          <tbody id="match-body"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px; text-align:right;">
+        <button class="btn btn-dark" onclick="document.getElementById('match-modal').style.display='none'">닫기</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="js/layout.js"></script>
@@ -121,12 +167,25 @@ function adaptTx(t, i) {
   };
 }
 
+let RAWTX = [];        // 서버 원본 거래 (매칭 후보 표시용 — apiMode에서만 채워짐)
+
 async function load() {
   const txs = await eaccApi('/api/transactions');
   apiMode = Array.isArray(txs);
+  RAWTX = apiMode ? txs : [];
   ALL = apiMode ? txs.map(adaptTx) : CARD_TXNS.map(t => ({ ...t, id: t.apprNo }));
   view = ALL.slice();
   renderTable();
+  updateMatchBadge();
+}
+
+/* 툴바 '증빙 매칭' 버튼에 미매칭 영수증 건수 표시 */
+async function updateMatchBadge() {
+  const btn = document.getElementById('btn-match');
+  if (!apiMode) { btn.textContent = '📎 증빙 매칭'; return; }
+  const receipts = await eaccApi('/api/receipts');
+  const n = Array.isArray(receipts) ? receipts.filter(r => !r.matchedTxId).length : 0;
+  btn.textContent = n ? `📎 증빙 매칭 (미매칭 ${n})` : '📎 증빙 매칭';
 }
 
 function renderTable() {
@@ -170,13 +229,178 @@ function toggleAll(master) {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = master.checked; });
 }
 
+/* ── 정산 방식: 일반 정산 | 정산단위 정산 (sot/02·03 — 신규 API 없이 receipt.presetId 클라이언트 필터) ── */
+let mode = 'normal';
+let PRESETS = [];              // 활성 정산단위 목록
+let receiptByTx = new Map();   // txId → 매칭된 영수증 (presetId 태깅 확인용)
+
+async function setMode(m) {
+  document.getElementById('seg-normal').classList.toggle('on', m === 'normal');
+  document.getElementById('seg-preset').classList.toggle('on', m === 'preset');
+  const bar = document.getElementById('preset-bar');
+  if (m === 'normal') {
+    mode = m;
+    bar.style.display = 'none';
+    view = ALL.slice();
+    renderTable();
+    return;
+  }
+  if (!apiMode) {
+    alert('정산단위 정산은 서버 연결이 필요합니다. (영수증 태깅 정보를 서버에서 읽어옵니다)');
+    setMode('normal');
+    return;
+  }
+  mode = m;
+  bar.style.display = 'flex';
+  if (!PRESETS.length) {
+    const [presets, receipts] = await Promise.all([
+      eaccApi('/api/presets?active=true'),
+      eaccApi('/api/receipts'),
+    ]);
+    PRESETS = Array.isArray(presets) ? presets : [];
+    receiptByTx = new Map((Array.isArray(receipts) ? receipts : [])
+      .filter(r => r.matchedTxId).map(r => [r.matchedTxId, r]));
+    document.getElementById('preset-select').innerHTML =
+      '<option value="">정산단위 선택</option>' +
+      PRESETS.map(p => `<option value="${p.id}">[${p.type === 'TRIP' ? '출장' : '상시'}] ${p.name}</option>`).join('');
+  }
+  applyPresetFilter();
+}
+
+function applyPresetFilter() {
+  const pid = document.getElementById('preset-select').value;
+  const sum = document.getElementById('preset-summary');
+  if (!pid) { view = []; renderTable(); sum.textContent = '정산단위를 선택하세요.'; return; }
+  // 이 정산단위로 태깅된(영수증 presetId 매칭) 미정산 카드내역만 필터
+  view = ALL.filter(t => t.status === '미정산' && (receiptByTx.get(t.id) || {}).presetId === pid);
+  renderTable();
+  document.querySelectorAll('.row-chk').forEach(c => { c.checked = true; });  // 자동 선택
+  const total = view.reduce((s, t) => s + t.amount, 0);
+  sum.innerHTML = view.length
+    ? `<b>${view.length}</b>건 자동 선택 · 합계 <b>${total.toLocaleString('ko-KR')}</b>원`
+    : '이 정산단위로 태깅된 미정산 카드내역이 없습니다.';
+}
+
 function createVoucher() {
   const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
   if (checked.length === 0) { alert('전표를 작성할 카드내역을 선택해 주세요.'); return; }
   // 선택 내역을 들고 전표작성 화면으로 이동 → 거기서 유형 선택 팝업이 먼저 뜬다
   const rows = ALL.filter(t => checked.includes(t.id));
-  sessionStorage.setItem('voucherDraft', JSON.stringify({ apiMode, rows }));
+  const preset = mode === 'preset' ? PRESETS.find(p => p.id === document.getElementById('preset-select').value) : null;
+  sessionStorage.setItem('voucherDraft', JSON.stringify({
+    apiMode, rows,
+    presetId: preset ? preset.id : null,     // 정산단위 정산으로 진입 시 전표작성 화면에 배너 표시
+    presetName: preset ? preset.name : null,
+  }));
   location.href = 'voucher-create.html';
+}
+
+/* ── 미매칭 증빙 매칭 (sot/02 매칭 흐름: 자동 + 낮은 점수만 수동 확정) ──
+   실패는 실패로 표시한다 — 매칭 계산·확정이 안 됐는데 완료로 보여주지 않는다. */
+let matchState = [];   // [{receiptId, txId, score, status: auto|confirm|unmatched|linked, receipt}]
+
+async function openMatchModal() {
+  if (!apiMode) { alert('증빙 매칭은 서버 연결이 필요합니다.'); return; }
+  const receipts = await eaccApi('/api/receipts');
+  if (!Array.isArray(receipts)) { alert('영수증 목록을 불러오지 못했습니다. 서버 상태를 확인해 주세요.'); return; }
+  const unmatched = receipts.filter(r => !r.matchedTxId);
+  if (!unmatched.length) { alert('미매칭 증빙이 없습니다 — 모든 영수증이 카드내역과 연결되어 있습니다.'); return; }
+
+  const res = await eaccApiTry('/api/match', { body: { receiptIds: unmatched.map(r => r.id) } });
+  if (!res.ok || !Array.isArray(res.data)) {
+    alert(res.status === 0
+      ? '서버에 연결할 수 없어 매칭을 계산하지 못했습니다.'
+      : `매칭 계산에 실패했습니다: ${(res.data && (res.data.hint || res.data.error)) || 'HTTP ' + res.status}`);
+    return;   // 실패 시 매칭 완료로 표시 금지
+  }
+  matchState = res.data.map(m => ({ ...m, receipt: unmatched.find(r => r.id === m.receiptId) }));
+  await refreshAfterMatch();   // auto 건은 서버가 이미 연결 확정 → 목록·정산단위 필터에 즉시 반영
+  renderMatchModal();
+  document.getElementById('match-modal').style.display = 'flex';
+}
+
+/* 연결 가능한(미매칭·미전표) 카드내역 후보 셀렉트 — 최고점 후보를 맨 위에 */
+function candidateOptions(bestTxId, score) {
+  const avail = RAWTX.filter(t => t.status !== 'vouchered' && !t.matchedReceiptId);
+  const label = (t) => `${t.merchant} · ${t.amountKRW.toLocaleString('ko-KR')}원 · ${(t.approvedAt || '').slice(0, 16).replace('T', ' ')}`;
+  const best = avail.find(t => t.id === bestTxId);
+  const rest = avail.filter(t => t.id !== bestTxId);
+  return (best ? `<option value="${best.id}">★ 후보(${score}점) ${label(best)}</option>` : '')
+    + rest.map(t => `<option value="${t.id}">${label(t)}</option>`).join('');
+}
+
+function renderMatchModal() {
+  const counts = { auto: 0, confirm: 0, unmatched: 0, linked: 0 };
+  matchState.forEach(m => { counts[m.status] = (counts[m.status] || 0) + 1; });
+  document.getElementById('match-summary').innerHTML =
+    `자동 연결 <b>${counts.auto}</b>건 · 확인 필요 <b>${counts.confirm}</b>건 · 후보 없음 <b>${counts.unmatched}</b>건`
+    + (counts.linked ? ` · 방금 확정 <b>${counts.linked}</b>건` : '');
+
+  const txLabel = (id) => {
+    const t = RAWTX.find(x => x.id === id);
+    return t ? `${t.merchant} · ${t.amountKRW.toLocaleString('ko-KR')}원` : id;
+  };
+  document.getElementById('match-body').innerHTML = matchState.map(m => {
+    const o = m.receipt.ocr || {};
+    const info = `<a href="${m.receipt.imageUrl}" target="_blank" style="color:var(--blue);">${m.receipt.id}</a> ${o.merchant || ''}<br>
+      <span style="color:#888; font-size:12px;">${(o.paidAt || '').slice(0, 10)}${m.receipt.presetId ? ' · 정산단위 태깅됨' : ''}</span>`;
+    const amt = `${(m.receipt.amountKRW || 0).toLocaleString('ko-KR')}원`;
+    if (m.status === 'auto' || m.status === 'linked') {
+      return `<tr><td class="l">${info}</td><td class="r">${amt}</td>
+        <td style="color:var(--blue); font-weight:700;">${m.status === 'auto' ? `✔ 자동 연결 (${m.score}점)` : '✔ 확정됨'}</td>
+        <td class="l">${txLabel(m.txId)}</td><td>—</td></tr>`;
+    }
+    const stateTxt = m.status === 'confirm'
+      ? `<span style="color:var(--red); font-weight:700;">확인 필요 (${m.score}점)</span>`
+      : '<span style="color:#888;">후보 없음</span>';
+    return `<tr><td class="l">${info}</td><td class="r">${amt}</td>
+      <td>${stateTxt}</td>
+      <td><select id="cand-${m.receiptId}" style="width:100%; height:30px; border:1px solid #cdd3dc; border-radius:4px; font-size:12.5px;">
+        <option value="">연결할 카드내역 선택</option>${candidateOptions(m.status === 'confirm' ? m.txId : null, m.score)}</select></td>
+      <td><button class="btn btn-pink" style="height:28px; padding:0 12px;" onclick="confirmMatch('${m.receiptId}')">확정</button></td></tr>`;
+  }).join('');
+  // 확인 필요 건은 최고점 후보를 미리 선택해 둔다 (최종 확정은 사용자)
+  matchState.filter(m => m.status === 'confirm').forEach(m => {
+    const sel = document.getElementById('cand-' + m.receiptId);
+    if (sel && m.txId) sel.value = m.txId;
+  });
+}
+
+async function confirmMatch(receiptId) {
+  const sel = document.getElementById('cand-' + receiptId);
+  const txId = sel && sel.value;
+  if (!txId) { alert('연결할 카드내역을 먼저 선택해 주세요.'); return; }
+  const r = await eaccApiTry('/api/match/confirm', { body: { receiptId, txId } });
+  if (!r.ok) {   // 실패 시 완료 표시 금지 — 행을 그대로 두고 사유를 보여준다
+    alert(r.status === 0
+      ? '서버에 연결할 수 없어 매칭을 확정하지 못했습니다.'
+      : `매칭 확정에 실패했습니다: ${(r.data && (r.data.hint || r.data.error)) || 'HTTP ' + r.status}`);
+    return;
+  }
+  const m = matchState.find(x => x.receiptId === receiptId);
+  m.status = 'linked';
+  m.txId = txId;
+  await refreshAfterMatch();
+  renderMatchModal();
+}
+
+/* 매칭 변화 반영: 거래 목록·미매칭 배지 갱신 + 정산단위 모드면 필터 재적용
+   → 확정된 증빙이 곧바로 정산단위 정산·전표작성(자동첨부)으로 이어진다 */
+async function refreshAfterMatch() {
+  const txs = await eaccApi('/api/transactions');
+  if (Array.isArray(txs)) {
+    RAWTX = txs;
+    ALL = txs.map(adaptTx);
+    if (mode !== 'preset') { view = ALL.slice(); renderTable(); }
+  }
+  updateMatchBadge();
+  if (mode === 'preset') {
+    const receipts = await eaccApi('/api/receipts');
+    if (Array.isArray(receipts)) {
+      receiptByTx = new Map(receipts.filter(r => r.matchedTxId).map(r => [r.matchedTxId, r]));
+    }
+    applyPresetFilter();
+  }
 }
 
 function openVoucherPreview() {

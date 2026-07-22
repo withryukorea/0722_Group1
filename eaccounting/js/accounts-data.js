@@ -24,6 +24,7 @@ const ACCOUNTS = [
   { code: '710902', name: '소모품비-기타',           budget: 300000 },
   { code: '723102', name: '교육훈련비-사외',         budget: 393646 },
   { code: '709701', name: '세금과공과-협회비',       budget: 1500000 },
+  { code: '726350', name: '수수료-기타',             budget: 3600000 },
   { code: '734102', name: '접대비-1만초과',          budget: 5670000 },
   { code: '726306', name: '수수료-자문용역',         budget: 19000000 },
   { code: '726312', name: '수수료-기술용역',         budget: 7926000000 },

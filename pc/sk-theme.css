@@ -1,0 +1,162 @@
+/* ============================================================
+   SK 룩앤필 공통 토큰 — "찍으면 끝" 모바일/PC 공용
+   SK CI: SK Red #EA002C · SK Orange #F47725 (행복날개)
+   차트 카테고리 팔레트는 dataviz 검증 통과본 (light/dark PASS):
+   #EA002C, #2563EB, #D96414, #0E9F6E, #8B5CF6
+   ============================================================ */
+:root {
+  --sk-red: #EA002C;
+  --sk-red-dark: #C50025;
+  --sk-orange: #F47725;
+  --sk-orange-deep: #D96414;
+  --sk-grad: linear-gradient(135deg, #EA002C 0%, #F47725 100%);
+
+  /* 잉크/서피스 */
+  --ink: #1A1C22;
+  --ink-2: #4B5160;
+  --ink-3: #8A90A0;
+  --surface: #F5F6F8;
+  --card: #FFFFFF;
+  --line: #E6E8EE;
+
+  /* 상태 (상태색은 시리즈색으로 재사용하지 않음) */
+  --ok: #0E9F6E;
+  --warn: #B45309;
+  --danger: #D80028;
+  --ok-bg: #E7F6EF;
+  --warn-bg: #FDF3E3;
+  --danger-bg: #FDE8EC;
+
+  /* 카테고리(계정과목) — 엔티티 고정 매핑, 순환 금지 */
+  --c-travel-meal: #EA002C;      /* 출장-식대 */
+  --c-travel-transport: #2563EB; /* 출장-교통 */
+  --c-welfare-ai: #D96414;       /* 복지-AI구독 */
+  --c-snack: #0E9F6E;            /* 간식비 */
+  --c-etc: #8B5CF6;              /* 판관비·기타 */
+
+  --radius: 14px;
+  --shadow: 0 1px 3px rgba(26,28,34,.06), 0 4px 14px rgba(26,28,34,.05);
+  --font: "Pretendard", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ---- SK 윙 로고 (행복날개 모티프) ---- */
+.sk-logo { display: inline-flex; align-items: center; gap: 8px; }
+.sk-logo svg { display: block; }
+.sk-logo .brand { font-weight: 800; letter-spacing: -.02em; }
+.sk-logo .brand em { font-style: normal; color: var(--sk-red); }
+
+/* ---- 카드 ---- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.card + .card { margin-top: 12px; }
+.card-title {
+  font-size: 13px; font-weight: 700; color: var(--ink-2);
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; letter-spacing: -.01em;
+}
+.card-title .more { font-size: 12px; color: var(--ink-3); font-weight: 500; }
+
+/* ---- 배지 ---- */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700; line-height: 1;
+  padding: 4px 8px; border-radius: 999px; white-space: nowrap;
+}
+.badge.ok      { background: var(--ok-bg);     color: #0B7A55; }
+.badge.warn    { background: var(--warn-bg);   color: var(--warn); }
+.badge.danger  { background: var(--danger-bg); color: var(--danger); }
+.badge.info    { background: #E8EFFD;          color: #1D4ED8; }
+.badge.neutral { background: #EEF0F4;          color: var(--ink-2); }
+.badge.brand   { background: var(--sk-grad);   color: #fff; }
+
+/* 카테고리 도트 — 색+텍스트로 이중 표기 */
+.cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.cat i { width: 8px; height: 8px; border-radius: 3px; flex: 0 0 auto; }
+
+/* ---- 게이지(예산 소진) ---- */
+.gauge { margin-top: 6px; }
+.gauge .g-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; gap: 8px; }
+.gauge .g-head b { color: var(--ink); font-size: 13px; }
+.gauge .g-track { height: 8px; background: #ECEEF3; border-radius: 999px; overflow: hidden; position: relative; }
+.gauge .g-fill  { height: 100%; border-radius: 999px; background: var(--sk-grad); min-width: 4px; transition: width .6s ease; }
+.gauge.over .g-fill { background: var(--danger); }
+.gauge .g-foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+
+/* ---- 버튼 ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  font-size: 14px; font-weight: 700; border-radius: 12px; padding: 11px 16px;
+}
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--sk-grad); border: none; color: #fff; box-shadow: 0 4px 12px rgba(234,0,44,.25); }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: .45; cursor: default; }
+
+/* ---- 칩 (필터/프리셋) ---- */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 999px;
+}
+.chip.on { background: #1A1C22; border-color: #1A1C22; color: #fff; }
+.chip.on.brand { background: var(--sk-grad); border-color: transparent; }
+
+/* ---- 폼 ---- */
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; }
+.field input, .field select {
+  width: 100%; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; font-size: 14px; background: var(--card); color: var(--ink);
+}
+.field input:focus, .field select:focus { outline: 2px solid rgba(234,0,44,.25); border-color: var(--sk-red); }
+.field .hint { font-size: 11.5px; color: var(--ink-3); margin-top: 4px; }
+
+/* ---- 공용 리스트 행 ---- */
+.rcpt-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.rcpt-row:last-child { border-bottom: none; }
+.rcpt-thumb {
+  width: 42px; height: 42px; border-radius: 10px; flex: 0 0 auto;
+  background: #EEF0F4; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; overflow: hidden; border: 1px solid var(--line);
+}
+.rcpt-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.rcpt-main { flex: 1; min-width: 0; }
+.rcpt-main .m1 { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rcpt-main .m2 { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rcpt-amt { text-align: right; flex: 0 0 auto; }
+.rcpt-amt .a1 { font-size: 14px; font-weight: 800; }
+.rcpt-amt .a2 { font-size: 11px; color: var(--ink-3); }
+
+/* ---- 툴팁 (차트 호버) ---- */
+.viz-tip {
+  position: fixed; z-index: 90; pointer-events: none; display: none;
+  background: #1A1C22; color: #fff; font-size: 12px; line-height: 1.45;
+  padding: 8px 10px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  max-width: 240px;
+}
+.viz-tip b { font-size: 12.5px; }
+.viz-tip .tl { color: #C6CAD4; }
+
+.muted { color: var(--ink-3); font-size: 12px; }
+.num { font-variant-numeric: tabular-nums; }

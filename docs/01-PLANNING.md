@@ -1,5 +1,7 @@
 # 기획서: 영수증 전표 자동화 (가칭 "찍으면 끝")
 
+> ⚠️ **SUPERSEDED — 원 해커톤 기획(역사적 참고).** 현재 기준선(Source of Truth)은 [`sot/`](../sot/README.md). 목적·스코프는 [`sot/01_project_purpose.md`](../sot/01_project_purpose.md)가 원본이며, 충돌 시 sot/ 가 우선합니다.
+
 > 10시간 해커톤 · 5인 팀 · 모바일 웹앱 + Mock E-Accounting 시연
 
 ## 0. PM의 첫 번째 결정: "데모에서 역산한다"

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>찍으면 끝 — 데모 시나리오 (정산단위 기반 정산)</title>
+<style>
+  @page { size: A4; margin: 11mm 11mm 13mm; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#1A1C22;font-size:12px;line-height:1.5;background:#fff;}
+  .wrap{max-width:800px;margin:0 auto;}
+  h1{font-size:22px;letter-spacing:-.02em;} h1 em{font-style:normal;color:#EA002C;}
+  .sub{color:#8A90A0;font-size:12.5px;margin-top:6px;line-height:1.6;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ---------- cover ---------- */
+  .cover{padding:4px 0 16px;border-bottom:1px solid #E6E8EE;margin-bottom:18px;}
+  .logo{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-bottom:9px;}
+  .logo .wing{width:22px;height:16px;background:linear-gradient(135deg,#EA002C,#F47725);border-radius:0 10px 0 10px;}
+  .meta{color:#8A90A0;font-size:11px;margin-top:10px;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin-top:10px;align-items:center;}
+  .lg{display:inline-flex;align-items:center;gap:5px;}
+  .lg .sw{width:13px;height:13px;border-radius:3px;}
+
+  /* ---------- case ---------- */
+  .case{page-break-before:always;}
+  .case:first-of-type{page-break-before:avoid;}
+  .case-head{display:flex;align-items:center;gap:10px;border-radius:13px;padding:11px 15px;color:#fff;margin-bottom:12px;}
+  .case-head.c1{background:linear-gradient(135deg,#EA002C,#F47725);}
+  .case-head.c2{background:linear-gradient(135deg,#2563EB,#0E9F6E);}
+  .case-head .no{font-size:11px;font-weight:800;background:rgba(255,255,255,.25);border-radius:7px;padding:3px 8px;}
+  .case-head h2{font-size:15px;}
+  .case-head .tag{margin-left:auto;font-size:11px;font-weight:700;background:rgba(255,255,255,.2);border-radius:999px;padding:4px 11px;}
+  .phase{font-size:12.5px;font-weight:800;color:#4B5160;margin:14px 0 8px;display:flex;align-items:center;gap:7px;}
+  .phase .dot{width:7px;height:7px;border-radius:50%;background:#EA002C;}
+  .phase.pc .dot{background:#2f6fd8;}
+
+  /* ---------- mobile (SK) cards ---------- */
+  .mrow3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .mcard{border:1px solid #E6E8EE;border-radius:13px;overflow:hidden;box-shadow:0 1px 3px rgba(26,28,34,.06);}
+  .mcard-h{display:flex;justify-content:space-between;align-items:center;padding:7px 11px;font-size:11px;font-weight:800;border-bottom:1px solid #E6E8EE;}
+  .mcard-h .n{width:17px;height:17px;border-radius:50%;background:linear-gradient(135deg,#EA002C,#F47725);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;margin-right:5px;}
+  .mcard-b{padding:10px;font-size:10.6px;}
+  .op{padding:7px 11px;font-size:10.2px;color:#4B5160;background:#F5F6F8;border-top:1px dashed #E6E8EE;line-height:1.5;}
+  .op b{color:#EA002C;}
+  .shot{background:#14161B;border-radius:8px;height:52px;display:flex;align-items:center;justify-content:center;color:#8A90A0;font-size:9.5px;position:relative;}
+  .shot .fr{position:absolute;inset:7px;border:1.4px dashed rgba(255,255,255,.4);border-radius:5px;}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+  .chip{border:1px solid #E6E8EE;color:#4B5160;font-size:9.6px;font-weight:600;padding:3px 8px;border-radius:999px;}
+  .chip.on{background:linear-gradient(135deg,#EA002C,#F47725);border-color:transparent;color:#fff;}
+  .lbl{font-size:9.3px;font-weight:700;color:#8A90A0;margin:7px 0 3px;}
+  .skbtn{display:block;text-align:center;background:linear-gradient(135deg,#EA002C,#F47725);color:#fff;border-radius:8px;padding:6px;font-size:10.3px;font-weight:700;margin-top:7px;}
+  .skbtn.pair{display:flex;gap:5px;background:none;padding:0;} .skbtn.pair>span{flex:1;padding:6px;border-radius:8px;}
+  .skbtn .a{background:linear-gradient(135deg,#EA002C,#F47725);color:#fff;} .skbtn .g{background:#EEF0F4;color:#4B5160;}
+  dl.ocr{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:10.2px;margin-top:6px;}
+  dl.ocr dt{color:#8A90A0;font-weight:700;} dl.ocr dd{text-align:right;font-weight:600;}
+  .binfo{display:inline-block;background:#E8EFFD;color:#1D4ED8;font-size:9.3px;font-weight:700;padding:2px 6px;border-radius:999px;}
+
+  /* ---------- e-accounting window ---------- */
+  .ea{border:1px solid #d9dee6;border-radius:9px;overflow:hidden;background:#eef0f4;}
+  .ea-title{display:flex;align-items:center;justify-content:space-between;background:#fff;padding:10px 14px;border-bottom:1px solid #d9dee6;}
+  .ea-title .t{font-size:15px;font-weight:700;}
+  .ea-title .btns{display:flex;gap:6px;}
+  .ea-title .bd{background:#3f4660;color:#fff;font-size:10.5px;font-weight:600;border-radius:5px;padding:5px 10px;}
+  .ea-tabs{display:flex;background:#fff;font-size:11px;}
+  .ea-tabs .tb{flex:1;text-align:center;padding:8px 0;font-weight:600;color:#333a49;border:1px solid #d9dee6;border-left:none;border-top:none;}
+  .ea-tabs .tb:first-child{border-left:none;}
+  .ea-tabs .tb.on{color:#ee3d6d;font-weight:700;border-top:2px solid #ee3d6d;border-bottom-color:#fff;}
+  .ea-body{padding:12px 14px;background:#eef0f4;}
+  .ea h3{font-size:13px;margin:2px 0 7px;display:flex;align-items:center;justify-content:space-between;}
+  .ea h3 .info{font-size:10.5px;color:#2f6fd8;font-weight:400;}
+  .ea h3 .chg{background:#fff;color:#333a49;border:1px solid #c6ccd6;border-radius:5px;font-size:10px;font-weight:600;padding:4px 9px;}
+  .ea .sect{margin-top:14px;}
+
+  table.appr,table.kv,table.grid{width:100%;border-collapse:collapse;background:#fff;}
+  table.appr{font-size:11px;text-align:center;}
+  table.appr th{background:#e9ecf2;border:1px solid #d9dee6;padding:6px;font-weight:700;}
+  table.appr td{border:1px solid #d9dee6;padding:7px;color:#2f6fd8;line-height:1.45;height:38px;}
+  table.kv{font-size:11px;}
+  table.kv td{border:1px solid #d9dee6;padding:6px 9px;}
+  table.kv td.lbl{background:#eef1f5;font-weight:700;width:110px;text-align:center;color:#454d5e;}
+  table.grid{font-size:10.4px;}
+  table.grid th{background:#eef1f5;border:1px solid #d9dee6;padding:6px 5px;font-weight:700;color:#454d5e;}
+  table.grid td{border:1px solid #d9dee6;padding:5px;text-align:center;color:#3c4354;}
+  table.grid td.l{text-align:left;} table.grid td.r{text-align:right;}
+  .cell-in{border:1px solid #cdd3dc;border-radius:4px;background:#fff;padding:3px 6px;font-size:10px;text-align:left;color:#333a49;min-height:22px;display:flex;align-items:center;gap:4px;}
+  .cell-in .mag{margin-left:auto;color:#667;}
+
+  /* 정산단위-filled highlight */
+  .pf{background:#e9f9ef !important;position:relative;}
+  .pf .cell-in{border-color:#8fce9e;background:#f2fbf5;color:#0B7A55;font-weight:700;}
+  .pf-tag{display:inline-block;background:#0E9F6E;color:#fff;font-size:8px;font-weight:800;border-radius:4px;padding:1px 4px;vertical-align:middle;margin-left:4px;}
+  .acct-ref{border:1px solid #d9dee6;background:#fff;padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px 16px;font-size:10px;color:#2f6fd8;margin-top:8px;}
+  .acct-ref b{color:#0B7A55;background:#e9f9ef;padding:1px 4px;border-radius:3px;}
+  .ea-submit{display:block;text-align:center;background:#3f4660;color:#fff;border-radius:6px;padding:8px;font-size:11.5px;font-weight:700;margin-top:12px;}
+  .infobar{background:#fbfbfd;border:1px solid #e6e9ef;border-radius:7px;padding:9px 13px;font-size:10.5px;color:#2f6fd8;margin-top:8px;}
+
+  .arrow-note{text-align:center;font-size:11px;color:#8A90A0;margin:10px 0;}
+  .arrow-note b{color:#4B5160;}
+  .cmp{border:1px solid #E6E8EE;border-radius:12px;padding:12px 14px;margin-top:16px;background:#F5F6F8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="logo"><span class="wing"></span>찍으면 <em>끝</em> · 데모 시나리오</div>
+    <h1>정산단위 기반 법인카드 정산 — <em>데모 케이스</em></h1>
+    <p class="sub">유입(모바일 촬영 / PC 업로드)만 앱에서 처리하고, <b>정산·상신은 e-accounting</b>에서 한다.
+    정산단위가 규정(결재선·계정과목·예산부서·적요)을 싣고 있어 정산 화면의 지정 칸이 자동으로 채워진다.</p>
+    <div class="legend">
+      <span class="lg"><span class="sw" style="background:linear-gradient(135deg,#EA002C,#F47725)"></span>📱 모바일 앱 (SK)</span>
+      <span class="lg"><span class="sw" style="background:linear-gradient(135deg,#2563EB,#0E9F6E)"></span>🖥 PC 업로드</span>
+      <span class="lg"><span class="sw" style="background:#eef0f4;border:1px solid #d9dee6"></span>🖥 e-accounting 정산</span>
+      <span class="lg"><span class="sw" style="background:#e9f9ef;border:1px solid #8fce9e"></span><b style="color:#0B7A55">정산단위 자동채움</b></span>
+    </div>
+    <div class="meta">작성일 2026-07-22 · 프로젝트 0722_Group1 · 정산 화면은 실제 e-accounting 페이지(해외출장비 정산 / 법인카드 정산) 기반 · 데모 설계용 목업</div>
+  </div>
+
+  <!-- ============================ CASE 1 ============================ -->
+  <div class="case">
+    <div class="case-head c1">
+      <span class="no">CASE 1</span><h2>해외출장 — 도쿄 (TRIP)</h2>
+      <span class="tag">유입: 📱 모바일 촬영</span>
+    </div>
+
+    <!-- 유입 -->
+    <div class="phase"><span class="dot"></span>① 유입 — 모바일 앱 (촬영 → 저장)</div>
+    <div class="mrow3">
+      <div class="mcard">
+        <div class="mcard-h"><span><span class="n">1</span>촬영·크롭</span><span style="color:#8A90A0">📱</span></div>
+        <div class="mcard-b">
+          <div class="shot"><span class="fr"></span>🧾 스시로 영수증</div>
+          <span class="binfo" style="margin-top:6px">✓ 자동 크롭·OCR</span>
+          <div class="skbtn pair" style="margin-top:7px"><span class="a">확인</span><span class="g">다시 크롭</span></div>
+        </div>
+        <div class="op">촬영 → 원본 서버 전송 → 자동 크롭 결과 <b>확인</b></div>
+      </div>
+      <div class="mcard">
+        <div class="mcard-h"><span><span class="n">2</span>파싱·선택</span><span style="color:#8A90A0">📱</span></div>
+        <div class="mcard-b">
+          <dl class="ocr"><dt>가맹점</dt><dd>스시로 신주쿠점</dd><dt>금액</dt><dd>¥8,800</dd><dt>환산</dt><dd><span class="binfo">×9 ₩79,200</span></dd></dl>
+          <div class="lbl">정산단위 (자동추천)</div>
+          <div class="chips"><span class="chip on">✓ 도쿄 출장</span><span class="chip">일반</span></div>
+          <div class="lbl">비목 (허용 3)</div>
+          <div class="chips"><span class="chip on">식대</span><span class="chip">교통</span><span class="chip">숙박</span></div>
+        </div>
+        <div class="op">OCR 확인 → 추천 정산단위·비목 <b>탭</b></div>
+      </div>
+      <div class="mcard">
+        <div class="mcard-h"><span><span class="n">3</span>저장</span><span style="color:#8A90A0">📱</span></div>
+        <div class="mcard-b">
+          <div style="text-align:center;padding:6px 0">
+            <div style="width:44px;height:44px;border-radius:50%;background:#E7F6EF;display:inline-flex;align-items:center;justify-content:center;font-size:22px;color:#0E9F6E">✓</div>
+            <div style="font-weight:800;font-size:12px;margin-top:6px">보관함 저장</div>
+            <p style="color:#8A90A0;font-size:9.6px;margin-top:4px;line-height:1.5">정산 시 카드승인내역과<br>자동 매칭됩니다</p>
+          </div>
+        </div>
+        <div class="op">저장 완료. <b>정산은 e-accounting에서</b> 이어짐 ↓</div>
+      </div>
+    </div>
+
+    <div class="arrow-note">▼ 귀국 후 <b>e-accounting · 해외출장비 정산</b>에서 정산·상신 (정산단위가 지정칸 자동채움)</div>
+
+    <!-- 정산 -->
+    <div class="phase pc"><span class="dot"></span>② 정산·상신 — e-accounting · 해외출장비 정산</div>
+    <div class="ea">
+      <div class="ea-title"><span class="t">해외출장비 정산</span>
+        <span class="btns"><span class="bd">🖫 임시저장</span><span class="bd">🗗 미리보기(기안)</span></span></div>
+      <div class="ea-tabs">
+        <span class="tb on">결재선지정</span><span class="tb">출장개요</span><span class="tb">출장비 정산</span>
+        <span class="tb">예산정보</span><span class="tb">이용내역</span><span class="tb">첨부파일</span></div>
+      <div class="ea-body">
+        <!-- 결재선 -->
+        <h3>결재선지정 <span class="info">ⓘ 정산단위 전결라인 양식 자동 전개</span> <span class="chg">⇆ 결재선 변경</span></h3>
+        <table class="appr">
+          <tr><th style="width:19%">기안</th><th colspan="3">검토</th><th style="width:19%">승인</th></tr>
+          <tr>
+            <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
+            <td class="pf" style="width:27%">이진현 매니저<span class="pf-tag">정산단위</span></td>
+            <td class="pf" style="width:27%">오정훈 팀장<span class="pf-tag">정산단위</span></td>
+            <td></td>
+            <td>전력사업기획팀<br><b>김아무개 팀장</b></td>
+          </tr>
+        </table>
+
+        <!-- 출장개요 -->
+        <div class="sect"><h3>출장개요</h3>
+          <table class="kv">
+            <tr><td class="lbl">출장자</td><td>홍길동 (2026-07-14 ~ 07-17 · 3박4일)</td><td class="lbl">출장지</td><td>일본 · 도쿄</td></tr>
+          </table>
+        </div>
+
+        <!-- 카드이용내역 -->
+        <div class="sect"><h3>카드이용내역 <span class="info">출장 기간 JPY 승인분 자동 매칭</span></h3>
+          <div style="border:1px solid #d9dee6;border-radius:4px;overflow:hidden">
+          <table class="grid">
+            <thead><tr><th style="width:34px">No</th><th style="width:88px">출장유형</th><th>가맹점명</th><th style="width:92px">금액</th><th style="width:120px">예산부서</th><th>적요</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td class="pf"><div class="cell-in">숙박비</div></td><td class="l">TOKYO CITY HOTEL</td><td class="r">378,000</td><td class="pf"><div class="cell-in">전력사업기획팀</div></td><td class="pf"><div class="cell-in">도쿄 출장</div></td></tr>
+              <tr><td>2</td><td class="pf"><div class="cell-in">식대</div></td><td class="l">스시로 신주쿠점</td><td class="r">79,200</td><td class="pf"><div class="cell-in">전력사업기획팀</div></td><td class="pf"><div class="cell-in">도쿄 출장</div></td></tr>
+              <tr><td>3</td><td class="pf"><div class="cell-in">교통비</div></td><td class="l">게이세이 스카이라이너</td><td class="r">23,130</td><td class="pf"><div class="cell-in">전력사업기획팀</div></td><td class="pf"><div class="cell-in">도쿄 출장</div></td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div class="infobar">ⓘ 출장유형(비목)·예산부서·적요는 <b style="color:#0B7A55">정산단위가 자동 채움(🟢)</b> — 사용자는 금액·부가세만 확인. 모바일에서 찍은 영수증이 증빙으로 자동 첨부.</div>
+        </div>
+
+        <div class="ea-submit">검토 완료 · 상신하기</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ CASE 2 ============================ -->
+  <div class="case">
+    <div class="case-head c2">
+      <span class="no">CASE 2</span><h2>비출장 — AI 구독 (RECURRING)</h2>
+      <span class="tag">유입: 🖥 PC 업로드</span>
+    </div>
+
+    <!-- 유입 -->
+    <div class="phase pc"><span class="dot"></span>① 유입 — PC 영수증 업로드 (파싱 → 정산단위 자동추천)</div>
+    <div class="mrow3" style="grid-template-columns:1.1fr 1fr 1fr">
+      <div class="mcard">
+        <div class="mcard-h"><span><span class="n" style="background:linear-gradient(135deg,#2563EB,#0E9F6E)">1</span>업로드</span><span style="color:#8A90A0">🖥</span></div>
+        <div class="mcard-b">
+          <div class="shot" style="background:#EEF0F4;color:#8A90A0"><span class="fr" style="border-color:#2563EB"></span>📄 Claude 구독 인보이스 (PDF)</div>
+          <dl class="ocr" style="margin-top:7px"><dt>가맹처</dt><dd>ANTHROPIC*CLAUDE</dd><dt>금액</dt><dd>₩167,435</dd><dt>부가세</dt><dd>0 (면세)</dd></dl>
+        </div>
+        <div class="op" style="border-color:#dbe4f5">PC에서 PDF/이미지 업로드 → 파싱</div>
+      </div>
+      <div class="mcard">
+        <div class="mcard-h"><span><span class="n" style="background:linear-gradient(135deg,#2563EB,#0E9F6E)">2</span>정산단위 자동추천</span><span style="color:#8A90A0">🖥</span></div>
+        <div class="mcard-b">
+          <div class="lbl">키워드 매칭 (ANTHROPIC → AI구독)</div>
+          <div class="chips"><span class="chip on" style="background:linear-gradient(135deg,#2563EB,#0E9F6E)">✓ AI Frontier 교육</span></div>
+          <div style="margin-top:8px;font-size:9.8px;color:#4B5160;line-height:1.5">계정 <b>[723105] 교육훈련비-DIY100</b><br>CostCenter <b>[A860] SSC 교육</b></div>
+        </div>
+        <div class="op" style="border-color:#dbe4f5">관리자가 배포한 정산단위가 <b style="color:#1D4ED8">키워드로 자동 인식</b></div>
+      </div>
+      <div class="mcard">
+        <div class="mcard-h"><span><span class="n" style="background:linear-gradient(135deg,#2563EB,#0E9F6E)">3</span>정산 이동</span><span style="color:#8A90A0">🖥</span></div>
+        <div class="mcard-b">
+          <div style="text-align:center;padding:10px 0">
+            <div style="font-size:26px">🧾→🖥</div>
+            <p style="color:#8A90A0;font-size:9.6px;margin-top:8px;line-height:1.5">법인카드 정산 화면으로<br>이동 (정산단위 실림)</p>
+          </div>
+        </div>
+        <div class="op" style="border-color:#dbe4f5">e-accounting 법인카드 정산으로 이어짐 ↓</div>
+      </div>
+    </div>
+
+    <div class="arrow-note">▼ <b>e-accounting · 법인카드 정산 (현업완결)</b> — 첨부해주신 실제 화면</div>
+
+    <!-- 정산 -->
+    <div class="phase pc"><span class="dot"></span>② 정산·상신 — e-accounting · 법인카드 정산 (현업완결)</div>
+    <div class="ea">
+      <div class="ea-title"><span class="t">법인카드 - (현업완결)</span>
+        <span class="btns"><span class="bd">🖫 임시저장</span><span class="bd">🗗 미리보기(기안)</span></span></div>
+      <div class="ea-tabs">
+        <span class="tb on">결재선지정</span><span class="tb">전표정보</span><span class="tb">카드이용내역</span><span class="tb">첨부파일</span></div>
+      <div class="ea-body">
+        <!-- 결재선 -->
+        <h3>결재선지정 <span class="info">ⓘ 정산단위 전결라인 양식 자동 전개</span> <span class="chg">⇆ 결재선 변경</span></h3>
+        <table class="appr">
+          <tr><th style="width:19%">기안</th><th colspan="3">검토</th><th style="width:19%">승인</th></tr>
+          <tr>
+            <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
+            <td class="pf" style="width:27%">이진현 매니저<span class="pf-tag">정산단위</span></td>
+            <td class="pf" style="width:27%">오정훈 팀장<span class="pf-tag">정산단위</span></td>
+            <td></td>
+            <td>전력사업기획팀<br><b>김아무개 팀장</b></td>
+          </tr>
+        </table>
+
+        <!-- 카드이용내역 -->
+        <div class="sect"><h3>카드이용내역</h3>
+          <table class="kv">
+            <tr><td class="lbl">가맹점</td><td>ANTHROPIC*CLAUDE SUB / 컴퓨터소프트웨어</td><td class="lbl">승인금액</td><td class="num">167,435</td></tr>
+            <tr><td class="lbl">공급가액</td><td class="num">167,435</td><td class="lbl">부가세</td><td>0 <span style="color:#8A90A0">(부가세없음 · 해외결제)</span></td></tr>
+          </table>
+        </div>
+
+        <!-- 정산 및 지급내역 -->
+        <div class="sect"><h3>정산 및 지급내역 <span class="info">계정과목·예산부서·적요 = 정산단위 자동채움</span></h3>
+          <div style="border:1px solid #d9dee6;border-radius:4px;overflow:hidden">
+          <table class="grid">
+            <thead><tr><th style="width:32px">No</th><th style="width:200px">계정과목</th><th style="width:90px">금액</th><th style="width:130px">예산부서</th><th>적요</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td class="pf"><div class="cell-in">[723105] 교육훈련비-DIY100<span class="mag">🔍</span></div></td>
+                <td class="r">167,435</td>
+                <td class="pf"><div class="cell-in">[A860] SSC 교육</div></td>
+                <td class="pf"><div class="cell-in">정성훈매니저_7월 AI Frontier</div></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+          <div class="acct-ref"><span>※ 현업완결 계정목록</span><b>[723105] 교육훈련비-DIY100</b><span>[723102] 교육훈련비-사외</span><span>[705918] 복리후생-음료대</span><span>[710203] 도서-일반도서구입비</span><span>[735901] 회의비-경상회의비</span></div>
+          <div class="infobar">ⓘ 계정과목·예산부서·적요를 <b style="color:#0B7A55">정산단위가 자동 채움(🟢)</b>. 적요는 양식 <span style="font-family:monospace">[이름][직급]_[월]월 AI Frontier</span> → "정성훈매니저_7월 AI Frontier" 자동 생성. 사용자는 확인 후 상신만.</div>
+        </div>
+
+        <div class="ea-submit">검토 완료 · 상신하기</div>
+      </div>
+    </div>
+
+    <!-- 대비 -->
+    <div class="cmp">
+      <b style="font-size:12.5px">💡 두 케이스의 대비</b>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px;margin-top:8px">
+        <div><span style="color:#8A90A0">구분</span><br>유입 채널<br>정산 화면<br>정산단위 생성<br>정산단위 자동채움</div>
+        <div style="border-left:1px solid #E6E8EE;padding-left:8px"><b style="color:#EA002C">CASE 1 출장</b><br>📱 모바일 촬영<br>해외출장비 정산<br>품의 자동생성(TRIP)<br>출장유형·예산부서·적요·결재선</div>
+        <div style="border-left:1px solid #E6E8EE;padding-left:8px"><b style="color:#1D4ED8">CASE 2 비출장</b><br>🖥 PC 업로드<br>법인카드 정산(현업완결)<br>관리자 배포(RECURRING)<br>계정과목·예산부서·적요·결재선</div>
+      </div>
+      <div style="font-size:10.5px;color:#4B5160;margin-top:10px;line-height:1.5;border-top:1px dashed #E6E8EE;padding-top:8px">
+        공통: <b>유입만 앱(촬영/업로드)</b>에서, <b>정산·상신은 e-accounting</b>에서. 정산단위가 지정칸을 자동으로 채워 정산 시 사용자가 손댈 곳을 최소화한다.
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

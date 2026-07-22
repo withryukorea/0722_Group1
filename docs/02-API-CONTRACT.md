@@ -1,5 +1,7 @@
 # API 계약 & 데이터 모델 (v1 — H1에 동결)
 
+> ⚠️ **SUPERSEDED — 계약 원본은 [`sot/05_api.md`](../sot/05_api.md) 입니다.** 이 문서는 원 해커톤 v1 계약(역사적 참고). 아래 "H1에 동결/이 문서 먼저 수정" 문구는 v1 당시 규칙이며 **더 이상 유효하지 않습니다.** 정산단위 엔진 도입으로 `trips`·`budgets`는 preset으로 대체(호환 shim만 유지), `presets`·`PATCH /api/receipts/:id`·`travel-policy` 추가 — 상세 델타는 sot/05의 "변경 요약" 참고. 충돌 시 sot/ 가 우선합니다.
+
 > 이 문서가 5명 병렬 개발의 접착제입니다.
 > **H1 이후 변경 시 반드시 전원 합의 + 이 문서 먼저 수정.**
 > 각자 개발할 때는 서버를 기다리지 말고 `fixtures/` 폴더의 JSON을 그대로 사용하세요.
@@ -204,3 +206,16 @@ fixtures/
 - **preview Preset 분기** ✅: receipt.presetId 있으면 그 Preset의 비목·전결라인·적요 템플릿 사용 + `warnings[]`(PRESET_LIMIT_EXCEEDED — 경고만), 없으면 기존 자동분류+전결규정 fallback
 - **상신 시 usage 차감** ✅: submitted 전표만 Preset usage(usedKRW/byDay)에 합산 (초안 합산 금지)
 - **fixtures 갱신**: fx USD 1380→**1500**(데모 확정 환율), 계정과목 `SGA_POSTAGE`(판관비-우편) 신설, data_sample 실물 영수증 대응 카드승인내역 `tx_301~310` 추가 (부산·울산 출장 동선 + USD 구독 2건)
+
+## 7. v1.3 변경사항 (1단계 서버 계약 완성 — 2026-07-22)
+
+> 요청·응답 실측 예시는 `sot/05_api.md` "확정 계약" 절 참고. 기존 호출과 호환되는 추가/검증 강화만 포함.
+
+- **Preset 신 스키마** ✅: `target{scope,teams,users}`(배포 대상), `limitBasis`(perPerson|shared), `rules.costCenter`(예산부서), `rules.approvalLineTemplate{draft,reviewers,approve}`($DRAFTER/$SUPERIOR 변수 — 서버가 프로필·조직도 기준으로 해석), `usage.byAccountCode`(TRIP 대시보드용 비목별 누적). 구 `rules.approvalLine`은 해석 결과를 고정 저장해 호환 유지
+- **실계정코드 매핑** ✅: accounts.json에 `realCode`/`realName` 추가 (WELFARE_AI→[726350]수수료-기타 등). 출장 TRIP은 `rules.realAccountCode`(국내 706101/해외 706102) override. preview 라인에 `accountRealCode`/`accountDisplay`/`costCenter`/`serviceDate` 추가
+- **TRIP 한도 = 출장비 지급기준 자동** ✅: 목적지·기간(·rank·members)만 주면 travel-policy.json 기준으로 일일 한도 자동 계산(국내 일당 35,000+숙박 120,000, 해외 지역통화×환율). 산출 근거는 `meta.policyBasis`. 명시값이 항상 우선
+- **POST /api/match/confirm** 신설 ✅: 낮은 점수 건 수동 확정/해제(txId:null). UNKNOWN_TX 400, TX_ALREADY_VOUCHERED·TX_ALREADY_MATCHED 409
+- **Receipt** ✅: `source`(mobile|pc), `crop{status,updatedAt}`(원본/크롭 분리 — multipart `cropped` 필드 추가 지원), `POST /api/receipts/:id/crop`(재크롭·원본 폴백), PATCH에서 `ocr` 부분 수정 시 fxRate/amountKRW/checks/suggestedPresetId 재계산
+- **POST /api/vouchers 검증 강화** ✅: 빈 lines 400 EMPTY_LINES, 존재하지 않는 txId/receiptId 400 UNKNOWN_TX/UNKNOWN_RECEIPT (txId 없는 현금 라인은 허용). usage 차감에 byAccountCode 추가
+- **preview 일일 한도 경고** ✅: TRIP(limitPeriod=daily)은 일자별 검사 `PRESET_DAILY_LIMIT_EXCEEDED` (day 필드 포함)
+- **시드 정합성** ✅: 부팅·리셋 시 receipts-seed의 matchedTxId를 거래에 역반영 (양방향 링크 — 거래 8건 matched 로 시작)

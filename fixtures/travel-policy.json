@@ -1,0 +1,76 @@
+{
+  "version": "2026-07-22",
+  "source": "docs/출장비 정산 기준.md",
+  "roles": {
+    "CEO": "CEO",
+    "DIVISION_HEAD": "부문장",
+    "HQ_HEAD": "본부장",
+    "TEAM_LEAD": "팀장",
+    "TEAM_MEMBER": "팀원"
+  },
+  "domestic": {
+    "perDiem": {
+      "unit": "day",
+      "currency": "KRW",
+      "rates": {
+        "CEO": null,
+        "DIVISION_HEAD": null,
+        "HQ_HEAD": null,
+        "TEAM_LEAD": 35000,
+        "TEAM_MEMBER": 35000
+      }
+    },
+    "lodging": {
+      "unit": "night",
+      "currency": "KRW",
+      "exceptionMultiplier": 1.5,
+      "rates": {
+        "CEO": null,
+        "DIVISION_HEAD": null,
+        "HQ_HEAD": null,
+        "TEAM_LEAD": null,
+        "TEAM_MEMBER": 120000
+      }
+    },
+    "transport": {
+      "mode": "ACTUAL",
+      "scope": "PUBLIC_TRANSPORT"
+    },
+    "notes": [
+      "팀원 숙박료는 필요 시 출장 승인권자 승인으로 기본 한도의 1.5배까지 정산할 수 있습니다.",
+      "임원을 수행하는 팀장·팀원은 일당을 실비로 정산할 수 있습니다.",
+      "업무 관련 회의장·인터넷·이메일·FAX·전화 사용료는 일당에 포함하지 않고 실비로 정산할 수 있습니다."
+    ]
+  },
+  "foreign": {
+    "regions": {
+      "JP": { "label": "일본", "currency": "JPY" },
+      "CN": { "label": "중국", "currency": "CNY" },
+      "OTHER": { "label": "이외 지역", "currency": "USD" }
+    },
+    "lodging": {
+      "unit": "night",
+      "rates": {
+        "CEO": { "JP": null, "CN": null, "OTHER": null },
+        "DIVISION_HEAD": { "JP": null, "CN": null, "OTHER": null },
+        "HQ_HEAD": { "JP": null, "CN": null, "OTHER": null },
+        "TEAM_LEAD": { "JP": 23000, "CN": 1400, "OTHER": 200 },
+        "TEAM_MEMBER": { "JP": 23000, "CN": 1400, "OTHER": 200 }
+      }
+    },
+    "perDiem": {
+      "unit": "day",
+      "rates": {
+        "CEO": { "JP": null, "CN": null, "OTHER": null },
+        "DIVISION_HEAD": { "JP": 25000, "CN": 1400, "OTHER": null },
+        "HQ_HEAD": { "JP": 23000, "CN": 1100, "OTHER": 160 },
+        "TEAM_LEAD": { "JP": 19000, "CN": 900, "OTHER": 130 },
+        "TEAM_MEMBER": { "JP": 17000, "CN": 800, "OTHER": 115 }
+      }
+    },
+    "notes": [
+      "해외 지급한도는 출장 국가 통화 기준이며 화면의 원화 금액은 기준 환율로 환산한 참고액입니다.",
+      "해외 교통비와 기타 항목은 현재 지급기준표에 별도 한도가 기재되어 있지 않습니다."
+    ]
+  }
+}

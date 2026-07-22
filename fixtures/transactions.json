@@ -10,7 +10,8 @@
     "biz": "커피숍",
     "apprNo": "00045125",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_108"
   },
   {
     "id": "tx_002",
@@ -36,7 +37,8 @@
     "biz": "컴퓨터소프트웨어",
     "apprNo": "153578",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_101"
   },
   {
     "id": "tx_004",
@@ -88,7 +90,8 @@
     "biz": "컴퓨터소프트웨어",
     "apprNo": "038232",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_102"
   },
   {
     "id": "tx_101",
@@ -99,7 +102,8 @@
     "amountKRW": 79200,
     "approvedAt": "2026-07-15T19:32:00+09:00",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_104"
   },
   {
     "id": "tx_102",
@@ -121,7 +125,8 @@
     "amountKRW": 378000,
     "approvedAt": "2026-07-14T15:02:00+09:00",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_105"
   },
   {
     "id": "tx_104",
@@ -212,7 +217,8 @@
     "approvedAt": "2026-07-18T18:30:00+09:00",
     "biz": "서적",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_109"
   },
   {
     "id": "tx_301",
@@ -260,7 +266,8 @@
     "approvedAt": "2026-04-09T21:15:00+09:00",
     "biz": "철도",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_107"
   },
   {
     "id": "tx_305",
@@ -284,7 +291,8 @@
     "approvedAt": "2026-04-15T07:47:00+09:00",
     "biz": "베이커리",
     "category": null,
-    "status": "unmatched"
+    "status": "matched",
+    "matchedReceiptId": "rcpt_106"
   },
   {
     "id": "tx_307",
@@ -314,7 +322,7 @@
     "id": "tx_309",
     "cardLast4": "9112",
     "merchant": "OPENAI *CHATGPT",
-    "amount": 22.0,
+    "amount": 22,
     "currency": "USD",
     "amountKRW": 33000,
     "approvedAt": "2026-07-09T10:12:00+09:00",
@@ -326,7 +334,7 @@
     "id": "tx_310",
     "cardLast4": "9112",
     "merchant": "ANTHROPIC CLAUDE",
-    "amount": 110.0,
+    "amount": 110,
     "currency": "USD",
     "amountKRW": 165000,
     "approvedAt": "2026-07-05T09:30:00+09:00",

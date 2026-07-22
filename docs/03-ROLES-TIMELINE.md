@@ -1,5 +1,7 @@
 # 역할 분담 & 10시간 타임라인
 
+> ⚠️ **SUPERSEDED — 원 해커톤 기획(역사적 참고).** 현재 기준선은 [`sot/`](../sot/README.md). 역할·시나리오·스펙은 [`sot/03_user_scenarios.md`](../sot/03_user_scenarios.md)·[`sot/06_spec.md`](../sot/06_spec.md)가 원본이며, 충돌 시 sot/ 가 우선합니다.
+
 ## 5인 역할 분담
 
 | 역할 | 담당 영역 | 산출물 | 의존성 |

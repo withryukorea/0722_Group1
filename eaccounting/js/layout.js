@@ -44,7 +44,7 @@ const EACC = {
         { label: '법인카드 관리', icon: '💳', children: [
           { label: '신규신청' }, { label: '변경/해지' }, { label: '공용카드 신청' }, { label: '신청서 진행 현황' }] },
         { label: '법인카드 정산이력', icon: '🧾' },
-        { label: '예산조회', icon: '📊' },
+        { label: '예산조회', icon: '📊', href: 'budget-view.html' },
       ],
     },
     '전불/출장비': {
@@ -89,6 +89,27 @@ async function eaccApi(path, options) {
     } catch (e) { /* 다음 후보 시도 */ }
   }
   return null;
+}
+
+/* 쓰기용 API 헬퍼 — eaccApi와 달리 실패를 숨기지 않는다 (상신 등 쓰기는 성공 위장 금지).
+   반환: { ok, status, data } — 서버가 응답하면 4xx여도 그대로 전달, 네트워크 불통이면 status 0 */
+async function eaccApiTry(path, options) {
+  const bases = location.protocol === 'file:'
+    ? ['http://localhost:4000']
+    : ['', 'http://localhost:4000'];
+  for (const base of bases) {
+    try {
+      const res = await fetch(base + path, {
+        method: (options && options.method) || 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options && options.body),
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) { /* 본문 없는 응답 */ }
+      return { ok: res.ok, status: res.status, data }; // 서버가 응답했으면 재시도 없이 결과 그대로
+    } catch (e) { /* 네트워크 실패 — 다음 후보 시도 */ }
+  }
+  return { ok: false, status: 0, data: null };
 }
 
 function renderChrome(opts) {

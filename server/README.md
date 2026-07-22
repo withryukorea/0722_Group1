@@ -27,6 +27,7 @@ npm start
 | GET | `/api/budgets?userId=u_me` | 복지비 잔여 한도 | ✅ P1 |
 | GET | `/api/fx` | 환율 테이블 | ✅ P1 |
 | GET | `/api/accounts` | 계정과목 코드표 | ✅ P1 |
+| GET | `/api/travel-policy` | 국내·해외 출장비 지급 기준 | ✅ 기준표 연동 |
 | POST | `/api/reset` | 데모 초기화 | ✅ P1 |
 | POST | `/api/receipts` | 업로드→OCR | ✅ P3 (WoZ 폴백 포함) |
 | POST | `/api/match` | 영수증↔거래 매칭 | ✅ P4 |

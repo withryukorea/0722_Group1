@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>e-Accounting - 해외출장비 정산</title>
 <link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/travel-policy.css">
 </head>
 <body>
 
@@ -60,19 +61,26 @@
         <tr>
           <td class="lbl-left">👤 출장자 <span class="req">*</span></td>
           <td>
-            <input type="text" id="t-name" value="홍길동" style="width:220px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
-            <input type="date" id="t-from" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px; margin-left:10px;">
-            ~ <input type="date" id="t-to" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px;">
-            <input type="text" id="t-nights" disabled style="width:60px; height:32px; border:1px solid #cdd3dc; border-radius:4px; background:#f1f2f5; text-align:center; margin-left:10px;"> 박
-            <input type="text" id="t-days" disabled style="width:60px; height:32px; border:1px solid #cdd3dc; border-radius:4px; background:#f1f2f5; text-align:center; margin-left:6px;"> 일
-            <span style="color:var(--blue); font-size:18px; cursor:pointer; margin-left:6px;" onclick="alert('데모 버전에서는 출장자 추가를 지원하지 않습니다.')">⊕</span>
+            <div class="traveler-controls">
+              <input class="traveler-name" type="text" id="t-name" value="홍길동" aria-label="출장자 이름">
+              <select class="traveler-rank" id="t-rank" onchange="renderSummary()" aria-label="출장자 직급">
+                <option value="CEO">CEO</option><option value="DIVISION_HEAD">부문장</option>
+                <option value="HQ_HEAD">본부장</option><option value="TEAM_LEAD">팀장</option>
+                <option value="TEAM_MEMBER" selected>팀원</option>
+              </select>
+              <input class="traveler-date" type="date" id="t-from" onchange="calcNights()">
+              <span>~</span><input class="traveler-date" type="date" id="t-to" onchange="calcNights()">
+              <input class="traveler-count" type="text" id="t-nights" disabled> 박
+              <input class="traveler-count" type="text" id="t-days" disabled> 일
+              <span style="color:var(--blue); font-size:18px; cursor:pointer;" onclick="alert('데모 버전에서는 출장자 추가를 지원하지 않습니다.')">⊕</span>
+            </div>
           </td>
         </tr>
         <tr>
           <td class="lbl-left">📍 출장지 <span class="req">*</span></td>
           <td>
-            <select id="t-country" style="width:180px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
-              <option>전체</option><option>일본</option><option>미국</option><option>유럽</option><option>중국</option><option>동남아</option>
+            <select id="t-country" onchange="renderSummary()" style="width:180px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
+              <option value="" selected>선택</option><option>일본</option><option>미국</option><option>유럽</option><option>중국</option><option>동남아</option>
             </select>
             <input type="text" id="t-city" style="width:180px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px; margin-left:8px;">
           </td>
@@ -100,6 +108,7 @@
         <tr><th>기 정산(a)</th><th>현 정산(b)</th><th>기 정산(c)</th><th>현 정산(d)</th></tr>
         <tbody id="sum-body"></tbody>
       </table>
+      <div class="policy-box" id="policy-box" aria-live="polite"></div>
     </section>
 
     <!-- 예산정보 -->
@@ -247,6 +256,7 @@
 <script src="js/layout.js"></script>
 <script src="js/org-data.js"></script>
 <script src="js/approval-line.js"></script>
+<script src="js/travel-policy.js"></script>
 <script>
 renderChrome({
   top: '전불/출장비',
@@ -254,7 +264,8 @@ renderChrome({
   breadcrumb: ['메뉴', '전불/출장비', '해외출장비 정산'],
 });
 
-/* ── 데모 출장(도쿄) — /api/trips 는 P5 구현 전이라 폴백 사용 ── */
+/* ── 오프라인 폴백용 데모 출장(도쿄) — 서버(/api/trips) 미연결 시에만 사용.
+      정상 경로에서는 서버 TRIP 프리셋을 조회해 선택 건으로 자동 채운다. ── */
 const DEMO_TRIP = {
   id: 'trip_001', period: '2026.07.14 ~ 2026.07.17', from: '2026-07-14', to: '2026-07-17',
   country: '일본', city: '도쿄', purpose: '전력사업 해외 파트너 협력 미팅', status: '미작성',
@@ -270,7 +281,8 @@ const TRIP_TXNS_FALLBACK = [
   { id: 'tx_004', merchant: '이치란 시부야점',              fx: 'JPY 1,200',  krw: 10800,  payAt: '2026.07.16 12:40:00' },
   { id: 'tx_005', merchant: '하네다공항 택시',              fx: 'JPY 6,800',  krw: 61200,  payAt: '2026.07.17 08:05:00' },
 ];
-const FX = { JPY: 9.0, USD: 1380, EUR: 1500, KRW: 1 };
+let FX = { JPY: 9.0, USD: 1500, EUR: 1500, CNY: 190, KRW: 1 };
+let fxUpdatedAt = '2026-07-14';
 
 function tripType(merchant) {
   if (/호텔|HOTEL/i.test(merchant)) return '숙박비';
@@ -282,19 +294,39 @@ let cardLines = [];   // {id, type, detail, merchant, fx, krw, payAt, budgetDept
 let cashLines = [];   // {type, detail, local, cur, rate, krw, budgetDept, memo, user, date}
 let selCard = -1;
 
-/* ── 팝업 ── */
+/* 국가코드(서버 TRIP 프리셋) → 출장지 select 라벨 매핑 */
+const COUNTRY_LABEL = { KR: '국내', JP: '일본', CN: '중국', US: '미국', EU: '유럽', SEA: '동남아' };
+function setCountry(label) {
+  const sel = document.getElementById('t-country');
+  const opt = [...sel.options].find(o => o.value === label || o.text === label);
+  sel.value = opt ? opt.value : (label || '');
+}
+
+/* ── 팝업: 출장 목록은 서버 TRIP 프리셋(/api/trips)에서 조회 (해외건만) ── */
 let tripFound = false, tripChecked = false;
+let tripRows = [];   // 조회 결과(정규화) — startSlip 이 선택 인덱스로 참조
 async function searchTrips() {
-  // P5의 /api/trips 가 구현되면 서버 데이터, 아직이면 데모 출장 1건
   const trips = await eaccApi('/api/trips');
-  const list = Array.isArray(trips) && trips.length
-    ? trips.map(t => ({ period: `${t.startDate} ~ ${t.endDate}`.replaceAll('-', '.'), dest: `${t.country} - ${t.destination}`, status: '미작성' }))
-    : [{ period: DEMO_TRIP.period, dest: `${DEMO_TRIP.country} - ${DEMO_TRIP.city}`, status: DEMO_TRIP.status }];
+  const foreign = (Array.isArray(trips) ? trips : []).filter(t => (t.country || 'KR') !== 'KR');
+  tripRows = foreign.length
+    ? foreign.map(t => ({
+        id: t.id, from: t.startDate, to: t.endDate,
+        country: COUNTRY_LABEL[t.country] || t.country || '',
+        city: t.destination || '', purpose: t.purpose || t.name || `${t.destination || ''} 출장`,
+        rank: t.rank || null,
+        period: `${t.startDate} ~ ${t.endDate}`.replaceAll('-', '.'),
+        dest: `${COUNTRY_LABEL[t.country] || t.country || ''} - ${t.destination || ''}`,
+        status: '미작성', source: 'server',
+      }))
+    : [{ id: DEMO_TRIP.id, from: DEMO_TRIP.from, to: DEMO_TRIP.to, country: DEMO_TRIP.country,
+         city: DEMO_TRIP.city, purpose: DEMO_TRIP.purpose, rank: null,
+         period: DEMO_TRIP.period, dest: `${DEMO_TRIP.country} - ${DEMO_TRIP.city}`,
+         status: DEMO_TRIP.status, source: 'demo' }];
   tripFound = true;
-  document.getElementById('trip-total').textContent = list.length;
+  document.getElementById('trip-total').textContent = tripRows.length;
   document.getElementById('trip-none').style.display = 'none';
-  document.getElementById('trip-body').innerHTML = list.map((t, i) => `
-    <tr><td>${i + 1}</td><td><input type="radio" name="trip-sel" ${i === 0 ? 'checked' : ''} onclick="tripChecked=true"></td>
+  document.getElementById('trip-body').innerHTML = tripRows.map((t, i) => `
+    <tr><td>${i + 1}</td><td><input type="radio" name="trip-sel" value="${i}" ${i === 0 ? 'checked' : ''} onclick="tripChecked=true"></td>
     <td>${t.period}</td><td class="l">${t.dest}</td><td>${t.status}</td></tr>`).join('');
   tripChecked = true;
 }
@@ -302,27 +334,32 @@ function closeTripModal() { document.getElementById('trip-modal').style.display 
 
 async function startSlip() {
   closeTripModal();
-  if (!tripFound || !tripChecked) return;   // 새출장 개요 작성 → 빈 양식에서 직접 입력
-  // 선택한 출장 개요로 자동 채움
-  document.getElementById('t-from').value = DEMO_TRIP.from;
-  document.getElementById('t-to').value = DEMO_TRIP.to;
-  document.getElementById('t-country').value = DEMO_TRIP.country;
-  document.getElementById('t-city').value = DEMO_TRIP.city;
-  document.getElementById('t-purpose').value = DEMO_TRIP.purpose;
+  if (!tripFound || !tripChecked || !tripRows.length) return;   // 새출장 개요 작성 → 빈 양식에서 직접 입력
+  const sel = document.querySelector('input[name="trip-sel"]:checked');
+  const trip = tripRows[sel ? Number(sel.value) : 0];
+  if (!trip) return;
+  // 선택한 출장 개요(서버 TRIP 프리셋)로 자동 채움
+  document.getElementById('t-from').value = trip.from;
+  document.getElementById('t-to').value = trip.to;
+  setCountry(trip.country);
+  document.getElementById('t-city').value = trip.city;
+  document.getElementById('t-purpose').value = trip.purpose;
+  if (trip.rank && document.querySelector(`#t-rank option[value="${trip.rank}"]`)) document.getElementById('t-rank').value = trip.rank;
   calcNights();
-  // 출장 기간의 해외 카드사용내역 자동 매칭 (서버 → 폴백)
+  // 선택 출장 기간의 해외 카드사용내역 자동 매칭 (서버 → 오프라인 폴백)
+  // 성공 위장 금지: 서버가 살아있는데 기간 내 해외결제가 없으면 빈 목록 그대로 둔다(데모 도쿄건 주입 금지).
   const txs = await eaccApi('/api/transactions');
   const src = Array.isArray(txs)
     ? txs.filter(t => {
-        const d = t.approvedAt.slice(0, 10);
-        return t.currency !== 'KRW' && d >= DEMO_TRIP.from && d <= DEMO_TRIP.to;  // 출장 기간 내 해외 사용분만
+        const d = (t.approvedAt || '').slice(0, 10);
+        return t.currency && t.currency !== 'KRW' && d >= trip.from && d <= trip.to;  // 출장 기간 내 해외 사용분만
       }).map(t => ({
-        id: t.id, merchant: t.merchant, fx: `${t.currency} ${t.amount.toLocaleString()}`,
+        id: t.id, merchant: t.merchant, fx: `${t.currency} ${Number(t.amount).toLocaleString()}`,
         krw: t.amountKRW, payAt: t.approvedAt.slice(0, 10).replaceAll('-', '.') + ' ' + t.approvedAt.slice(11, 19),
       })).sort((a, b) => a.payAt.localeCompare(b.payAt))
-    : TRIP_TXNS_FALLBACK;
+    : TRIP_TXNS_FALLBACK;   // 서버 미연결일 때만 오프라인 데모(도쿄) 폴백
   cardLines = src.map(t => ({ ...t, type: tripType(t.merchant), detail: t.merchant, budgetDept: '', memo: '' }));
-  selCard = 0;
+  selCard = cardLines.length ? 0 : -1;
   renderAll();
 }
 
@@ -333,6 +370,7 @@ function calcNights() {
   const nights = Math.max(0, (new Date(t) - new Date(f)) / 86400000);
   document.getElementById('t-nights').value = nights;
   document.getElementById('t-days').value = nights + 1;
+  renderSummary();
 }
 
 /* ── 카드이용내역 ── */
@@ -394,7 +432,9 @@ function toggleAll(m, cls) { document.querySelectorAll('.' + cls).forEach(c => {
 
 /* ── 현금이용내역 (환율 자동계산) ── */
 function addCashRow() {
-  cashLines.push({ type: '기타', detail: '', local: 0, cur: 'JPY', krw: 0, budgetDept: '', memo: '', user: '홍길동', date: '' });
+  const region = EACC_TRAVEL_POLICY.regionFor(document.getElementById('t-country').value) || 'OTHER';
+  const cur = EACC_TRAVEL_POLICY.getPolicy().foreign.regions[region].currency;
+  cashLines.push({ type: '기타', detail: '', local: 0, cur, krw: 0, budgetDept: '', memo: '', user: '홍길동', date: '' });
   renderCashLines(); renderSummary();
 }
 function updCash(i, key, val) {
@@ -435,36 +475,84 @@ function deleteCashRows() {
   renderCashLines(); renderSummary();
 }
 
-/* ── 출장비 정산 요약표 ── */
+/* ── 출장비 정산 요약표 (docs/출장비 정산 기준.md) ── */
 function sums(type) {
   const cash = cashLines.filter(l => l.type === type).reduce((s, l) => s + l.krw, 0);
   const card = cardLines.filter(l => l.type === type).reduce((s, l) => s + l.krw, 0);
   return { cash, card };
 }
 const fmt = n => n ? n.toLocaleString('ko-KR') : '';
+function foreignCap(limit, actualKRW) {
+  if (limit.mode === 'ACTUAL') return '<span class="policy-cap-main">실비</span>';
+  if (limit.mode === 'UNSPECIFIED') return limit.reason === 'COUNTRY_REQUIRED' ? '출장지 선택' : '기준표 미기재';
+  const approx = EACC_TRAVEL_POLICY.toKRW(limit, FX);
+  const main = limit.amount ? EACC_TRAVEL_POLICY.formatMoney(limit.amount, limit.currency) : EACC_TRAVEL_POLICY.formatUnitRate(limit);
+  const over = approx && actualKRW > approx;
+  const detail = limit.amount
+    ? `${EACC_TRAVEL_POLICY.formatUnitRate(limit)}${approx ? ` · 약 ${fmt(approx)}원` : ''}`
+    : EACC_TRAVEL_POLICY.formatUnitRate(limit);
+  return `<span class="policy-cap-main">${main}</span><span class="policy-cap-sub ${over ? 'policy-over' : ''}">${over ? '한도 초과 · ' : ''}${detail}</span>`;
+}
+function renderForeignPolicy(role, country, dailyLimit, lodgeLimit) {
+  const p = EACC_TRAVEL_POLICY.getPolicy();
+  const region = EACC_TRAVEL_POLICY.regionFor(country);
+  if (!region) {
+    document.getElementById('policy-box').innerHTML = `
+      <div><strong>출장 국가를 선택해 주세요.</strong><div>국가와 직급을 기준으로 일당·숙박 지급한도를 계산합니다.</div></div>
+      <div class="policy-source">기준: ${p.source}</div>`;
+    return;
+  }
+  document.getElementById('policy-box').innerHTML = `
+    <div><strong>적용 기준 · ${EACC_TRAVEL_POLICY.roleLabel(role)} / ${p.foreign.regions[region].label}</strong>
+      <div class="policy-rates">
+        <span class="policy-rate">일당 ${EACC_TRAVEL_POLICY.formatUnitRate(dailyLimit)}</span>
+        <span class="policy-rate">숙박 ${EACC_TRAVEL_POLICY.formatUnitRate(lodgeLimit)}</span>
+        <span class="policy-rate">교통 기준표 미기재</span>
+      </div>
+    </div>
+    <div class="policy-note">원화 환산은 ${fxUpdatedAt} 기준 환율을 적용한 참고액입니다.</div>
+    <div class="policy-source">기준: ${p.source}</div>`;
+}
 function renderSummary() {
   const daily = sums('일당'), lodge = sums('숙박비'), trans = sums('교통비'), etc = sums('기타'), over = sums('일당초과');
   const nights = Number(document.getElementById('t-nights').value) || 0;
   const days = Number(document.getElementById('t-days').value) || 0;
-  const capDaily = days ? (days * 100000) : '', capLodge = nights ? (nights * 300000) : '';
+  const role = document.getElementById('t-rank').value;
+  const country = document.getElementById('t-country').value;
+  const dailyLimit = EACC_TRAVEL_POLICY.foreignLimit('perDiem', role, country, days);
+  const lodgeLimit = EACC_TRAVEL_POLICY.foreignLimit('lodging', role, country, nights);
   const totalCash = daily.cash + lodge.cash + trans.cash + etc.cash + over.cash;
   const totalCard = daily.card + lodge.card + trans.card + etc.card + over.card;
   const row = (c1, c2, s, cap) => `
     <tr>${c1}${c2}<td class="r"></td><td class="r">${fmt(s.cash)}</td><td class="r"></td><td class="r">${fmt(s.card)}</td>
-    <td class="r">${fmt(s.cash + s.card)}</td><td class="cap">${typeof cap === 'number' ? fmt(cap) : cap}</td></tr>`;
+    <td class="r">${fmt(s.cash + s.card)}</td><td class="cap">${cap}</td></tr>`;
   document.getElementById('sum-body').innerHTML =
-    row(`<td class="grp" rowspan="2" style="width:10%;">일당</td>`, `<td class="grp">CEO</td>`, { cash: 0, card: 0 }, '') +
-    row('', `<td class="grp">임원/팀장/팀원</td>`, daily, capDaily) +
-    row(`<td class="grp" rowspan="2">숙박비</td>`, `<td class="grp">CEO/임원</td>`, { cash: 0, card: 0 }, '') +
-    row('', `<td class="grp">팀장/팀원</td>`, lodge, capLodge) +
-    row(`<td class="grp" colspan="2">교통비</td>`, '', trans, '') +
-    row(`<td class="grp" colspan="2">기타</td>`, '', etc, '') +
-    row(`<td class="grp" colspan="2">일당초과</td>`, '', over, '') +
+    row(`<td class="grp" style="width:10%;">일당</td>`, `<td class="grp">${EACC_TRAVEL_POLICY.roleLabel(role)}</td>`, daily, foreignCap(dailyLimit, daily.cash + daily.card)) +
+    row(`<td class="grp">숙박비</td>`, `<td class="grp">${EACC_TRAVEL_POLICY.roleLabel(role)}</td>`, lodge, foreignCap(lodgeLimit, lodge.cash + lodge.card)) +
+    row(`<td class="grp" colspan="2">교통비</td>`, '', trans, '기준표 미기재') +
+    row(`<td class="grp" colspan="2">기타</td>`, '', etc, '기준표 미기재') +
+    row(`<td class="grp" colspan="2">일당초과</td>`, '', over, '기준 외') +
     `<tr><td class="grp" colspan="2">총계</td><td class="r"></td><td class="r"><b>${fmt(totalCash)}</b></td>
      <td class="r"></td><td class="r"><b>${fmt(totalCard)}</b></td>
      <td class="r"><b>${fmt(totalCash + totalCard)}</b></td><td class="cap">-</td></tr>`;
+  renderForeignPolicy(role, country, dailyLimit, lodgeLimit);
   const total = totalCash + totalCard;
   if (!window._apvLine) document.getElementById('review-1').innerHTML = total > 300000 ? '전력사업본부<br><b>박아무개 부장</b>' : '';
+}
+
+async function syncReferenceData() {
+  const [serverPolicy, fxData] = await Promise.all([
+    eaccApi('/api/travel-policy'),
+    eaccApi('/api/fx'),
+  ]);
+  if (serverPolicy) EACC_TRAVEL_POLICY.setPolicy(serverPolicy);
+  if (fxData && fxData.rates) {
+    FX = { ...FX, ...fxData.rates };
+    fxUpdatedAt = fxData.updatedAt || fxUpdatedAt;
+    cashLines.forEach(line => { line.krw = Math.round(line.local * (FX[line.cur] || 1)); });
+    renderCashLines();
+  }
+  renderSummary();
 }
 
 /* ── 첨부파일 ── */
@@ -496,26 +584,40 @@ async function submitVoucher() {
   const total = cardLines.reduce((s, l) => s + l.krw, 0) + cashLines.reduce((s, l) => s + l.krw, 0);
   const city = document.getElementById('t-city').value || '해외';
   const nights = document.getElementById('t-nights').value, days = document.getElementById('t-days').value;
-  const voucher = await eaccApi('/api/vouchers', {
+  // 카드 라인에 매칭된 영수증(receiptId)을 실어 문서함에서 증빙 열람이 되게 한다
+  const receipts = await eaccApi('/api/receipts');
+  const rByTx = new Map((Array.isArray(receipts) ? receipts : []).filter(r => r.matchedTxId).map(r => [r.matchedTxId, r]));
+  const r = await eaccApiTry('/api/vouchers', {
     body: {
       title: `해외출장비 정산 (${city} ${nights}박${days}일)`,
       lines: [
-        ...cardLines.map(l => ({ txId: l.id, amountKRW: l.krw, description: `[카드/${l.type}] ${l.merchant}` })),
+        ...cardLines.map(l => {
+          const rc = rByTx.get(l.id);
+          return { txId: l.id, receiptId: rc ? rc.id : null, presetId: rc ? rc.presetId : null, amountKRW: l.krw, description: `[카드/${l.type}] ${l.merchant}` };
+        }),
         ...cashLines.map(l => ({ amountKRW: l.krw, description: `[현금/${l.type}] ${l.detail || '실비'}` })),
       ],
       approvalLine: apvLineNames() || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 부장']),
     },
   });
-  if (voucher) {
-    alert(`전표 [${voucher.id}]가 상신되었습니다.\n결재라인: ${voucher.approvalLine.join(' → ')}`);
+  if (r.ok) {
+    alert(`전표 [${r.data.id}]가 상신되었습니다.\n결재라인: ${r.data.approvalLine.join(' → ')}`);
     location.href = 'mydocs-all.html';
+    return;
+  }
+  // 성공 위장 금지 — 실패는 실패로 표시하고 입력 내역을 유지한다 (재시도 가능)
+  if (r.status === 409) {
+    alert(`이미 전표가 상신된 카드내역이 포함되어 있습니다.\n(${((r.data && r.data.txIds) || []).join(', ')})`);
   } else {
-    alert('전표가 상신되었습니다. (오프라인 모드 — 서버 연결 시 나의 문서함에 표시됩니다)');
+    alert(r.status === 0
+      ? '서버에 연결할 수 없어 전표를 상신하지 못했습니다.\n서버(:4000) 상태를 확인한 뒤 다시 시도해 주세요.'
+      : `전표 상신에 실패했습니다: ${(r.data && (r.data.hint || r.data.error)) || 'HTTP ' + r.status}`);
   }
 }
 
 function renderAll() { renderCardDetail(); renderCardLines(); renderCashLines(); renderSummary(); }
 renderAll();
+syncReferenceData();
 
 /* 미리보기 편의: ?demo=1 이면 출장 조회+선택까지 자동 진행 */
 if (location.search.includes('demo')) {
