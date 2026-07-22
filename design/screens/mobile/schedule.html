@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>찍으면 끝 — 일정 정보 관리</title>
+<link rel="stylesheet" href="../../components/sk-theme.css">
+<link rel="stylesheet" href="../../components/mobile.css">
+</head>
+<body class="mobile">
+<div class="app">
+  <header class="app-head"></header>
+  <main class="app-body">
+
+    <div class="section-title">국내출장 일정 <span class="slot-note" id="slotDom"></span></div>
+    <section id="listDom"></section>
+
+    <div class="section-title">해외출장 일정 <span class="slot-note" id="slotFor"></span></div>
+    <section id="listFor"></section>
+
+    <div class="section-title">새 출장 일정 등록</div>
+    <section class="card">
+      <div class="seg" id="typeSeg">
+        <button data-t="domestic" class="on">국내출장</button>
+        <button data-t="foreign">해외출장</button>
+      </div>
+      <div id="slotWarn"></div>
+      <form id="tripForm">
+        <div class="field"><label>출장명</label><input id="fTitle" placeholder="예: 대전 연구원 방문" required></div>
+        <div class="field"><label>경로 (출발지 → 목적지, 복수 지역 가능)</label>
+          <input id="fRoute" placeholder="예: 서울 → 부산 → 울산 → 서울" required>
+          <div class="hint">갈 때와 올 때 지역이 달라도 됩니다 (경로 기반 판정)</div></div>
+        <div class="form2">
+          <div class="field"><label>시작일</label><input type="date" id="fStart" value="2026-08-03" required></div>
+          <div class="field"><label>종료일</label><input type="date" id="fEnd" value="2026-08-05" required></div>
+        </div>
+        <div class="field"><label>인원</label><select id="fMembers"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+        <div class="preset-why" id="capPreview"></div>
+        <button type="submit" class="btn primary block" id="btnAdd" style="margin-top:12px">일정 등록</button>
+      </form>
+    </section>
+
+    <div class="section-title">AI Tool 정산 제도 프리셋 <span class="muted">상한 기준 선택</span></div>
+    <section class="card" id="aiPreset"></section>
+
+    <section class="card" style="background:#FFF9F4;border-color:#F4DCC4">
+      <div class="card-title" style="color:#8A4A12">💡 일정을 미리 등록해두면</div>
+      <ul class="muted" style="padding-left:18px;line-height:1.7;color:#8A4A12">
+        <li>기간 내 결제 건이 <b>자동으로 출장비/해외출장비</b>로 분류됩니다</li>
+        <li>유형별 <b>최대 2건</b>까지 사전 등록 — 월 2회 출장도 <b>건별로 분리 정산</b>됩니다</li>
+        <li>KTX·항공권은 결제일이 아닌 <b>탑승일 기준</b>으로 일정에 매칭됩니다</li>
+        <li>식대·Cap 기준 초과 여부를 결제 즉시 알려드립니다</li>
+      </ul>
+    </section>
+
+  </main>
+  <nav class="tabbar"></nav>
+</div>
+
+<script src="../../components/data.js"></script>
+<script src="../../components/mobile.js"></script>
+<script>
+const D = SKD;
+SKM.chrome("schedule", "국내·해외 출장 일정을 등록하고 건별로 정산을 분리하세요");
+
+const trips = D.TRIPS.slice();       // 화면 내 등록분 포함 (메모리)
+const sent = {};                     // 출장별 정산 전송 상태
+let type = "domestic";
+const $ = (id) => document.getElementById(id);
+const STATUS = { active: ["진행중", "brand"], planned: ["예정", "info"], done: ["완료", "neutral"] };
+
+function tripCard(t, idx) {
+  const cap = D.tripCap(t), spent = D.tripSpent(t), all = D.tripAll(t);
+  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
+  const [sLabel, sClass] = STATUS[t.status];
+  const days = D.tripDays(t);
+  const capLine = t.type === "domestic"
+    ? `식대 ${D.krw(t.mealCapPerDayKRW)}/일 × ${days}일 = <b class="num">${D.krw(cap)}</b> (VAT별도)`
+    : `Cap ${D.krw(t.dailyCapPerPersonKRW)}/인 × ${t.members}명 × ${days}일 = <b class="num">${D.krw(cap)}</b>`;
+  return `
+  <div class="card trip-card ${t.type === "foreign" ? "foreign" : ""}">
+    <div class="t-head">
+      <div>
+        <div class="t-title">${t.type === "domestic" ? "🚄" : "✈"} ${t.title}</div>
+        <div class="t-route">${t.route.join(" → ")}</div>
+        <div class="t-meta">${D.dateShort(t.startDate)} ~ ${D.dateShort(t.endDate)} (${days}일) · ${t.members}명
+          · <b>정산단위 #${idx + 1}</b></div>
+      </div>
+      <span class="badge ${sClass}">${sLabel}</span>
+    </div>
+    <div class="gauge ${over ? "over" : ""}" style="margin-top:10px">
+      <div class="g-head"><span>${t.type === "domestic" ? "식대 사용" : "Cap 사용"}</span>
+        <b class="num">${D.krw(spent)} / ${D.krw(cap)}</b></div>
+      <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+      <div class="g-foot"><span>${capLine}</span></div>
+      <div class="g-foot" style="margin-top:2px">
+        <span>영수증 합계(실비 포함) ${D.krw(all)}</span>
+        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">
+          ${t.status === "planned" ? "일정 대기" : over ? "기준 초과 " + D.krw(spent - cap) : "기준 이내 ✓"}</span>
+      </div>
+    </div>
+    ${t.status === "done" ? (sent[t.id]
+      ? `<div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin-top:10px">
+          ✓ <b>정산 전송 완료</b> — 전표가 E-Accounting으로 접수되었습니다 (결재 대기)</div>`
+      : `<button class="btn primary block btn-settle" data-id="${t.id}" style="margin-top:10px">출장 끝 · 정산 전송 →</button>`)
+      : t.status === "active"
+      ? `<button class="btn block" disabled style="margin-top:10px">출장 종료(${D.dateShort(t.endDate)}) 후 정산 전송 가능</button>` : ""}
+  </div>`;
+}
+
+function render() {
+  const dom = trips.filter(t => t.type === "domestic");
+  const fo = trips.filter(t => t.type === "foreign");
+  $("listDom").innerHTML = dom.map(tripCard).join("") || '<p class="muted" style="padding:6px 2px">등록된 국내출장이 없습니다</p>';
+  $("listFor").innerHTML = fo.map(tripCard).join("") || '<p class="muted" style="padding:6px 2px">등록된 해외출장이 없습니다</p>';
+  $("slotDom").textContent = `${dom.length}/${D.TRIP_MAX_PER_TYPE}건 등록`;
+  $("slotFor").textContent = `${fo.length}/${D.TRIP_MAX_PER_TYPE}건 등록`;
+  document.querySelectorAll(".btn-settle").forEach(b =>
+    b.onclick = () => { sent[b.dataset.id] = true; render(); });
+  updateForm();
+}
+
+function updateForm() {
+  const count = trips.filter(t => t.type === type).length;
+  const full = count >= D.TRIP_MAX_PER_TYPE;
+  $("btnAdd").disabled = full;
+  $("slotWarn").innerHTML = full
+    ? `<div class="preset-why" style="background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn);margin:0 0 12px">
+        ${type === "domestic" ? "국내" : "해외"}출장은 <b>최대 ${D.TRIP_MAX_PER_TYPE}건</b>까지 사전 등록할 수 있습니다.
+        완료된 출장을 정산 상신하면 슬롯이 비워집니다.</div>` : "";
+  capPreview();
+}
+
+function capPreview() {
+  const s = $("fStart").value, e = $("fEnd").value;
+  const days = s && e ? Math.max(1, Math.round((new Date(e) - new Date(s)) / 86400000) + 1) : 0;
+  const m = +$("fMembers").value;
+  if (!days) { $("capPreview").innerHTML = "기간을 입력하면 기준 금액이 자동 계산됩니다"; return; }
+  $("capPreview").innerHTML = type === "domestic"
+    ? `<b>기준 금액 자동 계산</b> · 식대 35,000원 × ${days}일 = <b class="num">${D.krw(35000 * days)}</b> (VAT별도)
+       <br><span style="opacity:.8">기간 합산 기준 — 하루 초과해도 총액 이내면 규정 충족</span>`
+    : `<b>기준 금액 자동 계산</b> · 일일 Cap 100,000원 × ${m}명 × ${days}일 = <b class="num">${D.krw(100000 * m * days)}</b>
+       <br><span style="opacity:.8">현지 통화 결제는 환율 자동 환산 후 차감됩니다</span>`;
+}
+
+$("typeSeg").querySelectorAll("button").forEach(b => b.onclick = (e) => {
+  e.preventDefault();
+  type = b.dataset.t;
+  $("typeSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  updateForm();
+});
+["fStart", "fEnd", "fMembers"].forEach(id => $(id).onchange = capPreview);
+
+$("tripForm").onsubmit = (e) => {
+  e.preventDefault();
+  const s = $("fStart").value, en = $("fEnd").value, m = +$("fMembers").value;
+  trips.push({
+    id: "trip_new_" + Date.now(), type, title: $("fTitle").value,
+    route: $("fRoute").value.split("→").map(x => x.trim()).filter(Boolean),
+    startDate: s, endDate: en, members: m,
+    mealCapPerDayKRW: 35000, dailyCapPerPersonKRW: 100000, dailyCapKRW: 100000 * m,
+    status: "planned"
+  });
+  $("tripForm").reset(); $("fStart").value = "2026-08-03"; $("fEnd").value = "2026-08-05";
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+/* AI 정산 제도 프리셋 */
+let aiSel = "diy100";
+function renderAi() {
+  const used = D.BUDGETS[0].usedKRW;
+  $("aiPreset").innerHTML = D.AI_PRESETS.map(p => {
+    const over = used > p.capKRW;
+    return `
+    <label style="display:flex;gap:10px;align-items:flex-start;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer">
+      <input type="radio" name="ai" value="${p.id}" ${aiSel === p.id ? "checked" : ""} style="margin-top:4px;accent-color:var(--sk-red)">
+      <span style="flex:1">
+        <b style="font-size:13.5px">${p.name}</b> <span class="muted">상한 ${D.krw(p.capKRW)}</span><br>
+        <span class="muted">${p.note}</span>
+      </span>
+      <span class="badge ${over ? "danger" : "ok"}">${over ? "현재 초과" : "이내 ✓"}</span>
+    </label>`;
+  }).join("") + `<p class="muted" style="margin-top:8px">현재 AI구독 사용액 <b class="num">${D.krw(used)}</b> — 선택한 제도 기준으로 앱·PC 대시보드의 초과 여부가 표시됩니다</p>`;
+  $("aiPreset").querySelectorAll("input").forEach(i => i.onchange = () => { aiSel = i.value; renderAi(); });
+}
+
+render(); renderAi();
+</script>
+</body>
+</html>

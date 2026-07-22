@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>찍으면 끝 — 영수증 보관함</title>
+<link rel="stylesheet" href="../../components/sk-theme.css">
+<link rel="stylesheet" href="../../components/mobile.css">
+</head>
+<body class="mobile">
+<div class="app">
+  <header class="app-head"></header>
+  <main class="app-body">
+
+    <div class="filter-wrap">
+      <div class="chips" id="filterChips"></div>
+    </div>
+
+    <section class="card" id="summary" style="padding:12px 16px"></section>
+    <section id="list"></section>
+
+  </main>
+  <nav class="tabbar"></nav>
+</div>
+
+<script src="../../components/data.js"></script>
+<script src="../../components/mobile.js"></script>
+<script>
+const D = SKD;
+SKM.chrome("receipts", "촬영·업로드한 영수증이 자동 분류되어 보관됩니다");
+
+let filter = "all";
+let expanded = null;      // 후보 선택 패널이 열린 영수증 id
+const resolved = {};      // 수동 매칭 결과: id → "tx_xx" | "personal"
+const FILTERS = [["all", "전체"], ...D.GROUP_ORDER.map(g => [g, D.GROUPS[g].name]), ["review", "확인 필요"]];
+
+function renderChips() {
+  document.getElementById("filterChips").innerHTML = FILTERS.map(([k, label]) =>
+    `<button class="chip ${filter === k ? "on brand" : ""}" data-k="${k}">${label}</button>`).join("");
+  document.querySelectorAll("#filterChips .chip").forEach(c =>
+    c.onclick = () => { filter = c.dataset.k; render(); });
+}
+
+function render() {
+  renderChips();
+  const rows = D.valid().filter(r =>
+    filter === "all" ? true : filter === "review" ? r.status === "review" : D.groupOf(r) === filter
+  ).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+
+  const total = rows.reduce((s, r) => s + r.amountKRW, 0);
+  document.getElementById("summary").innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="muted">${filter === "all" ? "전체" : FILTERS.find(f => f[0] === filter)[1]} ${rows.length}건</span>
+      <b class="num" style="font-size:16px">${D.krw(total)}</b>
+    </div>`;
+
+  /* 월 단위 그룹 */
+  const byMonth = {};
+  rows.forEach(r => { const m = r.paidAt.slice(0, 7); (byMonth[m] = byMonth[m] || []).push(r); });
+
+  document.getElementById("list").innerHTML = Object.keys(byMonth).sort().reverse().map(m => `
+    <div class="section-title">${m.replace("-", "년 ")}월
+      <span class="muted num">${D.krw(byMonth[m].reduce((s, r) => s + r.amountKRW, 0))}</span></div>
+    <div class="card" style="padding:4px 16px">
+      ${byMonth[m].map(r => {
+        const G = D.GROUPS[D.groupOf(r)];
+        const t = r.tripId ? D.TRIPS.find(x => x.id === r.tripId) : null;
+        const url = D.imgUrl(r.img);
+        const isReview = r.status === "review" && !resolved[r.id];
+        const stateHtml = resolved[r.id]
+          ? (resolved[r.id] === "personal" ? '<span class="badge neutral">개인경비 처리</span>' : '<span class="badge ok">수동 매칭 ✓</span>')
+          : r.currency !== "KRW" ? D.money(r)
+          : isReview ? '<span class="badge warn">확인 필요 ▾</span>' : "매칭 완료";
+        return `
+        <div class="rcpt-row" ${isReview ? `data-expand="${r.id}" style="cursor:pointer"` : ""}>
+          <div class="rcpt-thumb">${url ? `<img src="${url}" alt="">` : (r.source === "pdf" ? "📄" : "🧾")}</div>
+          <div class="rcpt-main">
+            <div class="m1">${r.merchant}</div>
+            <div class="m2">
+              <span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span>
+              <span>${D.dt(r.paidAt)}</span>
+              ${t ? `<span class="badge neutral">${t.title.slice(0, 6)}…</span>` : ""}
+            </div>
+          </div>
+          <div class="rcpt-amt">
+            <div class="a1 num">${D.krw(r.amountKRW)}</div>
+            <div class="a2">${stateHtml}</div>
+          </div>
+        </div>
+        ${expanded === r.id && isReview ? `
+        <div style="background:#FAFBFC;border:1px solid var(--line);border-radius:12px;padding:12px;margin:2px 0 10px">
+          <div style="font-size:12px;font-weight:800;color:var(--ink-2);margin-bottom:8px">
+            매칭 후보 선택 <span class="muted" style="font-weight:600">— 승인번호 미인식 건, 금액±3% 후보</span></div>
+          ${D.candidatesFor(r).map(tx => `
+            <button class="btn block cand" data-r="${r.id}" data-tx="${tx.id}"
+              style="justify-content:space-between;margin-bottom:6px;font-size:12.5px">
+              <span>${tx.merchant} · ${D.dt(tx.approvedAt)}</span>
+              <b class="num">${D.krw(tx.amountKRW)}</b>
+            </button>`).join("")}
+          <button class="btn block cand" data-r="${r.id}" data-tx="personal"
+            style="font-size:12.5px;color:var(--ink-3)">해당 승인내역 없음 — 개인경비로 처리</button>
+        </div>` : ""}`;
+      }).join("")}
+    </div>`).join("") || `<p class="muted" style="text-align:center;padding:40px 0">해당 조건의 영수증이 없습니다</p>`;
+
+  document.querySelectorAll("[data-expand]").forEach(el =>
+    el.onclick = () => { expanded = expanded === el.dataset.expand ? null : el.dataset.expand; render(); });
+  document.querySelectorAll(".cand").forEach(b =>
+    b.onclick = (e) => { e.stopPropagation(); resolved[b.dataset.r] = b.dataset.tx; expanded = null; render(); });
+}
+render();
+</script>
+</body>
+</html>
