@@ -35,6 +35,12 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // 같은 서버에서 서빙되므로 앱의 apiBase가 자동으로 같은 오리진을 가리킨다 (배포 URL 하나로 전 화면 접근)
 app.use("/app", express.static(path.join(__dirname, "..", "app")));
 
+// ── 데모 혼선 방지: PC 정적 목업(시안)은 하드코딩 데모 data.js 로만 그려져
+//    라이브 API와 무관한 가짜 숫자(예: ₩488,710)를 "실데이터처럼" 보여준다.
+//    라이브 /pc/ 로 302 리다이렉트해 "모바일 ≠ PC 사용총액" 착오를 원천 차단한다.
+//    (디자인 원본은 로컬 `node design/serve.js` 또는 design/html/*.html 스냅샷으로 계속 열람 가능)
+app.use("/design/screens/pc", (req, res) => res.redirect(302, "/pc/"));
+
 // ── PC웹 화면 (design/ — 개발 진행 중 시안 포함) → /design ────
 app.use("/design", express.static(path.join(__dirname, "..", "design")));
 app.use("/data_sample", express.static(path.join(__dirname, "..", "data_sample"))); // 시안이 참조하는 샘플 이미지
@@ -55,8 +61,8 @@ app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);
   console.log(`  ├ 직원용 화면 : http://localhost:${PORT}/`);
   console.log(`  ├ 모바일웹    : http://localhost:${PORT}/app/`);
-  console.log(`  ├ PC웹(시안)  : http://localhost:${PORT}/design/screens/pc/`);
-  console.log(`  ├ PC 웹(라이브): http://localhost:${PORT}/pc/`);
+  console.log(`  ├ PC웹(시안)  : /design/screens/pc/ → /pc/ 로 리다이렉트(데모 혼선 방지)`);
+  console.log(`  ├ PC 웹(라이브): http://localhost:${PORT}/pc/  ← 실데이터, 모바일과 동일`);
   console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/admin/`);
   console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
 });
