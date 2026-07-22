@@ -87,14 +87,51 @@ renderChrome({
   breadcrumb: ['메뉴', '법인카드', '법인카드 정산'],
 });
 
-let view = CARD_TXNS.slice();
+let ALL = [];          // 화면에 뿌릴 전체 행 (API 성공 시 서버 데이터, 실패 시 내장 목데이터)
+let view = [];
+let apiMode = false;   // true면 전표작성이 실제 서버에 상신된다
+
+/* 서버 스키마(docs/02 CardTransaction) → 이 화면의 컬럼으로 변환 */
+function guessBiz(m) {
+  if (/호텔|HOTEL/i.test(m)) return '호텔';
+  if (/택시|메트로|스카이라이너|철도|공항/i.test(m)) return '교통';
+  if (/GS25|CU |편의점/i.test(m)) return '편의점';
+  if (/ANTHROPIC|OPENAI|GITHUB|CURSOR/i.test(m)) return '컴퓨터소프트웨어';
+  if (/문고|서점/i.test(m)) return '서적';
+  if (/STARBUCKS|카페|커피/i.test(m)) return '커피숍';
+  return '일반음식점';
+}
+function adaptTx(t, i) {
+  // approvedAt은 +09:00(KST) 문자열 — 보는 PC의 시간대와 무관하게 그대로 표시
+  const useDate = t.approvedAt.slice(0, 10).replaceAll('-', '.');
+  return {
+    id: t.id,
+    useDate,
+    payAt: `${useDate} ${t.approvedAt.slice(11, 19)}`,
+    merchant: t.merchant + (t.currency !== 'KRW' ? ` (${t.currency} ${t.amount.toLocaleString()})` : ''),
+    biz: guessBiz(t.merchant),
+    amount: t.amountKRW,
+    owner: '유상욱', dept: '전력사업기획팀', cardNo: '4025961080293059',
+    apprNo: String(45125 + i * 52371).padStart(8, '0'),
+    status: t.status === 'vouchered' ? '정산완료' : '미정산',
+    registrant: t.status === 'vouchered' ? '유상욱' : '',
+  };
+}
+
+async function load() {
+  const txs = await eaccApi('/api/transactions');
+  apiMode = Array.isArray(txs);
+  ALL = apiMode ? txs.map(adaptTx) : CARD_TXNS.map(t => ({ ...t, id: t.apprNo }));
+  view = ALL.slice();
+  renderTable();
+}
 
 function renderTable() {
   const body = document.getElementById('tx-body');
   body.innerHTML = view.map((t, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td><input type="checkbox" class="row-chk" value="${t.apprNo}"></td>
+      <td><input type="checkbox" class="row-chk" value="${t.id}"></td>
       <td>${t.useDate}</td>
       <td>${t.payAt}</td>
       <td class="l">${t.merchant}</td>
@@ -117,7 +154,7 @@ function applyFilter() {
   const status = document.getElementById('f-status').value;
   const owner = document.getElementById('f-owner').value.trim();
   const merchant = document.getElementById('f-merchant').value.trim();
-  view = CARD_TXNS.filter(t =>
+  view = ALL.filter(t =>
     (!apprno || t.apprNo.includes(apprno)) &&
     (!status || t.status === status) &&
     (!owner || t.owner.includes(owner)) &&
@@ -130,15 +167,34 @@ function toggleAll(master) {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = master.checked; });
 }
 
-function createVoucher() {
+async function createVoucher() {
   const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
   if (checked.length === 0) { alert('전표를 작성할 카드내역을 선택해 주세요.'); return; }
-  CARD_TXNS.forEach(t => { if (checked.includes(t.apprNo)) { t.status = '정산완료'; t.registrant = '유상욱'; } });
+  const rows = ALL.filter(t => checked.includes(t.id));
+  const totalKRW = rows.reduce((s, t) => s + t.amount, 0);
+
+  if (apiMode) {
+    // 실제 서버에 전표 상신 → 나의 문서함/관리자 화면에도 뜬다
+    const voucher = await eaccApi('/api/vouchers', {
+      body: {
+        title: `법인카드 정산 (${rows[0].merchant}${rows.length > 1 ? ` 외 ${rows.length - 1}건` : ''})`,
+        lines: rows.map(t => ({ txId: t.id, amountKRW: t.amount, description: `${t.merchant} · ${t.biz}` })),
+        approvalLine: totalKRW <= 300000 ? ['김팀장'] : ['김팀장', '박부장'],
+      },
+    });
+    if (voucher) {
+      await load();
+      alert(`전표 [${voucher.id}]가 상신되었습니다.\n결재라인: ${voucher.approvalLine.join(' → ')}\n(나의 문서함 > 전체조회에서 확인 가능)`);
+      return;
+    }
+  }
+  // 서버가 없을 때의 폴백: 화면 안에서만 상태 변경
+  ALL.forEach(t => { if (checked.includes(t.id)) { t.status = '정산완료'; t.registrant = '유상욱'; } });
   applyFilter();
-  alert(`선택한 ${checked.length}건으로 전표가 작성되었습니다. (전표작성 상세 화면은 연결 예정)`);
+  alert(`선택한 ${checked.length}건으로 전표가 작성되었습니다. (오프라인 모드)`);
 }
 
-renderTable();
+load();
 </script>
 </body>
 </html>

@@ -19,7 +19,7 @@
   </div>
   <div class="home-stats">
     <a class="stat" href="card-settlement.html">
-      <div class="ico">💳</div><div class="lb">법인카드</div><div class="num hot">7</div>
+      <div class="ico">💳</div><div class="lb">법인카드</div><div class="num hot" id="stat-card">7</div>
     </a>
     <a class="stat" href="mydocs-all.html">
       <div class="ico">📝</div><div class="lb">결재할문서</div><div class="num">0</div>
@@ -85,6 +85,11 @@
 <script src="js/layout.js"></script>
 <script>
 renderChrome({ top: '' });   // 메인은 활성 상단메뉴 없음
+
+// 서버가 있으면 미정산 카드내역 건수를 실데이터로 표시 (없으면 기본값 7 유지)
+eaccApi('/api/transactions?status=unmatched').then(txs => {
+  if (Array.isArray(txs)) document.getElementById('stat-card').textContent = txs.length;
+});
 </script>
 </body>
 </html>

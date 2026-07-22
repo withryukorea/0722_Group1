@@ -28,11 +28,15 @@ app.post("/api/reset", (req, res) => {
   res.json({ ok: true });
 });
 
+// ── 직원용 이어카운팅 화면 (eaccounting/, 정적 파일) ───────────
+app.use("/eaccounting", express.static(path.join(__dirname, "..", "eaccounting")));
+
 // ── 관리자 웹화면 (정적 파일) ──────────────────────────────────
 app.use("/", express.static(path.join(__dirname, "public")));
 
 app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);
   console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/`);
+  console.log(`  ├ 직원용 화면 : http://localhost:${PORT}/eaccounting/`);
   console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
 });
