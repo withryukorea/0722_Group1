@@ -313,13 +313,32 @@ function openDrawer(id) {
       </dl>
       ${(r.checks || []).map(c => `<div class="preset-why" style="margin-top:8px;${c.status === "warn" ? "background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn)" : ""}">
         ${c.status === "warn" ? "⚠️" : "ℹ️"} ${c.message}</div>`).join("")}
-      ${r.suggestedPresetId && !r.presetId ? `<button class="btn primary block" style="margin-top:14px" id="applyPreset">⚡ 추천 프리셋 적용 (${presetName(r.suggestedPresetId)})</button>` : ""}`;
+      ${r.suggestedPresetId && !r.presetId ? `<button class="btn primary block" style="margin-top:14px" id="applyPreset">⚡ 추천 프리셋 적용 (${presetName(r.suggestedPresetId)})</button>` : ""}
+      ${!r.txId ? `<div style="margin-top:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--ink-2);margin-bottom:6px">수동 매칭 후보 <span class="muted" style="font-weight:600">— 금액 ±3% 승인내역</span></div>
+        ${(() => {
+          const amt = r.amountKRW || 0;
+          const cands = TXS.filter(t => t.status !== "vouchered" && !t.matchedReceiptId
+            && Math.abs((t.amountKRW || 0) - amt) <= Math.max(1, amt * 0.03))
+            .sort((a, b) => Math.abs(a.amountKRW - amt) - Math.abs(b.amountKRW - amt)).slice(0, 4);
+          return cands.length ? cands.map(t => `
+            <button class="btn sm block manual-cand" data-tx="${t.id}" style="justify-content:space-between;margin-bottom:6px">
+              <span>${t.merchant} · ${t.approvedAt ? D.dt(t.approvedAt) : ""}</span><b class="num">${D.krw(t.amountKRW)}</b>
+            </button>`).join("")
+            : '<p class="muted">±3% 이내 후보가 없습니다 — 개인경비 추정</p>';
+        })()}
+      </div>` : ""}`;
     const ap = $("applyPreset");
     if (ap) ap.onclick = async () => {
       const res = await eaccApi(`/api/receipts/${S.id}`, { method: "PATCH", body: { presetId: r.suggestedPresetId } });
       if (res) { closeDrawer(); load(false); }
       else $("bulkMsg").textContent = "프리셋 적용 실패";
     };
+    document.querySelectorAll(".manual-cand").forEach(b => b.onclick = async () => {
+      const res = await eaccApiTry("/api/match/confirm", { body: { receiptId: S.id, txId: b.dataset.tx } });
+      if (res.ok) { closeDrawer(); load(false); }
+      else alert("수동 매칭 실패: " + ((res.data && (res.data.hint || res.data.error)) || "서버 오류"));
+    });
   }
   $("drawer").classList.add("open"); $("scrim").classList.add("on");
 }

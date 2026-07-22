@@ -258,15 +258,15 @@ window.SKD = (function () {
   const activeTrip = () => TRIPS.find(t => t.status === "active") || null;
   const valid = () => RECEIPTS.filter(r => r.status !== "duplicate");
 
-  /* 이미지 경로: file:// 로 직접 열면 리포 내 data_sample 상대경로, :4000 서빙 시엔
-     data_sample 이 서빙되지 않으므로 null (모든 화면이 img null 을 허용한다) */
+  /* 이미지 경로: :4000 서빙 시엔 서버의 /data_sample 정적 경로(P1이 서빙),
+     file:// 로 직접 열면 리포 내 상대경로 */
   function imgUrl(name) {
     if (!name) return null;
     if (location.protocol === "file:") {
       const depth = /\/eaccounting\/m\//.test(location.pathname.replace(/\\/g, "/")) ? "../../" : "../";
       return depth + "data_sample/images/" + encodeURIComponent(name);
     }
-    return null;
+    return "/data_sample/images/" + encodeURIComponent(name);
   }
 
   /* 차트 툴팁 */

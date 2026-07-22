@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AXE-acc - 간편정산 · 모바일 안내</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/quick.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div class="page-heading">
+      <h2 class="page-title">모바일에서 촬영 <span class="fav off">★</span></h2>
+    </div>
+
+    <div class="qk">
+      <div class="grid c2e">
+        <section class="card">
+          <div class="card-title">📱 AXE-acc 모바일 — 같은 DB, 다른 창</div>
+          <p style="font-size:13.5px;line-height:1.7;margin-bottom:12px">
+            모바일 AXE-acc는 <b>현장에서 필요한 기능만</b> 담은 전용 창입니다.
+            영수증을 촬영하면 <b>PC와 같은 저장소</b>에 즉시 저장되고,
+            매칭 확인·전표 생성은 여기 PC 간편정산에서 이어집니다.</p>
+          <dl style="display:grid;grid-template-columns:96px 1fr;row-gap:8px;font-size:13px;margin-bottom:14px">
+            <dt class="muted">모바일 주소</dt><dd class="num" style="font-weight:700" id="mUrl"></dd>
+            <dt class="muted">모바일 기능</dt><dd>홈 요약 · 촬영(카메라/갤러리) · 영수증함(수동매칭) · 일정/프리셋 조회</dd>
+            <dt class="muted">PC 전용</dt><dd>자동매칭 실행 · 정산·전표 생성 · 상신 · 분석 대시보드</dd>
+          </dl>
+          <button class="btn primary block" id="btnOpen">📱 모바일 창 열기 (새 창)</button>
+          <p class="muted" style="margin-top:8px;text-align:center">폰 크기 팝업으로 열립니다 — 실제 휴대폰에서는 같은 주소로 접속하세요</p>
+        </section>
+
+        <section class="card">
+          <div class="card-title">데모 시나리오 (같은 DB 증명)</div>
+          <div id="steps"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/layout.js"></script>
+<script src="js/quick-data.js"></script>
+<script>
+renderChrome({ top: '간편정산', active: '모바일에서 촬영',
+               breadcrumb: ['메뉴', '간편정산', '모바일에서 촬영'] });
+
+const mobileUrl = new URL('m/index.html', location.href).href;
+document.getElementById('mUrl').textContent = mobileUrl;
+document.getElementById('btnOpen').onclick = () =>
+  window.open(mobileUrl, 'axeMobile', 'width=420,height=860,menubar=no,toolbar=no,location=no');
+
+const STEPS = [
+  ["모바일 창에서 영수증 촬영 (또는 샘플 선택)", "저장 즉시 서버 저장소에 반영"],
+  ["이 PC 창에서 간편정산 › 자동매칭 새로고침", "방금 촬영한 영수증이 바로 보임 — 같은 DB"],
+  ["매칭 확인 → 정산·전표 생성 → 상신", "전결라인 자동 지정 (기존 E-acc 규정 그대로)"],
+  ["나의 문서함에서 전표·증빙 확인", "모바일 영수증함에도 '매칭 완료'로 동기화"]
+];
+document.getElementById("steps").innerHTML = STEPS.map(([t, d], i) => `
+  <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);${i === STEPS.length - 1 ? "border-bottom:none" : ""}">
+    <span style="flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--sk-grad);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span>
+    <div style="font-size:13px"><b>${t}</b><div class="muted" style="margin-top:1px">${d}</div></div>
+  </div>`).join("");
+</script>
+</body>
+</html>

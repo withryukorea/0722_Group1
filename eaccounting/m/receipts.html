@@ -33,10 +33,33 @@ const $ = (id) => document.getElementById(id);
 
 let MODE = "fallback";
 let SROWS = [];           // 서버 영수증
+let STXS = [];            // 서버 카드 승인내역 (수동매칭 후보용)
 let filter = "all";
+let sExpanded = null;     // 후보 패널이 열린 영수증 id
 
 /* ── 서버 모드 ─────────────────────────────────────────── */
 const S_FILTERS = [["all", "전체"], ["matched", "매칭 완료"], ["unmatched", "미매칭"]];
+
+/* 수동매칭 후보: 금액 ±3%, 전표 처리 전, 다른 영수증과 미연결 */
+function candidatesOf(r) {
+  const amt = r.amountKRW || 0;
+  return STXS.filter(t => t.status !== "vouchered" && !t.matchedReceiptId
+    && Math.abs((t.amountKRW || 0) - amt) <= Math.max(1, amt * 0.03))
+    .sort((a, b) => Math.abs(a.amountKRW - amt) - Math.abs(b.amountKRW - amt))
+    .slice(0, 4);
+}
+
+async function confirmMatch(receiptId, txId) {
+  const res = await eaccApiTry("/api/match/confirm", { body: { receiptId, txId } });
+  if (res.ok) {
+    sExpanded = null;
+    SROWS = (await eaccApi("/api/receipts")) || SROWS;
+    STXS = (await eaccApi("/api/transactions")) || STXS;
+    serverRender();
+  } else {
+    alert("수동 매칭 실패: " + ((res.data && (res.data.hint || res.data.error)) || "서버 오류"));
+  }
+}
 
 function serverRender() {
   $("filterChips").innerHTML = S_FILTERS.map(([k, label]) =>
@@ -60,8 +83,9 @@ function serverRender() {
       ${rows.map(r => {
         const o = r.ocr || {};
         const dupWarn = (r.checks || []).some(c => c.type === "DUPLICATE_DOCUMENT");
+        const canPick = !r.matchedTxId;
         return `
-        <div class="rcpt-row">
+        <div class="rcpt-row" ${canPick ? `data-expand="${r.id}" style="cursor:pointer"` : ""}>
           <div class="rcpt-thumb">${r.croppedUrl ? `<img src="${r.croppedUrl}" alt="">` : "🧾"}</div>
           <div class="rcpt-main">
             <div class="m1">${o.merchant || r.id}</div>
@@ -73,13 +97,30 @@ function serverRender() {
           </div>
           <div class="rcpt-amt">
             <div class="a1 num">${D.krw(r.amountKRW || 0)}</div>
-            <div class="a2">${r.matchedTxId ? '<span class="badge ok">매칭 완료</span>' : '<span class="badge neutral">미매칭</span>'}</div>
+            <div class="a2">${r.matchedTxId ? '<span class="badge ok">매칭 완료</span>' : '<span class="badge warn">미매칭 — 후보 선택 ▾</span>'}</div>
           </div>
-        </div>`;
+        </div>
+        ${sExpanded === r.id && canPick ? `
+        <div style="background:#FAFBFC;border:1px solid var(--line);border-radius:12px;padding:12px;margin:2px 0 10px">
+          <div style="font-size:12px;font-weight:800;color:var(--ink-2);margin-bottom:8px">
+            매칭 후보 선택 <span class="muted" style="font-weight:600">— 금액 ±3% 승인내역</span></div>
+          ${(() => { const cands = candidatesOf(r); return cands.length ? cands.map(tx => `
+            <button class="btn block s-cand" data-r="${r.id}" data-tx="${tx.id}"
+              style="justify-content:space-between;margin-bottom:6px;font-size:12.5px">
+              <span>${tx.merchant} · ${tx.approvedAt ? D.dt(tx.approvedAt) : ""}</span>
+              <b class="num">${D.krw(tx.amountKRW)}</b>
+            </button>`).join("")
+            : '<p class="muted" style="padding:2px 0 8px">±3% 이내 후보가 없습니다 — 개인카드/현금 결제(개인경비)로 추정됩니다</p>'; })()}
+        </div>` : ""}`;
       }).join("")}
     </div>
-    <p class="muted" style="margin-top:10px;line-height:1.5;text-align:center">매칭·전표 생성은 <b>PC AXE-acc › 간편정산</b>에서 진행하세요</p>`
+    <p class="muted" style="margin-top:10px;line-height:1.5;text-align:center">미매칭 건을 탭하면 후보를 골라 바로 확정할 수 있어요 · 전표 생성은 <b>PC AXE-acc › 간편정산</b>에서</p>`
     : `<p class="muted" style="text-align:center;padding:40px 0">해당 조건의 영수증이 없습니다 — <a href="capture.html" style="color:var(--sk-red);font-weight:700">촬영하기</a></p>`;
+
+  document.querySelectorAll("[data-expand]").forEach(el =>
+    el.onclick = () => { sExpanded = sExpanded === el.dataset.expand ? null : el.dataset.expand; serverRender(); });
+  document.querySelectorAll(".s-cand").forEach(b =>
+    b.onclick = (e) => { e.stopPropagation(); confirmMatch(b.dataset.r, b.dataset.tx); });
 }
 
 /* ── 폴백 모드 (시제품#1 원본 로직) ────────────────────── */
@@ -161,7 +202,11 @@ function fallbackRender() {
 /* ── 부팅 ─────────────────────────────────────────────── */
 (async () => {
   const list = await eaccApi("/api/receipts");
-  if (list) { MODE = "server"; SROWS = list; serverRender(); }
+  if (list) {
+    MODE = "server"; SROWS = list;
+    STXS = (await eaccApi("/api/transactions")) || [];
+    serverRender();
+  }
   else fallbackRender();
 })();
 </script>

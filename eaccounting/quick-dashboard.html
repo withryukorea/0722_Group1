@@ -23,26 +23,26 @@
 
     <div class="qk">
       <div class="page-head" style="margin-bottom:14px">
-        <div class="desc">모바일·PC에서 등록된 모든 지출을 대분류 → 세부비목으로 분석합니다 ·
+        <div class="desc">모바일·PC에서 등록된 모든 지출을 계정과목 기준으로 분석합니다 ·
           건별 내역은 <a href="quick-match.html" style="color:var(--sk-red);font-weight:700">자동매칭</a>에서 확인</div>
         <a class="btn primary" href="quick-upload.html" style="flex:0 0 auto">+ 영수증 업로드</a>
       </div>
 
-      <!-- KPI (서버 연결 시 실데이터) -->
+      <!-- KPI -->
       <div class="grid kpi4" id="kpis" style="margin-bottom:16px"></div>
 
       <div class="grid c2" style="margin-bottom:16px">
         <section class="card">
-          <div class="card-title">카테고리별 사용 구성 <span class="more" id="demoTag1">데모 데이터 기준</span></div>
+          <div class="card-title">카테고리별 사용 구성 <span class="more" id="srcTag1">불러오는 중…</span></div>
           <div class="donut-wrap">
-            <svg id="donut" width="210" height="210" viewBox="0 0 210 210" role="img" aria-label="대분류별 사용 구성 도넛 차트"></svg>
+            <svg id="donut" width="210" height="210" viewBox="0 0 210 210" role="img" aria-label="카테고리별 사용 구성 도넛 차트"></svg>
             <div class="donut-list" id="donutList"></div>
           </div>
           <div class="legend" id="donutLegend"></div>
         </section>
 
         <section class="card">
-          <div class="card-title">월별 사용 추이 <span class="more">대분류 누적 · 단위 천원</span></div>
+          <div class="card-title">월별 사용 추이 <span class="more">카테고리 누적 · 단위 천원</span></div>
           <div class="bars" id="bars"></div>
           <div class="legend" id="barsLegend"></div>
           <div class="chart-note">막대에 마우스를 올리면 월별 상세 금액이 표시됩니다</div>
@@ -51,13 +51,13 @@
 
       <div class="grid c2e" style="margin-bottom:16px">
         <section class="card">
-          <div class="card-title">출장비 기준 대비 사용 현황 <span class="more">기준 금액이 설정된 출장</span></div>
-          <div id="tripGauges"></div>
+          <div class="card-title">한도·프리셋 현황 <span class="more" id="srcTag2"></span></div>
+          <div id="budgets"></div>
         </section>
 
         <section class="card">
-          <div class="card-title">한도·예산 현황 <span class="more">AI Tool은 정산 제도별 상한 적용</span></div>
-          <div id="budgets"></div>
+          <div class="card-title">최근 등록 영수증 <a class="more" href="quick-match.html">전체보기 ›</a></div>
+          <table class="tbl" id="recentTbl"></table>
         </section>
       </div>
 
@@ -68,8 +68,8 @@
         </section>
 
         <section class="card">
-          <div class="card-title">최근 등록 영수증 <a class="more" href="quick-match.html">전체보기 ›</a></div>
-          <table class="tbl" id="recentTbl"></table>
+          <div class="card-title">출장비 기준 대비 사용 <span class="more">데모 데이터 기준</span></div>
+          <div id="tripGauges"></div>
         </section>
       </div>
     </div>
@@ -86,264 +86,257 @@ const D = SKD;
 const tip = D.attachTip();
 const $ = (id) => document.getElementById(id);
 
-/* ---- KPI: 서버 연결 시 실데이터, 아니면 내장 데모 ---- */
-(async () => {
-  const receipts = await eaccApi("/api/receipts");
-  if (receipts) {
-    const vouchers = (await eaccApi("/api/vouchers")) || [];
-    const total = receipts.reduce((s, r) => s + (r.amountKRW || 0), 0);
-    const month = receipts.filter(r => ((r.ocr || {}).paidAt || r.createdAt || "").startsWith("2026-07"));
-    const monthTotal = month.reduce((s, r) => s + (r.amountKRW || 0), 0);
-    const matchedN = receipts.filter(r => r.matchedTxId).length;
-    const vTotal = vouchers.reduce((s, v) => s + (v.totalKRW || 0), 0);
-    $("kpis").innerHTML = `
-      <div class="card kpi accent">
-        <div class="k-label">등록 지출 총액 <span class="badge neutral" style="background:rgba(255,255,255,.2);color:#fff">서버 실데이터</span></div>
-        <div class="k-val num">${D.krw(total)}</div>
-        <div class="k-sub">영수증 ${receipts.length}건 · 외화 자동 환산 포함</div>
-      </div>
-      <div class="card kpi">
-        <div class="k-label">이번 달 등록 <span class="badge neutral">2026.07</span></div>
-        <div class="k-val num">${D.krw(monthTotal)}</div>
-        <div class="k-sub">${month.length}건</div>
-      </div>
-      <div class="card kpi">
-        <div class="k-label">매칭 현황</div>
-        <div class="k-val num">${matchedN}<span style="font-size:14px;color:var(--ink-3)"> / ${receipts.length}건</span></div>
-        <div class="k-sub">미매칭 ${receipts.length - matchedN}건 — 자동매칭에서 처리</div>
-      </div>
-      <div class="card kpi">
-        <div class="k-label">상신 전표 <span class="badge ${vouchers.length ? "ok" : "neutral"}">${vouchers.length}건</span></div>
-        <div class="k-val num">${D.krw(vTotal)}</div>
-        <div class="k-sub">나의 문서함에서 결재 진행</div>
-      </div>`;
+/* 차트 카테고리 (검증 팔레트: #EA002C #2563EB #0E9F6E #8B5CF6) */
+const GDEF = {
+  trip:         { name: "출장",   hex: "#EA002C" },
+  ai:           { name: "AI구독", hex: "#2563EB" },
+  general:      { name: "일반",   hex: "#0E9F6E" },
+  unclassified: { name: "미분류", hex: "#8B5CF6" }
+};
+const G_ORDER = ["trip", "ai", "general", "unclassified"];
+const groupOfCode = (code) =>
+  /^TRAVEL_/.test(code) ? "trip" : code === "WELFARE_AI" ? "ai" : code === "UNCLASSIFIED" ? "unclassified" : "general";
 
-    /* 최근 등록: 서버 실데이터 */
-    const recent = receipts.slice().sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")).slice(0, 6);
-    if (recent.length) {
-      $("recentTbl").innerHTML = `
-        <thead><tr><th>가맹점</th><th>영수증</th><th>일시</th><th style="text-align:right">환산(₩)</th></tr></thead>
-        <tbody>${recent.map(r => {
-          const o = r.ocr || {};
-          return `<tr>
-            <td style="font-weight:700">${o.merchant || "(미인식)"}</td>
-            <td class="muted">${r.id}${r.matchedTxId ? ' <span class="badge ok" style="font-size:10px">매칭</span>' : ""}</td>
-            <td class="muted">${o.paidAt ? D.dt(o.paidAt) : "—"}</td>
-            <td class="num">${D.krw(r.amountKRW || 0)}</td></tr>`;
-        }).join("")}</tbody>`;
-    } else {
-      $("recentTbl").innerHTML = '<tbody><tr><td class="muted" style="padding:16px">아직 등록된 영수증이 없습니다</td></tr></tbody>';
-    }
-  } else {
-    demoKpis();
-    demoRecent();
-  }
-})();
-
-function demoKpis() {
-  const all = D.valid();
-  const GT = D.groupTotals();
-  const grand = Object.values(GT).reduce((s, g) => s + g.total, 0);
-  const july = all.filter(r => r.paidAt.startsWith("2026-07"));
-  const julyTotal = july.reduce((s, r) => s + r.amountKRW, 0);
-  const reviewN = all.filter(r => r.status === "review").length;
-  const dupN = D.RECEIPTS.filter(r => r.status === "duplicate").length;
-  const aiB = D.BUDGETS[0];
-  $("kpis").innerHTML = `
-    <div class="card kpi accent">
-      <div class="k-label">사용 총액 (내장 데모)</div>
-      <div class="k-val num">${D.krw(grand)}</div>
-      <div class="k-sub">영수증 ${all.length}건 · 외화 자동 환산 포함</div>
-    </div>
-    <div class="card kpi">
-      <div class="k-label">이번 달 사용 <span class="badge neutral">2026.07</span></div>
-      <div class="k-val num">${D.krw(julyTotal)}</div>
-      <div class="k-sub">${july.length}건 · 해외출장 진행중</div>
-    </div>
-    <div class="card kpi">
-      <div class="k-label">확인 필요 <span class="badge warn">${reviewN}건</span></div>
-      <div class="k-val num">${reviewN}<span style="font-size:14px;color:var(--ink-3)"> 건</span></div>
-      <div class="k-sub">중복 인보이스 ${dupN}건 자동 제외됨</div>
-    </div>
-    <div class="card kpi">
-      <div class="k-label">AI구독 한도 (DIY100) <span class="badge ${aiB.usedKRW > aiB.limitKRW ? "danger" : "ok"}">${aiB.usedKRW > aiB.limitKRW ? "초과" : "이내"}</span></div>
-      <div class="k-val num">${D.krw(Math.abs(aiB.limitKRW - aiB.usedKRW))}</div>
-      <div class="k-sub">DIY100 연 100만원(VAT별도) 기준</div>
-    </div>`;
-}
-
-function demoRecent() {
-  const all = D.valid();
-  $("recentTbl").innerHTML = `
-    <thead><tr><th>가맹점</th><th>분류</th><th>일시</th><th style="text-align:right">금액</th></tr></thead>
-    <tbody>${all.slice().sort((a, b) => b.paidAt.localeCompare(a.paidAt)).slice(0, 6).map(r => {
-      const G = D.GROUPS[D.groupOf(r)];
-      return `<tr>
-        <td style="font-weight:700">${r.merchant}</td>
-        <td><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span></td>
-        <td class="muted">${D.dt(r.paidAt)}</td>
-        <td class="num">${D.krw(r.amountKRW)}</td></tr>`;
-    }).join("")}</tbody>`;
-}
-
-/* ── 이하 분석 위젯: 시제품#1 데모 데이터 기준 (카테고리 체계가 필요한 차트) ── */
-const all = D.valid();
-const GT = D.groupTotals();
-const grand = Object.values(GT).reduce((s, g) => s + g.total, 0);
-
-/* ---- 도넛 (대분류) ---- */
-(function donut() {
+/* ---- 공통 렌더러: segments = [{key,name,hex,total,subs:{label:amt}}], months = [{label,per:{key:amt},tot}] ---- */
+function renderDonut(segments, grand) {
   const cx = 105, cy = 105, R = 88, r = 56;
   let a0 = -Math.PI / 2;
   const svg = $("donut");
-  const segs = D.GROUP_ORDER.filter(g => GT[g].total > 0);
-  svg.innerHTML = segs.map(g => {
-    const v = GT[g].total, frac = v / grand;
-    const a1 = a0 + frac * Math.PI * 2;
+  const live = segments.filter(s => s.total > 0);
+  svg.innerHTML = live.map(s => {
+    const a1 = a0 + (s.total / grand) * Math.PI * 2;
     const pad = 0.018;
-    const s = a0 + pad, e = a1 - pad;
-    const large = (e - s) > Math.PI ? 1 : 0;
+    const s0 = a0 + pad, e0 = a1 - pad;
+    const large = (e0 - s0) > Math.PI ? 1 : 0;
     const p = (a, rad) => `${cx + rad * Math.cos(a)},${cy + rad * Math.sin(a)}`;
-    const d = `M ${p(s, R)} A ${R} ${R} 0 ${large} 1 ${p(e, R)} L ${p(e, r)} A ${r} ${r} 0 ${large} 0 ${p(s, r)} Z`;
+    const d = `M ${p(s0, R)} A ${R} ${R} 0 ${large} 1 ${p(e0, R)} L ${p(e0, r)} A ${r} ${r} 0 ${large} 0 ${p(s0, r)} Z`;
     a0 = a1;
-    return `<path d="${d}" fill="${D.GROUPS[g].hex}" data-g="${g}" style="cursor:pointer"></path>`;
+    return `<path d="${d}" fill="${s.hex}" data-k="${s.key}" style="cursor:pointer"></path>`;
   }).join("") + `
     <text x="${cx}" y="${cy - 6}" text-anchor="middle" class="donut-center">사용 총액</text>
     <text x="${cx}" y="${cy + 16}" text-anchor="middle" style="font-size:16px;font-weight:800;fill:var(--ink)">${D.fmt(grand / 10000)}만원</text>`;
 
   svg.querySelectorAll("path").forEach(pth => {
+    const s = live.find(x => x.key === pth.dataset.k);
     pth.addEventListener("mousemove", (e) => {
-      const g = pth.dataset.g, t = GT[g];
-      const subs = Object.entries(t.subs).map(([s, v]) => `<span class="tl">${s}</span> ${D.krw(v)}`).join("<br>");
-      tip.show(`<b>${D.GROUPS[g].name}</b> · ${D.krw(t.total)} (${Math.round(t.total / grand * 100)}%)<br>${subs}`, e.clientX, e.clientY);
+      const subs = Object.entries(s.subs).map(([k, v]) => `<span class="tl">${k}</span> ${D.krw(v)}`).join("<br>");
+      tip.show(`<b>${s.name}</b> · ${D.krw(s.total)} (${Math.round(s.total / grand * 100)}%)<br>${subs}`, e.clientX, e.clientY);
     });
     pth.addEventListener("mouseleave", tip.hide);
   });
 
-  $("donutList").innerHTML = segs.map(g => {
-    const t = GT[g];
-    const subs = Object.entries(t.subs).sort((a, b) => b[1] - a[1])
-      .map(([s, v]) => `${s} ${D.fmt(v / 1000)}k`).join(" · ");
+  $("donutList").innerHTML = live.map(s => {
+    const subs = Object.entries(s.subs).sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k} ${D.fmt(v / 1000)}k`).join(" · ");
     return `
-      <div class="row"><span class="cat"><i style="background:${D.GROUPS[g].hex}"></i></span>
-        <span class="nm">${D.GROUPS[g].name}</span>
-        <span class="pct">${Math.round(t.total / grand * 100)}%</span>
-        <b class="num">${D.krw(t.total)}</b></div>
+      <div class="row"><span class="cat"><i style="background:${s.hex}"></i></span>
+        <span class="nm">${s.name}</span>
+        <span class="pct">${Math.round(s.total / grand * 100)}%</span>
+        <b class="num">${D.krw(s.total)}</b></div>
       <div class="subs">${subs}</div>`;
   }).join("");
-  $("donutLegend").innerHTML = segs.map(g =>
-    `<span class="cat"><i style="background:${D.GROUPS[g].hex}"></i>${D.GROUPS[g].name}</span>`).join("");
-})();
+  $("donutLegend").innerHTML = live.map(s =>
+    `<span class="cat"><i style="background:${s.hex}"></i>${s.name}</span>`).join("");
+}
 
-/* ---- 월별 스택 막대 ---- */
-(function bars() {
-  const months = [...new Set(all.map(r => r.paidAt.slice(0, 7)))].sort();
-  const byM = months.map(m => {
-    const rows = all.filter(r => r.paidAt.startsWith(m));
-    const per = {}; let tot = 0;
-    D.GROUP_ORDER.forEach(g => per[g] = 0);
-    rows.forEach(r => { per[D.groupOf(r)] += r.amountKRW; tot += r.amountKRW; });
-    return { m, per, tot };
-  });
-  const max = Math.max(...byM.map(x => x.tot));
+function renderBars(months, defs) {
+  const max = Math.max(...months.map(x => x.tot), 1);
   const H = 150;
-  $("bars").innerHTML = byM.map(x => `
+  $("bars").innerHTML = months.map(x => `
     <div class="bcol">
       <span class="bv num">${D.fmt(x.tot / 1000)}k</span>
-      <div class="stack" data-m="${x.m}" style="height:${Math.max(4, x.tot / max * H)}px">
-        ${D.GROUP_ORDER.filter(g => x.per[g] > 0).map(g =>
-          `<div class="seg" style="flex:${x.per[g]};background:${D.GROUPS[g].hex}"></div>`).join("")}
+      <div class="stack" data-m="${x.label}" style="height:${Math.max(4, x.tot / max * H)}px">
+        ${G_ORDER.filter(k => (x.per[k] || 0) > 0).map(k =>
+          `<div class="seg" style="flex:${x.per[k]};background:${defs[k].hex}"></div>`).join("")}
       </div>
-      <span class="bl">${x.m.slice(2).replace("-", ".")}</span>
+      <span class="bl">${x.label.slice(2).replace("-", ".")}</span>
     </div>`).join("");
   document.querySelectorAll(".stack").forEach(st => {
-    const x = byM.find(b => b.m === st.dataset.m);
+    const x = months.find(b => b.label === st.dataset.m);
     st.addEventListener("mousemove", (e) => {
-      const lines = D.GROUP_ORDER.filter(g => x.per[g] > 0)
-        .map(g => `<span class="tl">${D.GROUPS[g].name}</span> ${D.krw(x.per[g])}`).join("<br>");
-      tip.show(`<b>${x.m.replace("-", "년 ")}월</b> · ${D.krw(x.tot)}<br>${lines}`, e.clientX, e.clientY);
+      const lines = G_ORDER.filter(k => (x.per[k] || 0) > 0)
+        .map(k => `<span class="tl">${defs[k].name}</span> ${D.krw(x.per[k])}`).join("<br>");
+      tip.show(`<b>${x.label.replace("-", "년 ")}월</b> · ${D.krw(x.tot)}<br>${lines}`, e.clientX, e.clientY);
     });
     st.addEventListener("mouseleave", tip.hide);
   });
-  $("barsLegend").innerHTML = D.GROUP_ORDER.map(g =>
-    `<span class="cat"><i style="background:${D.GROUPS[g].hex}"></i>${D.GROUPS[g].name}</span>`).join("");
+  $("barsLegend").innerHTML = G_ORDER.filter(k => defs[k]).map(k =>
+    `<span class="cat"><i style="background:${defs[k].hex}"></i>${defs[k].name}</span>`).join("");
+}
+
+/* ---- 부팅: 서버 stats 우선, 실패 시 내장 데모 ---- */
+(async () => {
+  const stats = await eaccApi("/api/stats");
+  const receipts = stats ? await eaccApi("/api/receipts") : null;
+
+  if (stats) {
+    /* KPI */
+    $("kpis").innerHTML = `
+      <div class="card kpi accent">
+        <div class="k-label">등록 지출 총액 <span class="badge neutral" style="background:rgba(255,255,255,.2);color:#fff">서버 실데이터</span></div>
+        <div class="k-val num">${D.krw(stats.totalKRW)}</div>
+        <div class="k-sub">영수증 ${stats.count}건 · 외화 자동 환산 포함</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">매칭 현황</div>
+        <div class="k-val num">${stats.matched}<span style="font-size:14px;color:var(--ink-3)"> / ${stats.count}건</span></div>
+        <div class="k-sub">미매칭 ${stats.unmatched}건 — 자동매칭에서 처리</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">상신 전표 <span class="badge ${stats.vouchers.count ? "ok" : "neutral"}">${stats.vouchers.count}건</span></div>
+        <div class="k-val num">${D.krw(stats.vouchers.totalKRW)}</div>
+        <div class="k-sub">나의 문서함에서 결재 진행</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">미분류 지출</div>
+        <div class="k-val num">${D.krw((stats.byAccount.find(a => a.code === "UNCLASSIFIED") || {}).totalKRW || 0)}</div>
+        <div class="k-sub">매칭·프리셋 확정 시 자동 분류됩니다</div>
+      </div>`;
+
+    /* 도넛: 계정 → 카테고리 그룹, subs = 계정과목명 */
+    const segs = G_ORDER.map(k => ({ key: k, ...GDEF[k], total: 0, subs: {} }));
+    stats.byAccount.forEach(a => {
+      const s = segs.find(x => x.key === groupOfCode(a.code));
+      s.total += a.totalKRW;
+      s.subs[a.name] = (s.subs[a.name] || 0) + a.totalKRW;
+    });
+    renderDonut(segs, stats.totalKRW || 1);
+    $("srcTag1").textContent = "서버 실데이터 · 계정과목 기준";
+
+    /* 월별 */
+    renderBars(stats.byMonth.map(m => {
+      const per = {};
+      Object.entries(m.byAccount).forEach(([code, v]) => {
+        const k = groupOfCode(code); per[k] = (per[k] || 0) + v;
+      });
+      return { label: m.month, per, tot: m.totalKRW };
+    }), GDEF);
+
+    /* 한도·프리셋 (실데이터) */
+    $("srcTag2").textContent = "서버 실데이터 · 상신 전표만 차감";
+    $("budgets").innerHTML = stats.presets.filter(p => p.limitKRW).map(p => {
+      const pct = Math.min(100, p.usedKRW / p.limitKRW * 100), over = p.usedKRW > p.limitKRW;
+      return `
+      <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+        <div class="g-head"><span>${p.type === "TRIP" ? "✈" : "⚡"} ${p.name}</span><b class="num">${D.krw(p.usedKRW)} / ${D.krw(p.limitKRW)}</b></div>
+        <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+        <div class="g-foot"><span>${Math.round(pct)}% 소진</span>
+          <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "⚠ 초과 " + D.krw(p.usedKRW - p.limitKRW) : "잔여 " + D.krw(p.limitKRW - p.usedKRW)}</span></div>
+      </div>`;
+    }).join("") || '<p class="muted">한도가 설정된 프리셋이 없습니다</p>';
+
+    /* 최근 등록 */
+    const recent = (receipts || []).slice()
+      .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")).slice(0, 6);
+    $("recentTbl").innerHTML = recent.length ? `
+      <thead><tr><th>가맹점</th><th>영수증</th><th>일시</th><th style="text-align:right">환산(₩)</th></tr></thead>
+      <tbody>${recent.map(r => {
+        const o = r.ocr || {};
+        return `<tr>
+          <td style="font-weight:700">${o.merchant || "(미인식)"}</td>
+          <td class="muted">${r.id}${r.matchedTxId ? ' <span class="badge ok" style="font-size:10px">매칭</span>' : ""}</td>
+          <td class="muted">${o.paidAt ? D.dt(o.paidAt) : "—"}</td>
+          <td class="num">${D.krw(r.amountKRW || 0)}</td></tr>`;
+      }).join("")}</tbody>`
+      : '<tbody><tr><td class="muted" style="padding:16px">아직 등록된 영수증이 없습니다</td></tr></tbody>';
+  } else {
+    /* ── 폴백: 시제품#1 내장 데모 ── */
+    const all = D.valid();
+    const GT = D.groupTotals();
+    const grand = Object.values(GT).reduce((s, g) => s + g.total, 0);
+    const july = all.filter(r => r.paidAt.startsWith("2026-07"));
+    const reviewN = all.filter(r => r.status === "review").length;
+    $("kpis").innerHTML = `
+      <div class="card kpi accent">
+        <div class="k-label">사용 총액 (내장 데모)</div>
+        <div class="k-val num">${D.krw(grand)}</div>
+        <div class="k-sub">영수증 ${all.length}건 · 외화 자동 환산 포함</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">이번 달 사용 <span class="badge neutral">2026.07</span></div>
+        <div class="k-val num">${D.krw(july.reduce((s, r) => s + r.amountKRW, 0))}</div>
+        <div class="k-sub">${july.length}건</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">확인 필요 <span class="badge warn">${reviewN}건</span></div>
+        <div class="k-val num">${reviewN}<span style="font-size:14px;color:var(--ink-3)"> 건</span></div>
+        <div class="k-sub">중복 인보이스 자동 제외</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">AI구독 한도</div>
+        <div class="k-val num">${D.krw(Math.abs(D.BUDGETS[0].limitKRW - D.BUDGETS[0].usedKRW))}</div>
+        <div class="k-sub">DIY100 연 100만원(VAT별도) 기준</div>
+      </div>`;
+
+    const DEMO_DEF = {
+      trip:         { name: "국내출장", hex: "#EA002C" },
+      ai:           { name: "AI구독",   hex: "#2563EB" },
+      general:      { name: "일반",     hex: "#0E9F6E" },
+      unclassified: { name: "해외출장", hex: "#D96414" }
+    };
+    const mapG = { domestic: "trip", ai: "ai", general: "general", foreign: "unclassified" };
+    const segs = G_ORDER.map(k => ({ key: k, ...DEMO_DEF[k], total: 0, subs: {} }));
+    D.GROUP_ORDER.forEach(g => {
+      const s = segs.find(x => x.key === mapG[g]);
+      s.total = GT[g].total; s.subs = GT[g].subs;
+    });
+    renderDonut(segs, grand);
+    $("srcTag1").textContent = "내장 데모 데이터 기준";
+
+    const months = [...new Set(all.map(r => r.paidAt.slice(0, 7)))].sort();
+    renderBars(months.map(m => {
+      const rows = all.filter(r => r.paidAt.startsWith(m));
+      const per = {}; let tot = 0;
+      rows.forEach(r => { const k = mapG[D.groupOf(r)]; per[k] = (per[k] || 0) + r.amountKRW; tot += r.amountKRW; });
+      return { label: m, per, tot };
+    }), DEMO_DEF);
+
+    $("srcTag2").textContent = "내장 데모 데이터 기준";
+    $("budgets").innerHTML = D.BUDGETS.map(b => {
+      const pct = Math.min(100, b.usedKRW / b.limitKRW * 100), over = b.usedKRW > b.limitKRW;
+      return `
+      <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+        <div class="g-head"><span>${b.label}</span><b class="num">${D.krw(b.usedKRW)} / ${D.krw(b.limitKRW)}</b></div>
+        <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+        <div class="g-foot"><span>${Math.round(pct)}% 소진</span>
+          <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "⚠ 초과" : "잔여 " + D.krw(b.limitKRW - b.usedKRW)}</span></div>
+      </div>`;
+    }).join("");
+
+    $("recentTbl").innerHTML = `
+      <thead><tr><th>가맹점</th><th>분류</th><th>일시</th><th style="text-align:right">금액</th></tr></thead>
+      <tbody>${all.slice().sort((a, b) => b.paidAt.localeCompare(a.paidAt)).slice(0, 6).map(r => {
+        const G = D.GROUPS[D.groupOf(r)];
+        return `<tr>
+          <td style="font-weight:700">${r.merchant}</td>
+          <td><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span></td>
+          <td class="muted">${D.dt(r.paidAt)}</td>
+          <td class="num">${D.krw(r.amountKRW)}</td></tr>`;
+      }).join("")}</tbody>`;
+  }
 })();
 
-/* ---- 출장 기준 게이지 + 일당 잔액 트래커 ---- */
-$("tripGauges").innerHTML = D.TRIPS.map(t => {
-  const cap = D.tripCap(t), spent = D.tripSpent(t);
-  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
-  const st = t.status === "active" ? '<span class="badge brand">진행중</span>'
-    : t.status === "planned" ? '<span class="badge info">예정</span>' : '<span class="badge neutral">완료</span>';
-
-  let dayRows = "";
-  if (t.status !== "planned") {
-    const dailyCap = t.type === "domestic" ? t.mealCapPerDayKRW : t.dailyCapKRW;
-    const days = [];
-    for (let d = new Date(t.startDate); d <= new Date(t.endDate); d.setDate(d.getDate() + 1))
-      days.push(d.toISOString().slice(0, 10));
-    dayRows = `<div style="margin:8px 0 2px;display:grid;gap:4px">` + days.map(day => {
-      const used = D.RECEIPTS.filter(r => r.tripId === t.id && r.status !== "duplicate" && r.serviceDate === day)
-        .filter(r => t.type === "domestic" ? r.category === "TRAVEL_MEAL" : true)
-        .reduce((s, r) => s + r.amountKRW, 0);
-      const future = day > D.TODAY;
-      const dOver = used > dailyCap;
-      return `
-      <div style="display:flex;align-items:center;gap:8px;font-size:11px">
-        <span style="width:44px;color:var(--ink-3)" class="num">${day.slice(5).replace("-", "/")}${day === D.TODAY ? " ●" : ""}</span>
-        <div style="flex:1;height:5px;background:#ECEEF3;border-radius:99px;overflow:hidden">
-          <div style="height:100%;width:${Math.min(100, used / dailyCap * 100)}%;background:${dOver ? "var(--danger)" : "var(--sk-orange)"};border-radius:99px"></div>
-        </div>
-        <span class="num" style="width:150px;text-align:right;color:${future ? "var(--ink-3)" : dOver ? "var(--danger)" : "var(--ink-2)"}">
-          ${future ? "예정" : `${D.krw(used)} · 잔여 ${D.krw(Math.max(0, dailyCap - used))}`}</span>
-      </div>`;
-    }).join("") + `</div>`;
-  }
-
-  return `
-  <div class="gauge ${over ? "over" : ""}" style="margin-bottom:18px">
-    <div class="g-head">
-      <span>${t.type === "domestic" ? "🚄" : "✈"} <b>${t.title}</b> ${st}
-        <span class="muted" style="margin-left:4px">${D.dateShort(t.startDate)}~${D.dateShort(t.endDate)} · ${t.members}명 · 정산단위 분리</span></span>
-      <b class="num">${D.krw(spent)} / ${D.krw(cap)}</b>
-    </div>
-    <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
-    <div class="g-foot"><span>${t.capNote}</span>
-      <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">
-        ${t.status === "planned" ? "시작 전" : over ? "기준 초과 " + D.krw(spent - cap) : "기준 이내 ✓ 잔여 " + D.krw(cap - spent)}</span></div>
-    ${dayRows}
-  </div>`;
-}).join("");
-
-/* ---- 예산·제도 ---- */
-$("budgets").innerHTML =
-  D.BUDGETS.map(b => {
-    const pct = Math.min(100, b.usedKRW / b.limitKRW * 100), over = b.usedKRW > b.limitKRW;
-    return `
-    <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
-      <div class="g-head"><span>${b.label}</span><b class="num">${D.krw(b.usedKRW)} / ${D.krw(b.limitKRW)}</b></div>
-      <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
-      <div class="g-foot"><span>${Math.round(pct)}% 소진</span>
-        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "⚠ 초과 " + D.krw(b.usedKRW - b.limitKRW) : "잔여 " + D.krw(b.limitKRW - b.usedKRW)}</span></div>
-    </div>`;
-  }).join("") +
-  `<div style="border-top:1px dashed var(--line);padding-top:12px;font-size:12.5px">
-    <b style="font-size:12px;color:var(--ink-2)">AI Tool 정산 제도별 상한</b>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-      ${D.AI_PRESETS.map(p => {
-        const over = D.BUDGETS[0].usedKRW > p.capKRW;
-        return `<span class="badge ${over ? "danger" : "ok"}" style="font-size:11.5px;padding:6px 10px">${p.name} ${D.krw(p.capKRW)} ${over ? "초과" : "이내"}</span>`;
-      }).join("")}
-    </div>
-    <p class="muted" style="margin-top:8px">현재 사용액 ${D.krw(D.BUDGETS[0].usedKRW)} · 기본 제도: DIY100 예산 정산 (연 1,000,000원 · VAT별도)</p>
-  </div>`;
-
-/* ---- 가이드라인 ---- */
+/* ---- 가이드라인 + 출장 게이지 (데모 기준 유지) ---- */
 $("rules").innerHTML = D.RULES.map((r, i) => `
   <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);${i === D.RULES.length - 1 ? "border-bottom:none" : ""}">
     <span style="flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:var(--sk-grad);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span>
     <div style="font-size:13px"><b>${r.t}</b><div class="muted" style="margin-top:2px;line-height:1.5">${r.d}</div></div>
   </div>`).join("");
+
+$("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t => {
+  const cap = D.tripCap(t), spent = D.tripSpent(t);
+  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
+  return `
+  <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+    <div class="g-head">
+      <span>${t.type === "domestic" ? "🚄" : "✈"} <b>${t.title}</b></span>
+      <b class="num">${D.krw(spent)} / ${D.krw(cap)}</b>
+    </div>
+    <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+    <div class="g-foot"><span>${t.capNote}</span>
+      <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "기준 초과" : "기준 이내 ✓"}</span></div>
+  </div>`;
+}).join("");
 </script>
 </body>
 </html>
