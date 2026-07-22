@@ -24,6 +24,28 @@ const initial = {
 // 시드 영수증 id(rcpt_101~)와 런타임 업로드 id가 겹치지 않도록 시퀀스 시작값을 계산
 const seedSeqStart = initial.receiptsSeed.length + 1;
 
+// 시드 영수증의 matchedTxId 를 거래 쪽에도 반영해 양방향 링크를 맞춘다
+// (시드만 matched 이고 거래는 unmatched 인 단방향 상태 방지 — 매칭/전표 화면이 서로 다른 상태를 보게 됨)
+function linkSeedMatches(target) {
+  for (const r of target.receipts) {
+    if (!r.matchedTxId) continue;
+    const tx = target.transactions.find((t) => t.id === r.matchedTxId);
+    if (tx && tx.status !== "vouchered") {
+      tx.status = "matched";
+      tx.matchedReceiptId = r.id;
+    }
+  }
+}
+
+// Preset usage 필드 보정 — 구 스키마 fixtures 가 남아 있어도 byDay/byAccountCode 접근이 안전하도록
+function normalizePresets(target) {
+  for (const p of target.presets) {
+    if (!p.usage) p.usage = { usedKRW: 0 };
+    if (!p.usage.byDay) p.usage.byDay = {};
+    if (!p.usage.byAccountCode) p.usage.byAccountCode = {};
+  }
+}
+
 const db = {
   transactions: JSON.parse(JSON.stringify(initial.transactions)),
   approvalRules: initial.approvalRules,
@@ -37,6 +59,8 @@ const db = {
   _receiptSeq: seedSeqStart, // 시드 다음 번호부터 (rcpt_101~110 이후 → rcpt_111)
   _presetSeq: 1,
 };
+linkSeedMatches(db);
+normalizePresets(db);
 
 // 전표 id 생성기 (vch_001, vch_002 ...)
 function nextVoucherId() {
@@ -68,6 +92,8 @@ function reset() {
   db._voucherSeq = 1;
   db._receiptSeq = seedSeqStart;
   db._presetSeq = 1;
+  linkSeedMatches(db);
+  normalizePresets(db);
 }
 
 module.exports = { db, nextVoucherId, nextReceiptId, nextPresetId, reset };
