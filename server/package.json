@@ -1,0 +1,14 @@
+{
+  "name": "mock-eaccounting",
+  "version": "1.0.0",
+  "description": "가짜 E-Accounting 서버 (P1) — 카드내역/전표/전결규정/예산/환율 API + 관리자 웹화면",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
