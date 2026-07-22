@@ -365,3 +365,4 @@ const REAL_ACCOUNT_NAMES = {
 };
 
 module.exports = router;
+module.exports.classify = classify; // [v2] /api/stats 집계에서 재사용 (간편정산 대시보드)

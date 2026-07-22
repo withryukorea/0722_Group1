@@ -21,6 +21,7 @@ app.use("/api/receipts", require("./routes/receipts")); // P3 (실 OCR + WoZ 폴
 app.use("/api", require("./routes/match")); // P4 (/api/match, /api/vouchers/preview)
 app.use("/api/presets", require("./routes/presets")); // Preset 엔진 (sot/05)
 app.use("/api/trips", require("./routes/presets").tripsAlias); // 구 trips 호환 별칭 → TRIP Preset
+app.use("/api/stats", require("./routes/stats")); // [v2] 간편정산 대시보드 집계 (읽기 전용)
 
 // 데모 리셋: POST /api/reset → 시드 초기값으로 복구
 // 배포처럼 아무나 못 지우게 하려면 환경변수 RESET_TOKEN 설정 → 헤더 x-reset-token 또는 body.token 일치 요구.

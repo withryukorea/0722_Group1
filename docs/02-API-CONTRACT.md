@@ -219,3 +219,7 @@ fixtures/
 - **POST /api/vouchers 검증 강화** ✅: 빈 lines 400 EMPTY_LINES, 존재하지 않는 txId/receiptId 400 UNKNOWN_TX/UNKNOWN_RECEIPT (txId 없는 현금 라인은 허용). usage 차감에 byAccountCode 추가
 - **preview 일일 한도 경고** ✅: TRIP(limitPeriod=daily)은 일자별 검사 `PRESET_DAILY_LIMIT_EXCEEDED` (day 필드 포함)
 - **시드 정합성** ✅: 부팅·리셋 시 receipts-seed의 matchedTxId를 거래에 역반영 (양방향 링크 — 거래 8건 matched 로 시작)
+
+## 8. v2 추가 (간편정산 · AXE-acc — 2026-07-23)
+
+- **GET /api/stats** 신설 ✅: 간편정산 분석 대시보드용 읽기 전용 집계. 응답 `{ totalKRW, count, matched, unmatched, byAccount[{code,name,totalKRW,count}], byMonth[{month,totalKRW,byAccount}], vouchers{count,totalKRW}, presets[{id,name,type,usedKRW,limitKRW}] }`. 계정 판정: receipt.accountCode → preset 허용비목(1개) → 매칭 tx classify() → UNCLASSIFIED. store 무변경 (server/routes/stats.js)
