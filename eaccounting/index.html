@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 메인</title>
+<link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<!-- 환영 배너 -->
+<section class="home-hero">
+  <div class="illust">🧾</div>
+  <div class="greet">
+    <div class="name">유상욱 팀원 님</div>
+    <div class="msg">e-Accounting System에 오신 것을 환영합니다.<br>
+      오늘도 <b>정확하고 빠른 정산</b> 되세요!</div>
+  </div>
+  <div class="home-stats">
+    <div class="stat">
+      <div class="ico">💳</div>
+      <div class="lb">법인카드</div>
+      <div class="num hot" id="s-card">-</div>
+    </div>
+    <div class="stat">
+      <div class="ico">🖊️</div>
+      <div class="lb">결재할 문서</div>
+      <div class="num" id="s-todo">0</div>
+    </div>
+    <div class="stat">
+      <div class="ico">📂</div>
+      <div class="lb">진행중 문서</div>
+      <div class="num" id="s-doing">0</div>
+    </div>
+  </div>
+</section>
+
+<!-- 퀵 메뉴 바 -->
+<div class="quick-bar">
+  <div class="inner">
+    <a href="card-settlement.html"><span class="qi">💳</span>법인카드 정산</a>
+    <a href="#"><span class="qi">🧾</span>전표 작성</a>
+    <a href="#"><span class="qi">📄</span>전자세금계산서</a>
+    <a href="#"><span class="qi">💰</span>지급 현황</a>
+    <a href="#"><span class="qi">📎</span>증빙 관리</a>
+    <a href="#"><span class="qi">📊</span>예산 조회</a>
+    <a href="#" class="hl"><span class="qi">🏦</span>입금 미 반제 내역<br><small>확인 필요</small></a>
+  </div>
+</div>
+
+<!-- 하단 3분할 -->
+<div class="home-cols">
+  <!-- 공지사항 -->
+  <div class="panel">
+    <div class="p-head"><h3>📢 공지사항</h3><a class="more" href="#">+ 더보기</a></div>
+    <ul>
+      <li class="row"><span class="t">[필독] 11월 법인카드 정산 마감 안내 (~11/25)</span><span class="d">2025.11.10</span></li>
+      <li class="row"><span class="t">전자증빙 첨부 의무화 시행 안내</span><span class="d">2025.11.05</span></li>
+      <li class="row"><span class="t">해외출장비 환율 적용 기준 변경</span><span class="d">2025.10.28</span></li>
+      <li class="row"><span class="t">복리후생비(AI구독) 한도 상향 안내</span><span class="d">2025.10.20</span></li>
+      <li class="row"><span class="t">e-Accounting 시스템 정기점검 안내</span><span class="d">2025.10.15</span></li>
+    </ul>
+  </div>
+
+  <!-- 업무담당자 -->
+  <div class="panel">
+    <div class="p-head"><h3>👥 업무 담당자</h3><a class="more" href="#">+ 더보기</a></div>
+    <div class="people">
+      <div class="row"><span class="nm">김민수</span><span class="role">법인카드 정산</span></div>
+      <div class="row"><span class="nm">박영호</span><span class="role">전표 결재</span></div>
+      <div class="row"><span class="nm">이수진</span><span class="role">전자세금계산서</span></div>
+      <div class="row"><span class="nm">정다은</span><span class="role">지급 관리</span></div>
+      <div class="row"><span class="nm">최현우</span><span class="role">예산 관리</span></div>
+      <div class="row"><span class="nm">한지민</span><span class="role">시스템 문의</span></div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="panel">
+    <div class="p-head"><h3>❓ 자주 묻는 질문</h3><a class="more" href="#">+ 더보기</a></div>
+    <ul>
+      <li class="row"><span class="t">Q. 법인카드 사용내역은 언제 반영되나요?</span></li>
+      <li class="row"><span class="t">Q. 영수증을 분실했을 때 처리 방법은?</span></li>
+      <li class="row"><span class="t">Q. 해외출장 환율은 어떤 기준인가요?</span></li>
+      <li class="row"><span class="t">Q. 전결 라인은 어떻게 지정하나요?</span></li>
+      <li class="row"><span class="t">Q. 복리후생비 잔여 한도는 어디서 보나요?</span></li>
+    </ul>
+  </div>
+</div>
+
+<script src="js/layout.js"></script>
+<script>
+renderChrome({ top: '나의 문서함' });
+
+// 법인카드 미정산 건수는 실데이터(API)에서 가져온다 (서버 연동)
+fetch('/api/transactions')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(list => {
+    const cnt = Array.isArray(list) ? list.length : 0;
+    document.getElementById('s-card').textContent = cnt;
+  })
+  .catch(() => { document.getElementById('s-card').textContent = 7; });
+</script>
+</body>
+</html>

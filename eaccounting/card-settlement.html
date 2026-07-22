@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 법인카드 정산</title>
+<link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <h2 class="page-title">법인카드 정산 <span class="fav off">★</span></h2>
+
+    <!-- 검색 필터 -->
+    <div class="filter-box">
+      <div class="filter-grid">
+        <div class="field">
+          <select class="lbl-select" id="f-date-kind">
+            <option>사용일자</option><option>결재일시</option>
+          </select>
+          <div class="ctrl">
+            <input type="date" value="2026-07-01"> <span>~</span> <input type="date" value="2026-07-31">
+          </div>
+        </div>
+        <div class="field"><label>가맹점</label><div class="ctrl"><input type="text" id="f-merchant"></div></div>
+        <div class="field"><label>진행상태</label><div class="ctrl">
+          <select id="f-status">
+            <option value="">전체</option>
+            <option value="unmatched">미정산</option>
+            <option value="matched">매칭완료</option>
+            <option value="vouchered">정산완료</option>
+          </select>
+        </div></div>
+
+        <div class="field"><label>카드소유자</label><div class="ctrl"><input type="text" id="f-owner" value="유상욱"></div></div>
+        <div class="field"><label>부서</label><div class="ctrl"><input type="text" id="f-dept" value="전력사업기획팀"></div></div>
+        <div class="field"><label>카드번호</label><div class="ctrl">
+          <select><option>전체</option><option>4025-96**-****-3059</option></select>
+        </div></div>
+      </div>
+      <button class="btn-search" onclick="applyFilter()">조회</button>
+    </div>
+
+    <div class="notice-bar"><span class="i">i</span>
+      <b>미정산</b> 건은 영수증 매칭 후 전표를 작성해야 합니다. 우리 앱에서 영수증을 촬영하면 자동으로 매칭·전표작성됩니다.</div>
+
+    <!-- 툴바 -->
+    <div class="toolbar">
+      <button class="btn btn-pink" onclick="alert('전표작성은 우리 모바일 앱에서 자동으로 처리됩니다.')">🧾 전표작성</button>
+      <button class="btn btn-line" onclick="applyFilter()">🔍 카드검색</button>
+      <button class="btn btn-line" onclick="alert('데모 버전에서는 엑셀다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 엑셀다운로드</button>
+    </div>
+
+    <!-- 목록 -->
+    <div class="table-wrap scroll-y">
+      <table class="grid" style="min-width: 1560px;">
+        <colgroup>
+          <col style="width:44px"><col style="width:98px"><col style="width:150px"><col style="width:220px">
+          <col style="width:120px"><col style="width:110px"><col style="width:88px"><col style="width:130px">
+          <col style="width:150px"><col style="width:100px"><col style="width:90px"><col style="width:90px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>No.</th><th>사용일자</th><th>결재일시</th><th>가맹점상호</th><th>업종</th>
+            <th>사용금액</th><th>카드소유자</th><th>부서</th><th>카드번호</th><th>승인번호</th>
+            <th>진행상태</th><th>등록자</th>
+          </tr>
+        </thead>
+        <tbody id="tx-body">
+          <tr class="empty-pad"><td colspan="12">불러오는 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-foot">
+      <div class="total">Total : <b id="total">0</b></div>
+      <div class="pagination">
+        <button>«</button><button>‹</button><button class="cur">1</button><button>›</button><button>»</button>
+      </div>
+      <div class="psize"><select><option>100</option><option>50</option><option>20</option></select></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/layout.js"></script>
+<script>
+renderChrome({
+  top: '법인카드',
+  active: '법인카드 정산',
+  breadcrumb: ['메뉴', '법인카드', '법인카드 정산'],
+});
+
+let ALL = [];
+let view = [];
+
+const STATUS_LABEL = { unmatched: '미정산', matched: '매칭완료', vouchered: '정산완료' };
+const STATUS_CLASS = { unmatched: 'state-red', matched: 'state-blue', vouchered: '' };
+
+function fmt(n) { return Number(n || 0).toLocaleString('ko-KR'); }
+function maskCard(c) {
+  if (!c) return '';
+  const s = String(c);
+  return s.slice(0, 4) + '-' + s.slice(4, 6) + '**-****-' + s.slice(-4);
+}
+function fmtDate(d) { return d ? String(d).replace(/-/g, '.') : ''; }
+function fmtDateTime(s) {
+  if (!s) return '';
+  const d = String(s).replace('T', ' ').slice(0, 16).replace(/-/g, '.');
+  return d;
+}
+
+function render() {
+  const body = document.getElementById('tx-body');
+  if (view.length === 0) {
+    body.innerHTML = `<tr class="empty-pad"><td colspan="12">조회된 내역이 없습니다.</td></tr>`;
+  } else {
+    body.innerHTML = view.map((t, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${fmtDate(t.usedDate)}</td>
+        <td>${fmtDateTime(t.approvedAt)}</td>
+        <td class="l">${t.merchant || ''}</td>
+        <td>${t.industry || ''}</td>
+        <td class="r">${fmt(t.amountKRW ?? t.amount)}</td>
+        <td>${t.owner || ''}</td>
+        <td>${t.dept || ''}</td>
+        <td>${maskCard(t.cardNo)}</td>
+        <td>${t.approvalNo || ''}</td>
+        <td class="${STATUS_CLASS[t.status] || ''}">${STATUS_LABEL[t.status] || t.status || ''}</td>
+        <td>${t.registrant || '-'}</td>
+      </tr>`).join('');
+  }
+  document.getElementById('total').textContent = view.length;
+}
+
+function applyFilter() {
+  const merchant = document.getElementById('f-merchant').value.trim();
+  const status = document.getElementById('f-status').value;
+  const owner = document.getElementById('f-owner').value.trim();
+  const dept = document.getElementById('f-dept').value.trim();
+  view = ALL.filter(t =>
+    (!merchant || (t.merchant || '').includes(merchant)) &&
+    (!status || t.status === status) &&
+    (!owner || (t.owner || '').includes(owner)) &&
+    (!dept || (t.dept || '').includes(dept))
+  );
+  render();
+}
+
+fetch('/api/transactions')
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(list => { ALL = Array.isArray(list) ? list : []; view = ALL.slice(); render(); })
+  .catch(() => {
+    document.getElementById('tx-body').innerHTML =
+      `<tr class="empty-pad"><td colspan="12">서버(/api/transactions)에 연결할 수 없습니다. 서버를 실행해 주세요.</td></tr>`;
+  });
+</script>
+</body>
+</html>

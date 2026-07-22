@@ -28,11 +28,16 @@ app.post("/api/reset", (req, res) => {
   res.json({ ok: true });
 });
 
-// ── 관리자 웹화면 (정적 파일) ──────────────────────────────────
-app.use("/", express.static(path.join(__dirname, "public")));
+// ── 가짜 e-Accounting 화면 (정적 파일) ─────────────────────────
+// 프론트는 저장소 루트의 eaccounting/ 폴더(공용 디자인 시스템 공유)를 서빙한다.
+//   /                    → index.html (메인 대시보드)
+//   /card-settlement.html → 법인카드 정산 (GET /api/transactions 연동)
+//   /mydocs-all.html      → 나의 문서함 전체조회
+app.use("/", express.static(path.join(__dirname, "..", "eaccounting")));
 
 app.listen(PORT, () => {
-  console.log(`\n  가짜 E-Accounting 서버 실행 중`);
-  console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/`);
-  console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
+  console.log(`\n  가짜 e-Accounting 서버 실행 중`);
+  console.log(`  ├ 메인 화면 : http://localhost:${PORT}/`);
+  console.log(`  ├ 법인카드  : http://localhost:${PORT}/card-settlement.html`);
+  console.log(`  └ API 예시  : http://localhost:${PORT}/api/transactions\n`);
 });

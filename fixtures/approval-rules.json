@@ -11,6 +11,12 @@
   { "category": "SNACK",            "maxKRW": 50000,     "approvers": ["김민수 팀장"] },
   { "category": "SNACK",            "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
 
+  { "category": "ENTERTAIN",        "maxKRW": 100000,    "approvers": ["김민수 팀장"] },
+  { "category": "ENTERTAIN",        "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
+
+  { "category": "SUPPLIES",         "maxKRW": 100000,    "approvers": ["김민수 팀장"] },
+  { "category": "SUPPLIES",         "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
+
   { "category": "WELFARE_BOOK",     "maxKRW": 100000,    "approvers": ["김민수 팀장"] },
   { "category": "WELFARE_BOOK",     "maxKRW": 99999999,  "approvers": ["김민수 팀장", "박영호 부장"] },
 
