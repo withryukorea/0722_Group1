@@ -245,7 +245,8 @@ window.SKD = (function () {
     const limit = (p.rules && p.rules.limitKRW) || 0;
     const status = TODAY < start ? "planned" : TODAY > end ? "done" : "active";
     const base = {
-      id: p.id, type, title: p.name, members, startDate: start, endDate: end,
+      id: p.id, type, title: p.name, destination: meta.destination || p.name,
+      members, startDate: start, endDate: end,
       route: meta.route || [], country, status
     };
     if (type === "domestic") {

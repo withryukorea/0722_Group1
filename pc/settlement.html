@@ -62,16 +62,35 @@ SKP.chrome("settlement");
 SKD.mountBadge();
 const $ = (id) => document.getElementById(id);
 
-/* ---- 정산 단위: 출장건별 분리 + 월 정산(일반·복지) ---- */
+/* ---- 정산 단위: 출장건별 분리 + 월 정산(일반·복지) ----
+   출장 탭은 하드코딩하지 않고 라이브 D.TRIPS(=서버 TRIP 프리셋)에서 파생한다.
+   (과거엔 trip_busan/trip_tokyo 를 고정 → 라이브 프리셋 id(ps_*)와 불일치해
+    출장 탭이 항상 비고 한도검증도 안 뜨는 버그가 있었음) */
+const ym = D.TODAY.slice(0, 7);                 // 결제월 스코프 (예: "2026-07")
+const monLabel = parseInt(ym.slice(5, 7), 10) + "월";
+const tripUnits = D.TRIPS.slice()
+  .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""))
+  .map(t => {
+    const dest = t.destination || t.title;
+    const nat = t.type === "foreign" ? "해외" : "국내";
+    const emoji = t.type === "foreign" ? "✈" : "🚄";
+    const done = t.status === "done";           // 출장 종료 후에만 상신 가능
+    const startMon = t.startDate ? parseInt(t.startDate.slice(5, 7), 10) + "월 " : "";
+    return {
+      id: t.id, trip: t,
+      label: `${emoji} ${dest} 출장${t.status === "active" ? " (진행중)" : ""}`,
+      filter: r => r.tripId === t.id,
+      title: `${startMon}${nat}출장비 정산 — ${dest}`,
+      ready: done,
+      notReadyMsg: t.endDate ? `출장 종료(${D.dateShort(t.endDate)}) 후 상신 가능` : "출장 종료 후 상신 가능"
+    };
+  });
 const UNITS = [
-  { id: "trip_busan", label: "🚄 부산·울산 출장 (4월)", filter: r => r.tripId === "trip_busan",
-    title: "4월 국내출장비 정산 — 부산·울산", ready: true },
-  { id: "trip_tokyo", label: "✈ 도쿄 출장 (진행중)", filter: r => r.tripId === "trip_tokyo",
-    title: "7월 해외출장비 정산 — 도쿄", ready: false },
-  { id: "monthly", label: "🗂 7월 일반·복지 정산", filter: r => !r.tripId && r.paidAt.startsWith("2026-07"),
-    title: "7월 일반경비·복지비 정산", ready: true },
-  { id: "etc", label: "❓ 확인 필요 건", filter: r => r.status === "review" && !r.paidAt.startsWith("2026-07"),
-    title: "분류 확인 필요 건", ready: false }
+  ...tripUnits,
+  { id: "monthly", label: `🗂 ${monLabel} 일반·복지 정산`, filter: r => !r.tripId && r.paidAt.startsWith(ym),
+    title: `${monLabel} 일반경비·복지비 정산`, ready: true },
+  { id: "etc", label: "❓ 확인 필요 건", filter: r => r.status === "review" && !r.paidAt.startsWith(ym),
+    title: "분류 확인 필요 건", ready: false, notReadyMsg: "분류 확정 후 상신 가능" }
 ];
 let unit = UNITS[0];
 let submitted = {};
@@ -176,7 +195,7 @@ function renderVoucher(rows) {
   if (aiOn && choice !== "auto" && !actual.includes(D.AI_POLICY.reviewer)) actual.splice(1, 0, D.AI_POLICY.reviewer);
   const deviated = JSON.stringify(actual) !== JSON.stringify(required);
 
-  const trip = D.TRIPS.find(t => t.id === unit.id);
+  const trip = unit.trip || D.TRIPS.find(t => t.id === unit.id);
   const capBlock = trip ? (() => {
     const cap = D.tripCap(trip), spent = D.tripSpent(trip), over = spent > cap;
     return `<div class="gauge ${over ? "over" : ""}" style="margin:12px 0 4px">
@@ -241,7 +260,7 @@ function renderVoucher(rows) {
              ⚠️ <b>상신 실패 · 저장되지 않았습니다</b> — 서버(E-Accounting)에 전표가 접수되지 않았습니다. 잠시 후 다시 시도하세요.${submitError[unit.id] !== true ? ` <span class="muted">(${submitError[unit.id]})</span>` : ""}</div>` : ""}
            <button class="btn primary block" style="margin-top:16px" id="btnSubmit">${submitError[unit.id] ? "다시 상신하기" : "검토 완료 · 상신하기"}</button>
            <p class="muted" style="margin-top:8px;text-align:center">상신 시 E-Accounting(4000 포트 목업)으로 전표가 접수됩니다</p>`
-        : `<button class="btn block" style="margin-top:16px" disabled>${unit.id === "trip_tokyo" ? "출장 종료(7/23) 후 상신 가능" : "분류 확정 후 상신 가능"}</button>`}`;
+        : `<button class="btn block" style="margin-top:16px" disabled>${unit.notReadyMsg || "분류 확정 후 상신 가능"}</button>`}`;
 
   const b = $("btnSubmit");
   if (b) b.onclick = async () => {
