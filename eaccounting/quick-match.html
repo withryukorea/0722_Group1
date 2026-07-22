@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 간편정산 · 자동매칭</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/quick.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div class="page-heading">
+      <h2 class="page-title">자동매칭 <span class="fav off">★</span></h2>
+    </div>
+
+    <div class="qk">
+      <div class="page-head" style="margin-bottom:14px">
+        <div class="desc" id="srcNote">모바일·PC에서 등록된 전체 영수증 — 법인카드 승인내역과 자동매칭합니다 (금액 60 · 일시 30 · 가맹점 10점, ≥70 자동확정)</div>
+        <div style="display:flex;gap:8px;flex:0 0 auto">
+          <button class="btn sm" id="btnMatch">🔗 매칭 실행</button>
+          <button class="btn sm" id="btnCsv">⬇ CSV</button>
+          <a class="btn sm primary" href="quick-settlement.html">정산 진행 ›</a>
+        </div>
+      </div>
+
+      <!-- 검색/필터 툴바 -->
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="가맹점 검색 (예: 폴바셋, 택시, OpenAI)">
+        <span class="sep"></span>
+        <select id="fGroup"><option value="">대분류 전체</option></select>
+        <select id="fSub"><option value="">세부비목 전체</option></select>
+        <select id="fStatus">
+          <option value="">상태 전체</option><option value="matched">매칭 완료</option>
+          <option value="review">확인 필요</option><option value="unmatched">미매칭</option>
+          <option value="duplicate">중복 감지</option>
+        </select>
+        <select id="fCur"><option value="">통화 전체</option><option>KRW</option><option>USD</option><option>JPY</option></select>
+        <span class="sep"></span>
+        <input type="date" id="fFrom" title="시작일"> ~ <input type="date" id="fTo" title="종료일">
+        <button class="btn sm ghost" id="btnReset">초기화</button>
+      </div>
+
+      <!-- 요약 스트립 -->
+      <div class="grid kpi4" id="strip" style="margin-bottom:14px"></div>
+
+      <!-- 선택 → 정산 연결 바 -->
+      <div class="toolbar" id="bulkBar" style="display:none;border-color:#F3B8C4;background:#FFF8F9">
+        <b style="font-size:13px"><span id="bulkCount">0</span>건 선택됨</b>
+        <span class="sep"></span>
+        <button class="btn sm primary" id="bulkGo">🧾 선택 건으로 정산·전표 생성 ›</button>
+        <button class="btn sm ghost" id="bulkClear">선택 해제</button>
+        <span class="muted" id="bulkMsg"></span>
+      </div>
+
+      <section class="card" style="padding:0;overflow:hidden">
+        <table class="tbl" id="tbl"></table>
+        <div id="empty" class="muted" style="display:none;text-align:center;padding:48px 0">
+          등록된 영수증이 없습니다 — <a href="quick-upload.html" style="color:var(--sk-red);font-weight:700">영수증 업로드</a>
+          또는 <a href="m/index.html" style="color:var(--sk-red);font-weight:700">모바일에서 촬영</a>하세요</div>
+      </section>
+      <p class="chart-note">행을 클릭하면 상세(원본 이미지 · 매칭 근거 · 프리셋)가 열립니다 · score ≥ 70 자동확정, 40~70 확인 필요, &lt; 40 미매칭</p>
+    </div>
+  </main>
+</div>
+
+<!-- 상세 드로어 (qk 스코프 안에 있어야 스타일 적용) -->
+<div class="qk">
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer">
+    <div class="d-head"><b id="dTitle"></b><button class="btn sm ghost" id="dClose">✕ 닫기</button></div>
+    <div class="d-body" id="dBody"></div>
+  </aside>
+</div>
+
+<script src="js/layout.js"></script>
+<script src="js/quick-data.js"></script>
+<script>
+renderChrome({ top: '간편정산', active: '자동매칭',
+               breadcrumb: ['메뉴', '간편정산', '자동매칭'] });
+
+const D = SKD;
+const $ = (id) => document.getElementById(id);
+
+const STATUS_BADGE = {
+  matched: '<span class="badge ok">매칭 완료</span>',
+  review: '<span class="badge warn">확인 필요</span>',
+  unmatched: '<span class="badge neutral">미매칭</span>',
+  duplicate: '<span class="badge danger">중복 감지</span>'
+};
+
+/* ── 데이터 소스: 서버 우선, 실패 시 시제품#1 내장 데이터 ───────────── */
+let MODE = "fallback";     // "server" | "fallback"
+let ROWS = [];             // 통합 행 모델
+let TXS = [];              // 서버 카드 승인내역 (드로어 표시용)
+let PRESETS = [];
+
+/* 서버 Receipt → 통합 행 */
+function adaptServer(r, scoreInfo) {
+  const o = r.ocr || {};
+  const score = scoreInfo ? scoreInfo.score : (r.matchedTxId ? 100 : 0);
+  const status = (r.checks || []).some(c => c.type === "DUPLICATE_DOCUMENT") ? "duplicate"
+    : r.matchedTxId ? "matched"
+    : scoreInfo && scoreInfo.status === "confirm" ? "review" : "unmatched";
+  return {
+    id: r.id, server: r, merchant: o.merchant || "(미인식)",
+    amount: o.amount || 0, currency: o.currency || "KRW", fxRate: r.fxRate || 1,
+    amountKRW: r.amountKRW || 0,
+    paidAt: o.paidAt || r.createdAt || "", serviceDate: r.serviceDate || (o.paidAt || "").slice(0, 10),
+    imgSrc: r.croppedUrl, source: r.uploadedFile ? "photo" : "woz",
+    txId: r.matchedTxId || (scoreInfo && scoreInfo.txId) || null,
+    score, status, checks: r.checks || [],
+    suggestedPresetId: r.suggestedPresetId || null, presetId: r.presetId || null,
+    vatX: r.vat || null
+  };
+}
+
+/* 시제품#1 내장 데이터 → 통합 행 */
+function adaptLocal(r) {
+  const tx = D.CARD_TX.find(t => t.receiptId === r.id);
+  return {
+    id: r.id, local: r, merchant: r.merchant,
+    amount: r.amount, currency: r.currency, fxRate: r.fxRate, amountKRW: r.amountKRW,
+    paidAt: r.paidAt, serviceDate: r.serviceDate,
+    imgSrc: D.imgUrl(r.img), source: r.source,
+    txId: tx ? tx.id : null, score: tx ? tx.score : 0, status: r.status,
+    checks: [], suggestedPresetId: null, presetId: null, vatX: null,
+    catHex: D.GROUPS[D.groupOf(r)].hex, catText: D.GROUPS[D.groupOf(r)].name + " · " + D.subOf(r)
+  };
+}
+
+async function load(runMatch) {
+  const list = await eaccApi("/api/receipts");
+  if (list) {
+    MODE = "server";
+    PRESETS = (await eaccApi("/api/presets")) || [];
+    TXS = (await eaccApi("/api/transactions")) || [];
+    let scores = {};
+    const unmatched = list.filter(r => !r.matchedTxId).map(r => r.id);
+    if (runMatch && unmatched.length) {
+      const m = await eaccApi("/api/match", { body: { receiptIds: unmatched } });
+      (m || []).forEach(x => scores[x.receiptId] = x);
+      $("bulkMsg").textContent = "";
+      // 매칭이 서버 상태를 바꿨으니 다시 읽는다
+      const fresh = await eaccApi("/api/receipts");
+      ROWS = (fresh || list).map(r => adaptServer(r, scores[r.id]));
+    } else {
+      ROWS = list.map(r => adaptServer(r, scores[r.id]));
+    }
+    $("srcNote").innerHTML = `서버 저장소의 영수증 ${ROWS.length}건 — 법인카드 승인내역 ${TXS.length}건과 매칭 (금액 60 · 일시 30 · 가맹점 10점, ≥70 자동확정)`;
+    $("fGroup").style.display = $("fSub").style.display = "none";
+  } else {
+    MODE = "fallback";
+    ROWS = D.RECEIPTS.map(adaptLocal);
+    $("srcNote").innerHTML = `<span class="badge neutral">서버 미연결</span> 시제품#1 내장 데모 데이터로 표시 중`;
+  }
+  render();
+}
+
+const presetName = (id) => (PRESETS.find(p => p.id === id) || {}).name || id;
+const txOf = (id) => MODE === "server" ? TXS.find(t => t.id === id) : D.CARD_TX.find(t => t.id === id);
+
+/* 필터 옵션 (폴백 모드용) */
+D.GROUP_ORDER.forEach(g => $("fGroup").insertAdjacentHTML("beforeend", `<option value="${g}">${D.GROUPS[g].name}</option>`));
+[...new Set(Object.values(D.CATEGORIES).map(c => c.sub))].forEach(s =>
+  $("fSub").insertAdjacentHTML("beforeend", `<option>${s}</option>`));
+
+function filtered() {
+  const q = $("q").value.trim().toLowerCase();
+  const g = $("fGroup").value, s = $("fSub").value, st = $("fStatus").value, cur = $("fCur").value;
+  const from = $("fFrom").value, to = $("fTo").value;
+  return ROWS.filter(r => {
+    if (q && !r.merchant.toLowerCase().includes(q)) return false;
+    if (g && (!r.local || D.groupOf(r.local) !== g)) return false;
+    if (s && (!r.local || D.subOf(r.local) !== s)) return false;
+    if (st && r.status !== st) return false;
+    if (cur && r.currency !== cur) return false;
+    const d = (r.paidAt || "").slice(0, 10);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  }).sort((a, b) => (b.paidAt || "").localeCompare(a.paidAt || ""));
+}
+
+function scorePill(r) {
+  if (r.status === "duplicate") return "";
+  if (!r.score) return '<span class="score-pill score-none">score —</span>';
+  const cls = r.score >= 70 ? "score-hi" : r.score >= 40 ? "score-mid" : "score-none";
+  return `<span class="score-pill ${cls}">score ${r.score}</span>`;
+}
+
+function render() {
+  const rows = filtered();
+  const real = rows.filter(r => r.status !== "duplicate");
+  const total = real.reduce((s, r) => s + r.amountKRW, 0);
+
+  $("strip").innerHTML = `
+    <div class="card kpi"><div class="k-label">조회 건수</div><div class="k-val num">${rows.length}건</div>
+      <div class="k-sub">중복 제외 ${real.length}건</div></div>
+    <div class="card kpi"><div class="k-label">조회 합계 (환산)</div><div class="k-val num">${D.krw(total)}</div>
+      <div class="k-sub">외화는 결제 시점 환율로 환산</div></div>
+    <div class="card kpi"><div class="k-label">매칭 완료</div><div class="k-val num">${real.filter(r => r.status === "matched").length}건</div>
+      <div class="k-sub">score ≥ 70 자동확정</div></div>
+    <div class="card kpi"><div class="k-label">확인 필요 · 미매칭</div><div class="k-val num">${real.filter(r => r.status === "review" || r.status === "unmatched").length}건</div>
+      <div class="k-sub">수동 확인 대상</div></div>`;
+
+  $("tbl").innerHTML = `
+    <thead><tr>
+      <th><input type="checkbox" id="selAll" title="전체 선택"></th>
+      <th></th><th>가맹점</th><th>분류/프리셋</th><th>결제일시</th><th>이용일</th>
+      <th style="text-align:right">결제금액</th><th style="text-align:right">환산(₩)</th>
+      <th>매칭</th><th>상태</th>
+    </tr></thead>
+    <tbody>${rows.map(r => {
+      const tx = r.txId ? txOf(r.txId) : null;
+      const catCell = r.catText
+        ? `<span class="cat"><i style="background:${r.catHex}"></i>${r.catText}</span>`
+        : r.presetId ? `<span class="badge brand">⚡ ${presetName(r.presetId)}</span>`
+        : r.suggestedPresetId ? `<span class="badge neutral">추천: ${presetName(r.suggestedPresetId)}</span>`
+        : '<span class="muted">미분류</span>';
+      const flags = (r.checks || []).map(c =>
+        ` <span class="badge ${c.status === "warn" ? "warn" : "neutral"}" title="${c.message}">${c.type === "DUPLICATE_DOCUMENT" ? "중복 의심" : c.type === "ITEMIZED_REQUIRED" ? "품목증빙" : "부가세 확인"}</span>`).join("");
+      return `<tr data-id="${r.id}" class="${r.status === "duplicate" ? "dup" : ""}" style="cursor:pointer">
+        <td><input type="checkbox" class="rowSel" data-id="${r.id}" ${selected.has(r.id) ? "checked" : ""}></td>
+        <td>${r.imgSrc ? `<img class="thumb" src="${r.imgSrc}" alt="">` : `<span class="thumb-ph">🧾</span>`}</td>
+        <td style="font-weight:700">${r.merchant}</td>
+        <td>${catCell}</td>
+        <td class="muted">${r.paidAt ? D.dt(r.paidAt) : "—"}</td>
+        <td class="muted">${r.serviceDate ? D.dateShort(r.serviceDate) : "—"}</td>
+        <td class="num">${r.currency === "KRW" ? D.krw(r.amount) : (r.currency === "USD" ? "$" + Number(r.amount).toFixed(2) : "¥" + D.fmt(r.amount))}</td>
+        <td class="num">${D.krw(r.amountKRW)}</td>
+        <td>${scorePill(r)}${tx ? `<div class="muted" style="margin-top:2px">${tx.merchant}</div>` : ""}</td>
+        <td>${STATUS_BADGE[r.status] || r.status}${flags}</td>
+      </tr>`;
+    }).join("")}</tbody>`;
+  $("empty").style.display = rows.length ? "none" : "";
+
+  document.querySelectorAll("#tbl tbody tr").forEach(tr => tr.onclick = () => openDrawer(tr.dataset.id));
+  document.querySelectorAll(".rowSel").forEach(cb => {
+    cb.onclick = (e) => { e.stopPropagation(); cb.checked ? selected.add(cb.dataset.id) : selected.delete(cb.dataset.id); syncBulk(); };
+  });
+  const selAll = $("selAll");
+  if (selAll) selAll.onclick = (e) => {
+    e.stopPropagation();
+    rows.forEach(r => selAll.checked ? selected.add(r.id) : selected.delete(r.id));
+    render();
+  };
+  syncBulk();
+}
+
+/* ---- 선택 → 정산·전표 생성으로 ---- */
+const selected = new Set();
+function syncBulk() {
+  $("bulkBar").style.display = selected.size ? "" : "none";
+  $("bulkCount").textContent = selected.size;
+}
+$("bulkGo").onclick = () => {
+  location.href = "quick-settlement.html?ids=" + encodeURIComponent([...selected].join(","));
+};
+$("bulkClear").onclick = () => { selected.clear(); render(); };
+
+/* 상세 드로어 */
+function openDrawer(id) {
+  const r = ROWS.find(x => x.id === id);
+  if (!r) return;
+  $("dTitle").textContent = r.merchant;
+  const tx = r.txId ? txOf(r.txId) : null;
+
+  if (r.local) {
+    /* 폴백(시제품#1) 상세 — 원본 로직 유지 */
+    const L = r.local;
+    const G = D.GROUPS[D.groupOf(L)];
+    const t = L.tripId ? D.TRIPS.find(x => x.id === L.tripId) : null;
+    const b = D.matchBasis(L, D.CARD_TX.find(x => x.receiptId === L.id));
+    const v = D.vatInfo(L);
+    $("dBody").innerHTML = `
+      ${r.imgSrc ? `<img class="d-img" src="${r.imgSrc}" alt="영수증 원본">` : `<div class="d-img" style="padding:44px 0;text-align:center;color:#8A90A0;font-size:38px">${L.source === "pdf" ? "📄" : "🧾"}</div>`}
+      <dl>
+        <dt>결제금액</dt><dd class="num">${D.money(L)}${L.currency !== "KRW" ? ` (환율 ${L.fxRate} → ${D.krw(L.amountKRW)})` : ""}</dd>
+        <dt>결제일시</dt><dd>${D.dt(L.paidAt)}</dd>
+        <dt>이용일</dt><dd>${D.dateShort(L.serviceDate)}</dd>
+        <dt>분류</dt><dd><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(L)}</span></dd>
+        <dt>출장 연결</dt><dd>${t ? t.title : "없음"}</dd>
+        ${v ? `<dt>부가세</dt><dd style="font-weight:600">${v.text} <span class="badge ${v.warn ? "warn" : "neutral"}">${v.badge}</span></dd>` : ""}
+        <dt>승인번호</dt><dd class="num">${L.approvalNo || '<span class="muted">미인식</span>'}</dd>
+        ${b ? `<dt>매칭 근거</dt><dd style="font-weight:600">${b.rank === 1 ? "🥇" : b.rank === 2 ? "🥈" : "🥉"} ${b.label}</dd>` : ""}
+        <dt>상태</dt><dd>${STATUS_BADGE[L.status]}</dd>
+      </dl>
+      <div class="preset-why" style="margin-top:14px"><b>자동 분류 근거</b><br>${L.why}</div>`;
+  } else {
+    /* 서버 상세 */
+    const S = r.server, o = S.ocr || {};
+    $("dBody").innerHTML = `
+      ${r.imgSrc ? `<img class="d-img" src="${r.imgSrc}" alt="영수증 원본">` : ""}
+      <dl>
+        <dt>영수증 ID</dt><dd class="num">${S.id}</dd>
+        <dt>결제금액</dt><dd class="num">${r.currency === "KRW" ? D.krw(r.amount) : r.amount + " " + r.currency + ` (환율 ${r.fxRate} → ${D.krw(r.amountKRW)})`}</dd>
+        <dt>결제일시</dt><dd>${r.paidAt ? D.dt(r.paidAt) : "—"}</dd>
+        <dt>이용일</dt><dd>${r.serviceDate || "—"}</dd>
+        <dt>품목</dt><dd>${(o.items || []).map(i => `${i.name} ${D.krw(i.amount)}`).join("<br>") || '<span class="muted">—</span>'}</dd>
+        <dt>부가세</dt><dd>${S.vat && S.vat.confirmed != null ? D.krw(S.vat.confirmed) + ' <span class="badge ok">확정</span>'
+          : o.vat != null ? D.krw(o.vat) + ' <span class="badge neutral">OCR 추출</span>' : '<span class="badge warn">미표기</span>'}</dd>
+        <dt>매칭</dt><dd>${tx ? `${tx.merchant} · ${D.krw(tx.amountKRW)} ${scorePill(r)}` : `미매칭 ${scorePill(r)}`}</dd>
+        <dt>프리셋</dt><dd>${r.presetId ? `<span class="badge brand">⚡ ${presetName(r.presetId)}</span>`
+          : r.suggestedPresetId ? `추천: <b>${presetName(r.suggestedPresetId)}</b>` : '<span class="muted">해당 없음</span>'}</dd>
+      </dl>
+      ${(r.checks || []).map(c => `<div class="preset-why" style="margin-top:8px;${c.status === "warn" ? "background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn)" : ""}">
+        ${c.status === "warn" ? "⚠️" : "ℹ️"} ${c.message}</div>`).join("")}
+      ${r.suggestedPresetId && !r.presetId ? `<button class="btn primary block" style="margin-top:14px" id="applyPreset">⚡ 추천 프리셋 적용 (${presetName(r.suggestedPresetId)})</button>` : ""}`;
+    const ap = $("applyPreset");
+    if (ap) ap.onclick = async () => {
+      const res = await eaccApi(`/api/receipts/${S.id}`, { method: "PATCH", body: { presetId: r.suggestedPresetId } });
+      if (res) { closeDrawer(); load(false); }
+      else $("bulkMsg").textContent = "프리셋 적용 실패";
+    };
+  }
+  $("drawer").classList.add("open"); $("scrim").classList.add("on");
+}
+function closeDrawer() { $("drawer").classList.remove("open"); $("scrim").classList.remove("on"); }
+$("dClose").onclick = $("scrim").onclick = closeDrawer;
+
+/* 이벤트 */
+["q", "fGroup", "fSub", "fStatus", "fCur", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", render));
+$("btnReset").onclick = () => {
+  ["q", "fGroup", "fSub", "fStatus", "fCur", "fFrom", "fTo"].forEach(id => $(id).value = "");
+  render();
+};
+$("btnMatch").onclick = () => load(true);
+$("btnCsv").onclick = () => {
+  const rows = filtered();
+  const csv = "﻿가맹점,결제일시,이용일,금액,통화,환산KRW,매칭score,상태\n" + rows.map(r =>
+    [r.merchant, r.paidAt, r.serviceDate, r.amount, r.currency, r.amountKRW, r.score, r.status].join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = "사용내역.csv"; a.click();
+};
+
+load(false);
+</script>
+</body>
+</html>
