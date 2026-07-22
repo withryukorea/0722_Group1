@@ -1,0 +1,20 @@
+{
+  "id": "rcpt_006",
+  "imageUrl": "/uploads/rcpt_006.jpg",
+  "croppedUrl": "/uploads/rcpt_006_crop.jpg",
+  "ocr": {
+    "merchant": "오피스디포 코리아",
+    "amount": 58650,
+    "currency": "KRW",
+    "paidAt": "2026-07-16T15:56:40+09:00",
+    "cardLast4": "3059",
+    "items": [
+      { "name": "A4 복사용지 1BOX", "amount": 28000 },
+      { "name": "모나미 볼펜 12ea", "amount": 9600 },
+      { "name": "포스트잇/파일철 외", "amount": 21050 }
+    ],
+    "confidence": 0.92
+  },
+  "matchedTxId": null,
+  "tripId": null
+}

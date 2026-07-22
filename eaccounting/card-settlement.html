@@ -52,7 +52,7 @@
 
     <!-- 툴바 -->
     <div class="toolbar">
-      <button class="btn btn-pink" onclick="alert('전표작성은 우리 모바일 앱에서 자동으로 처리됩니다.')">🧾 전표작성</button>
+      <button class="btn btn-pink" onclick="goVoucher()">🧾 전표작성</button>
       <button class="btn btn-line" onclick="applyFilter()">🔍 카드검색</button>
       <button class="btn btn-line" onclick="alert('데모 버전에서는 엑셀다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 엑셀다운로드</button>
     </div>
@@ -151,6 +151,25 @@ function applyFilter() {
     (!dept || (t.dept || '').includes(dept))
   );
   render();
+}
+
+// 전표작성: 현재 조회된 카드내역을 voucher-create.html 이 기대하는 draft 형태로
+// sessionStorage 에 담아 넘긴다. (정산목록 → 전표작성 화면으로 실제 내역 핸드오프)
+function goVoucher() {
+  const src = view.length ? view : ALL;
+  const rows = src.map(t => ({
+    id: t.id,
+    useDate: fmtDate(t.usedDate),
+    payAt: String(t.approvedAt || '').replace('T', ' ').slice(0, 19).replace(/-/g, '.'),
+    merchant: t.merchant,
+    biz: t.industry,
+    amount: t.amountKRW ?? t.amount,
+    cardNo: t.cardNo,
+    apprNo: t.approvalNo,
+  }));
+  if (!rows.length) { alert('전표작성할 카드내역이 없습니다.'); return; }
+  sessionStorage.setItem('voucherDraft', JSON.stringify({ apiMode: true, rows }));
+  location.href = 'voucher-create.html';
 }
 
 fetch('/api/transactions')

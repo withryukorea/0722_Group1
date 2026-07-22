@@ -1,0 +1,18 @@
+{
+  "id": "rcpt_004",
+  "imageUrl": "/uploads/rcpt_004.jpg",
+  "croppedUrl": "/uploads/rcpt_004_crop.jpg",
+  "ocr": {
+    "merchant": "카카오T 택시",
+    "amount": 34500,
+    "currency": "KRW",
+    "paidAt": "2026-07-16T02:58:00+09:00",
+    "cardLast4": "3059",
+    "items": [
+      { "name": "택시요금 (심야)", "amount": 34500 }
+    ],
+    "confidence": 0.90
+  },
+  "matchedTxId": null,
+  "tripId": null
+}

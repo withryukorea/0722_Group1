@@ -1,0 +1,12 @@
+{
+  "_comment": "WoZ 폴백 매핑표: 데모 영수증 key → 사전 OCR 결과 파일 → 기대 매칭 거래(txId). P3 receipts.js가 실제 OCR 실패 시 이 파일들을 반환하면 데모가 100% 재현됩니다.",
+  "receipts": [
+    { "key": "coffee",    "file": "rcpt_001.json", "expectedTxId": "tx_001", "note": "폴바셋 커피 · 간식비(SNACK)" },
+    { "key": "chicken",   "file": "rcpt_002.json", "expectedTxId": "tx_002", "note": "둘둘치킨 · 회식(ENTERTAIN)" },
+    { "key": "anthropic", "file": "rcpt_003.json", "expectedTxId": "tx_003", "note": "Anthropic 구독 · 복지-AI(WELFARE_AI)" },
+    { "key": "taxi1",     "file": "rcpt_004.json", "expectedTxId": "tx_004", "note": "카카오택시 · 교통(TRAVEL_TRANSPORT)" },
+    { "key": "taxi2",     "file": "rcpt_005.json", "expectedTxId": "tx_005", "note": "카카오택시(합승/추가) · 교통(TRAVEL_TRANSPORT)" },
+    { "key": "officedepot","file": "rcpt_006.json","expectedTxId": "tx_006", "note": "오피스디포 · 사무용품(SUPPLIES)" },
+    { "key": "openai",    "file": "rcpt_007.json", "expectedTxId": "tx_007", "note": "OpenAI 구독 · 복지-AI(WELFARE_AI)" }
+  ]
+}

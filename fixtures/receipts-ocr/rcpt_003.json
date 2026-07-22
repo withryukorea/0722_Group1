@@ -1,0 +1,18 @@
+{
+  "id": "rcpt_003",
+  "imageUrl": "/uploads/rcpt_003.jpg",
+  "croppedUrl": "/uploads/rcpt_003_crop.jpg",
+  "ocr": {
+    "merchant": "ANTHROPIC CLAUDE SUBSCRIPTION",
+    "amount": 167435,
+    "currency": "KRW",
+    "paidAt": "2026-07-19T08:33:00+09:00",
+    "cardLast4": "3059",
+    "items": [
+      { "name": "Claude Pro (monthly)", "amount": 167435 }
+    ],
+    "confidence": 0.88
+  },
+  "matchedTxId": null,
+  "tripId": null
+}

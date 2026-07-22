@@ -51,6 +51,26 @@ const EACC = {
   },
 };
 
+/* API 헬퍼 — 서버(P1)로 서빙 중이면 같은 오리진 /api 사용, file:// 로 직접 열었으면
+   localhost:4000 을 시도, 둘 다 실패하면 null 반환 → 각 화면은 내장 목데이터로 폴백.
+   (서버가 죽어도 시연이 멈추지 않게 하는 안전장치) */
+async function eaccApi(path, options) {
+  const bases = location.protocol === 'file:'
+    ? ['http://localhost:4000']
+    : ['', 'http://localhost:4000'];
+  for (const base of bases) {
+    try {
+      const res = await fetch(base + path, options && {
+        method: options.method || 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options.body),
+      });
+      if (res.ok) return await res.json();
+    } catch (e) { /* 다음 후보 시도 */ }
+  }
+  return null;
+}
+
 function renderChrome(opts) {
   const topMenu = Object.keys(EACC.topLinks);
 

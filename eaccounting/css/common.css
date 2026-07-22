@@ -101,7 +101,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .filter-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 34px; }
 .field { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.field label { flex-shrink: 0; width: 92px; font-size: 13.5px; font-weight: 700; }
+.field label { flex-shrink: 0; width: 110px; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
 .field label::before { content: '▪'; color: #aab2c0; font-size: 9px; margin-right: 6px; vertical-align: 1px; }
 .field .ctrl { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .field input[type="text"], .field input[type="date"], .field select {
@@ -211,6 +211,8 @@ table.grid .empty-pad td { border-left: none; border-right: none; height: 170px;
 .home-cols { max-width: 1200px; margin: 34px auto 60px; padding: 0 20px;
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; }
 .panel { background: #fff; border: 1px solid var(--line-soft); border-radius: 10px; padding: 20px 22px; }
+.panel.gray { background: #f3f4f7; border: none; }
+body.home-bg { background: #fff; }
 .panel .p-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .panel .p-head h3 { font-size: 17px; }
 .panel .p-head .more { font-size: 12px; color: var(--text-sub); }
@@ -225,6 +227,74 @@ table.grid .empty-pad td { border-left: none; border-right: none; height: 170px;
 .panel .people .nm { flex-shrink: 0; font-weight: 700; }
 .panel .people .role { color: var(--text-sub); font-size: 12.5px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------------- 팝업(모달) — 전표 유형 선택 등 ---------------- */
+.modal-back { position: fixed; inset: 0; background: rgba(28,32,48,.45);
+  display: flex; align-items: flex-start; justify-content: center; z-index: 100; padding: 66px 16px 30px; }
+.modal { background: #fff; border-radius: 4px; width: 1060px; max-width: 96vw; max-height: 84vh;
+  overflow-y: auto; box-shadow: 0 18px 60px rgba(10,14,30,.4); }
+.modal-head { background: linear-gradient(90deg, #e0407a, #c84f9e); color: #fff;
+  padding: 16px 24px; font-size: 14.5px; line-height: 1.65; }
+.modal-head .mi { display: inline-block; width: 17px; height: 17px; line-height: 16px; text-align: center;
+  border: 1.5px solid #fff; border-radius: 50%; font-size: 11px; font-weight: 700; font-style: normal; margin-right: 8px; }
+.modal-body { padding: 24px 32px 34px; }
+.slip-types { display: flex; gap: 14px; }
+.slip-type { flex: 1; padding: 16px 8px; background: #f1f2f5; border: 1px solid #e3e5ea; border-radius: 4px;
+  font-size: 16.5px; font-weight: 700; text-align: center; cursor: pointer; }
+.slip-type:hover, .slip-type.on { background: #e7e9ef; border-color: var(--pink); }
+.slip-detail { margin-top: 28px; }
+.slip-detail h4 { text-align: center; font-size: 18px; margin-bottom: 14px; }
+.acct-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.acct-table th, .acct-table td { border: 1px solid var(--line); padding: 9px 14px; }
+.acct-table th { font-weight: 700; text-align: center; }
+.acct-table td.code { width: 110px; text-align: center; }
+.slip-note { border: 1px solid var(--line); padding: 62px 20px; text-align: center; font-size: 15px; }
+
+/* ---------------- 전표작성 화면 섹션 ---------------- */
+.sect { margin-top: 26px; }
+.sect > h3 { font-size: 16.5px; margin-bottom: 10px; }
+table.kv { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.kv td { border: 1px solid var(--line); padding: 9px 12px; }
+table.kv td.lbl { background: #eef1f5; font-weight: 700; width: 150px; text-align: center; }
+.info-bar { padding: 13px 18px; background: #fbfbfd; border: 1px solid var(--line-soft);
+  border-radius: 8px; font-size: 13px; color: var(--blue); }
+
+/* ---------------- 전표작성: 고정 헤더 + 탭 ---------------- */
+.vc-sticky { position: sticky; top: 0; z-index: 40; background: var(--bg); padding: 8px 0 0; }
+.vc-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.vc-title-row h2 { font-size: 23px; font-weight: 700; }
+.tabs { display: flex; background: #fff; }
+.tab { flex: 1; text-align: center; padding: 14px 0; font-size: 15px; font-weight: 600;
+  border: 1px solid var(--line); border-left: none; background: #fff; cursor: pointer; color: var(--text); }
+.tab:first-child { border-left: 1px solid var(--line); }
+.tab.on { color: var(--pink); font-weight: 700;
+  border-top: 2px solid var(--pink); border-left: 1px solid var(--pink); border-right: 1px solid var(--pink);
+  border-bottom-color: #fff; }
+
+/* 결재선 표 */
+table.appr { width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: center; }
+table.appr th { background: #e9ecf2; border: 1px solid var(--line); padding: 9px; font-weight: 700; }
+table.appr td { border: 1px solid var(--line); padding: 10px; height: 46px; color: var(--blue); line-height: 1.5; }
+
+/* 계정과목 검색 인풋 */
+.acct-input { display: flex; align-items: center; border: 1px solid #cdd3dc; border-radius: 4px;
+  background: #fff; height: 30px; }
+.acct-input input { border: none; outline: none; flex: 1; min-width: 0; padding: 0 8px; font-size: 12.5px; background: transparent; }
+.acct-input .mag { cursor: pointer; padding: 0 8px; color: #667; flex-shrink: 0; }
+
+/* 계정목록 참고 박스 */
+.acct-ref-title { font-size: 13px; color: var(--text-sub); margin: 18px 0 6px; }
+.acct-ref { border: 1px solid var(--line); background: #fff; padding: 12px 18px;
+  display: flex; flex-wrap: wrap; gap: 5px 22px; font-size: 13px; color: var(--blue); }
+
+/* 첨부 섹션 */
+.attach-panel { border: 1px solid var(--line); background: #fff; padding: 18px 22px; }
+.attach-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.attach-head .cnt { font-size: 14.5px; font-weight: 700; }
+.attach-head .cnt b { color: var(--red); }
+.attach-empty { min-height: 70px; padding: 14px; font-size: 13px; color: var(--text-sub); }
+.attach-note { background: #f4f5f8; border-radius: 6px; padding: 12px 16px; font-size: 13px;
+  color: #555; line-height: 1.9; margin: 14px 0 20px; }
 
 /* ---------------- 준비중 화면 ---------------- */
 .placeholder { background: #fff; border: 1px dashed #c6ccd6; border-radius: 10px;
