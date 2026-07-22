@@ -46,7 +46,7 @@
           <th style="width:19%;">승인</th>
         </tr>
         <tr>
-          <td>전력사업기획팀<br><b>유상욱 팀원</b></td>
+          <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
           <td style="width:19%;" id="review-1"></td>
           <td style="width:19%;"></td>
           <td style="width:19%;"></td>
@@ -73,7 +73,7 @@
           <td class="lbl">전기일자 <span style="color:var(--red)">*</span></td>
           <td><input type="date" id="post-date" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;"></td>
           <td class="lbl">작성자</td>
-          <td>유상욱 - 전력사업기획팀</td>
+          <td>홍길동 - 전력사업기획팀</td>
         </tr>
       </table>
 
@@ -188,6 +188,9 @@
   </div>
 </div>
 
+<!-- 계정과목 자동완성 후보 (현재 전표유형의 계정목록으로 채워짐) -->
+<datalist id="acct-dl"></datalist>
+
 <script src="js/layout.js"></script>
 <script src="js/accounts-data.js"></script>
 <script>
@@ -272,7 +275,7 @@ function renderCardDetail() {
   const addr = r.merchant.startsWith('폴바셋') ? '서울 중구 청계천로30 1층 (다동 예금보험공사)' : '-';
   const taxer = r.vat > 0 ? '일반과세자' : '면세사업자';
   document.getElementById('card-detail').innerHTML = `
-    <tr><td class="lbl">카드소지자</td><td style="width:34%;">유상욱 Manager - [전력사업기획팀]</td>
+    <tr><td class="lbl">카드소지자</td><td style="width:34%;">홍길동 Manager - [전력사업기획팀]</td>
         <td class="lbl">카드번호</td><td>${r.cardNo}</td></tr>
     <tr><td class="lbl">이용일자</td><td>${r.payAt} (${weekday(r.useDate)})</td>
         <td class="lbl">가맹점</td><td>${r.merchant}/${r.biz}/${taxer}</td></tr>
@@ -291,7 +294,9 @@ function renderLines() {
     <tr onclick="selectLine(${i})" style="${i === selLine ? 'background:#fdf3f7;' : ''}">
       <td>${i + 1}</td>
       <td onclick="event.stopPropagation()"><input type="checkbox" class="row-chk" value="${i}"></td>
-      <td><div class="acct-input"><input value="${l.acct}" onchange="lines[${i}].acct=this.value" onclick="event.stopPropagation()">
+      <td><div class="acct-input"><input value="${l.acct}" list="acct-dl" autocomplete="off"
+              placeholder="계정명·번호 입력 (예: 경상)"
+              onchange="acctResolve(${i}, this)" onclick="event.stopPropagation()">
           <span class="mag" onclick="event.stopPropagation(); pickAcct(${i})">🔍</span></div></td>
       <td class="r">${l.supply.toLocaleString('ko-KR')}</td>
       <td><select onchange="lines[${i}].budgetDept=this.value; renderBudget();" onclick="event.stopPropagation()"
@@ -330,6 +335,40 @@ function applyAcct(code) {
   l.budgetDept = l.budgetDept || fmtDept('AQ131');
   l.memo = `${l.useDate}_${acctShort(l.acct)}`;
   document.getElementById('acct-modal').style.display = 'none';
+  renderLines(); renderBudget();
+}
+
+/* ── 계정과목 입력 자동매칭 ──
+   현재 전표유형의 계정목록(현업완결 등)에서 계정번호/계정명 부분일치로 찾는다.
+   예) "경상" → [735901]회의비-경상회의비 로 자동 선택 */
+function acctPool() {
+  const t = SLIP_TYPES.find(s => s.name === slipType);
+  return (t && t.accounts) ? t.accounts : ACCOUNTS.map(a => [a.code, a.name]);
+}
+function acctMatch(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return [];
+  return acctPool().filter(([code, name]) => code.includes(q) || name.toLowerCase().includes(q));
+}
+/* 현재 전표유형의 계정목록으로 자동완성 후보(datalist) 채우기 */
+function fillAcctDatalist() {
+  document.getElementById('acct-dl').innerHTML =
+    acctPool().map(([code, name]) => `<option value="[${code}]${name}"></option>`).join('');
+}
+/* 입력값을 계정으로 확정: 완성형([코드]명)이면 그대로, 부분입력이면 첫 매칭으로 스냅 */
+function acctResolve(i, el) {
+  const v = el.value.trim();
+  if (!v) { lines[i].acct = ''; renderLines(); renderBudget(); return; }
+  if (/^\[\d+\]/.test(v)) {
+    lines[i].acct = v;                          // datalist에서 고른 완성형
+  } else {
+    const ms = acctMatch(v);
+    if (!ms.length) { lines[i].acct = v; renderLines(); renderBudget(); return; }  // 매칭 없으면 입력값 유지
+    lines[i].acct = `[${ms[0][0]}]${ms[0][1]}`; // 부분입력 → 첫 매칭으로 확정
+  }
+  const l = lines[i];
+  l.budgetDept = l.budgetDept || fmtDept('AQ131');
+  l.memo = `${l.useDate}_${acctShort(l.acct)}`;
   renderLines(); renderBudget();
 }
 
@@ -430,6 +469,7 @@ function chooseSlipType(idx) {
   const ref = t.accounts || SLIP_TYPES[0].accounts;  // 회계팀 검토는 현업완결 목록 표시
   document.getElementById('acct-ref-title').textContent = `※ ${t.short} 계정목록`;
   document.getElementById('acct-ref').innerHTML = ref.map(a => `<span>[${a[0]}] ${a[1]}</span>`).join('');
+  fillAcctDatalist();   // 선택된 전표유형의 계정목록을 자동완성 후보로 반영
 }
 document.getElementById('slip-types').innerHTML = SLIP_TYPES.map((t, i) =>
   `<div class="slip-type" onmouseenter="renderSlipDetail(${i})" onclick="chooseSlipType(${i})">${t.name}</div>`).join('');

@@ -110,7 +110,7 @@ async function loadLive() {
       return {
         hold: '', type: '법인카드전표', docNo: v.id,
         postDate: d, evidDate: d, draftDate: d, payDate: '',
-        drafter: '유상욱', dept: '전력사업기획팀',
+        drafter: '홍길동', dept: '전력사업기획팀',
         approver: (v.approvalLine || []).join(' → '),
         progress: '결재중', slipState: '기안전표',
         amount: v.totalKRW, vendor: v.title || '', company: '에스케이이노베이션 주식회사',

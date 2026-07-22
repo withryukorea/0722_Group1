@@ -46,7 +46,7 @@
           <th style="width:19%;">기안</th><th colspan="3">검토</th><th style="width:19%;">승인</th>
         </tr>
         <tr>
-          <td>전력사업기획팀<br><b>유상욱 팀원</b></td>
+          <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
           <td style="width:19%;" id="review-1"></td><td style="width:19%;"></td><td style="width:19%;"></td>
           <td>전력사업기획팀<br><b>김예섭 팀장</b></td>
         </tr>
@@ -60,7 +60,7 @@
         <tr>
           <td class="lbl-left">👤 출장자 <span class="req">*</span></td>
           <td>
-            <input type="text" id="t-name" value="유상욱" style="width:220px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
+            <input type="text" id="t-name" value="홍길동" style="width:220px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
             <input type="date" id="t-from" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px; margin-left:10px;">
             ~ <input type="date" id="t-to" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px;">
             <input type="text" id="t-nights" disabled style="width:60px; height:32px; border:1px solid #cdd3dc; border-radius:4px; background:#f1f2f5; text-align:center; margin-left:10px;"> 박
@@ -219,7 +219,7 @@
           </div>
           <div class="row">
             <span class="lb">출장자</span>
-            <input type="text" value="유상욱" style="width:180px; height:34px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
+            <input type="text" value="홍길동" style="width:180px; height:34px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
             <span style="color:#666;">[ 부서명 : 전력사업기획팀 ]</span>
           </div>
         </div>
@@ -338,7 +338,7 @@ function renderCardDetail() {
   const el = document.getElementById('card-detail');
   const r = cardLines[selCard];
   el.innerHTML = `
-    <tr><td class="lbl">카드소지자</td><td style="width:34%;">${r ? '유상욱 Manager - [전력사업기획팀]' : ''}</td>
+    <tr><td class="lbl">카드소지자</td><td style="width:34%;">${r ? '홍길동 Manager - [전력사업기획팀]' : ''}</td>
         <td class="lbl">카드번호</td><td>${r ? '4025961080293059' : ''}</td></tr>
     <tr><td class="lbl">이용일자</td><td>${r ? r.payAt : ''}</td>
         <td class="lbl">가맹점</td><td>${r ? r.merchant : ''}</td></tr>
@@ -392,7 +392,7 @@ function toggleAll(m, cls) { document.querySelectorAll('.' + cls).forEach(c => {
 
 /* ── 현금이용내역 (환율 자동계산) ── */
 function addCashRow() {
-  cashLines.push({ type: '기타', detail: '', local: 0, cur: 'JPY', krw: 0, budgetDept: '', memo: '', user: '유상욱', date: '' });
+  cashLines.push({ type: '기타', detail: '', local: 0, cur: 'JPY', krw: 0, budgetDept: '', memo: '', user: '홍길동', date: '' });
   renderCashLines(); renderSummary();
 }
 function updCash(i, key, val) {
