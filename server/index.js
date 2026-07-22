@@ -31,6 +31,14 @@ app.post("/api/reset", (req, res) => {
 // ── 업로드된 영수증 이미지 (P3) ───────────────────────────────
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// ── 모바일웹 PWA → /app ───────────────────────────────────────
+// 같은 서버에서 서빙되므로 앱의 apiBase가 자동으로 같은 오리진을 가리킨다 (배포 URL 하나로 전 화면 접근)
+app.use("/app", express.static(path.join(__dirname, "..", "app")));
+
+// ── PC웹 화면 (design/ — 개발 진행 중 시안 포함) → /design ────
+app.use("/design", express.static(path.join(__dirname, "..", "design")));
+app.use("/data_sample", express.static(path.join(__dirname, "..", "data_sample"))); // 시안이 참조하는 샘플 이미지
+
 // ── 직원용 이어카운팅 화면 (배포 데모 홈) ─────────────────────
 // 루트(/)와 /eaccounting 양쪽에서 서빙 → 배포 홈 URL 및 절대경로 링크 모두 동작
 app.use("/", express.static(path.join(__dirname, "..", "eaccounting")));
@@ -42,6 +50,8 @@ app.use("/admin", express.static(path.join(__dirname, "public")));
 app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);
   console.log(`  ├ 직원용 화면 : http://localhost:${PORT}/`);
+  console.log(`  ├ 모바일웹    : http://localhost:${PORT}/app/`);
+  console.log(`  ├ PC웹(시안)  : http://localhost:${PORT}/design/screens/pc/`);
   console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/admin/`);
   console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
 });
