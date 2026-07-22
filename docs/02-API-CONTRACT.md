@@ -191,3 +191,16 @@ fixtures/
 - **POST /api/vouchers/preview** ✅: 계정과목 자동분류 + 부가세 분리(`supplyKRW`/`vatKRW`, 면세·구독은 0) + 전결라인(approval-rules 기반)
 - **POST /api/vouchers**: 이미 vouchered된 txId 재상신 시 **409 DUPLICATE_SUBMISSION**
 - **Voucher.lines[].receiptId** 를 그대로 보존 → 이어카운팅 나의 문서함에서 증빙(📎) 열람 가능
+
+## 6. v1.2 변경사항 (Preset 엔진 — sot/05 구현 반영)
+
+> sot/ 폴더가 계약의 현재 기준선. 이 절은 docs/02만 보는 사람을 위한 요약이다.
+
+- **Preset 엔진 구현** ✅: `POST/GET/PATCH /api/presets` — 출장(TRIP)·특수정산(RECURRING/CAMPAIGN) 규정의 배포 단위. fixtures/presets.json 시드 5종(AI구독·도서·복지기타·도쿄출장·부산당일출장)
+- **Trip/Budget 폐기**: `trips.js`·`budgets.json` 삭제. 단 기존 호출자 호환을 위해 `GET·POST /api/trips`(TRIP Preset 별칭)와 `GET /api/budgets`(RECURRING Preset usage 계산 shim)는 유지
+- **Receipt 확장** ✅: 응답에 `suggestedPresetId`(TRIP 기간 → 키워드 순 추천), `checks[]`(ITEMIZED_REQUIRED/VAT_CHECK/DUPLICATE_DOCUMENT — 경고만, 차단 없음), `fxRate`/`amountKRW`(결제 시점 환율 고정 저장), `serviceDate`(출장 기간 판정용 — 매칭은 paidAt), `vat{extracted,confirmed}`
+- **PATCH /api/receipts/:id** ✅: 사용자가 presetId·accountCode·vat.confirmed 확정. 허용 비목 1개면 자동 세팅, 허용 외 비목은 400
+- **실 OCR 훅** ✅: server/.env의 LETSUR_API_KEY 있으면 Letsur AI Gateway(Vision)로 실제 OCR, 실패·미설정 시 WoZ 폴백 (데모 100% 재현 유지)
+- **preview Preset 분기** ✅: receipt.presetId 있으면 그 Preset의 비목·전결라인·적요 템플릿 사용 + `warnings[]`(PRESET_LIMIT_EXCEEDED — 경고만), 없으면 기존 자동분류+전결규정 fallback
+- **상신 시 usage 차감** ✅: submitted 전표만 Preset usage(usedKRW/byDay)에 합산 (초안 합산 금지)
+- **fixtures 갱신**: fx USD 1380→**1500**(데모 확정 환율), 계정과목 `SGA_POSTAGE`(판관비-우편) 신설, data_sample 실물 영수증 대응 카드승인내역 `tx_301~310` 추가 (부산·울산 출장 동선 + USD 구독 2건)

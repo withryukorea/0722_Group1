@@ -31,7 +31,7 @@ npm start
 | POST | `/api/receipts` | 업로드→OCR | ✅ P3 (WoZ 폴백 포함) |
 | POST | `/api/match` | 영수증↔거래 매칭 | ✅ P4 |
 | POST | `/api/vouchers/preview` | 전표 초안 생성 | ✅ P4 |
-| POST/GET | `/api/trips` `/api/trips/:id` | 출장 등록/조회 | ⬜ **P5** `routes/trips.js` |
+| POST/GET | `/api/trips` `/api/trips/:id` | 출장 등록/조회 | ✅ TRIP Preset 별칭 (presets.js) |
 
 ## 팀원 안내
 
