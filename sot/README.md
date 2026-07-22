@@ -1,7 +1,7 @@
 # 0722_Group1 SoT
 
 - 최종 갱신: 2026-07-22
-- 범위: 법인카드 정산 고도화 PoC — Preset 중심 통합 설계 (구현 착수 전 기준선)
+- 범위: 법인카드 정산 고도화 PoC — 정산단위 중심 통합 설계 (구현 착수 전 기준선)
 - 규칙: 이 폴더와 `docs/01-PLANNING.md`~`03-ROLES-TIMELINE.md`(원 해커톤 기획)가 충돌하면 이 SoT를 우선한다.
 
 ## 목적
@@ -13,7 +13,7 @@
 | No. | 문서 | 용도 |
 |---:|---|---|
 | 1 | [프로젝트 목적](01_project_purpose.md) | 왜 만드는지, 현재 단계, 성공 기준, 비목표 |
-| 2 | [아키텍처 & 데이터 모델](02_architecture_db_schema.md) | 컴포넌트, 데이터 흐름, Preset/Receipt/Voucher 스키마 |
+| 2 | [아키텍처 & 데이터 모델](02_architecture_db_schema.md) | 컴포넌트, 데이터 흐름, 정산단위/Receipt/Voucher 스키마 |
 | 3 | [사용자 시나리오](03_user_scenarios.md) | 직원·관리자 실제 사용 흐름 |
 | 4 | [코딩 규칙](04_coding_rule.md) | 개발/데이터 취급/테스트/브랜치 규칙 (PoC 스케일) |
 | 5 | [API](05_api.md) | 엔드포인트, 변경/추가/삭제 목록, 프론트 라우트 |
@@ -29,8 +29,8 @@
 ## 현재 상태 스냅샷
 
 - 단계: 해커톤 MVP(Mock E-Accounting 서버 + seed data, P1) 구현 완료. 고도화 PoC는 기획 완료, 구현 착수 전.
-- 핵심 결정: 출장모드(Trip)·복지비(Budget)를 별도 개념 대신 **Preset**이라는 단일 엔티티로 통합 (`02_architecture_db_schema.md` 참고).
-- 이번 라운드에서 새로 들어가는 것: Preset 배포(관리자 콘솔), 촬영 시 Preset/비목 사용자 지정, 적격증빙 경고·부가세 확인(둘 다 Optional 트랙).
+- 핵심 결정: 출장모드(Trip)·복지비(Budget)를 별도 개념 대신 **정산단위**이라는 단일 엔티티로 통합 (`02_architecture_db_schema.md` 참고).
+- 이번 라운드에서 새로 들어가는 것: 정산단위 배포(관리자 콘솔), 촬영 시 정산단위/비목 사용자 지정, 적격증빙 경고·부가세 확인(둘 다 Optional 트랙).
 - 이번 라운드에서 안 하는 것: 실제 메일 발송, 품목별 비목 분리, 다중 사용자, 상신 하드 블록. (`01_project_purpose.md`의 Non-Goals 참고)
 
 ## 참고 (레퍼런스 프로젝트)
