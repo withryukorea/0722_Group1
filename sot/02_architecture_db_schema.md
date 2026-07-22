@@ -3,14 +3,16 @@
 ## System Overview
 
 ```text
-모바일 웹앱 (촬영 / 리뷰 / 정산하기)
+📱 모바일 웹앱 (유입 전용: 촬영 → 크롭확인 → 파싱확인·정산단위/비목 선택 → 저장 + 대시보드)
   -> Mock E-Accounting API (:4000, Express)
   -> 인메모리 store (fixtures/ 로 초기화, 서버 재시작 시 리셋)
 
-관리자 콘솔 (PC 웹, server/public)
+🖥 이어카운팅 (PC 웹, eaccounting/) — 정산의 중심
   -> 동일 Mock E-Accounting API
-  -> Preset 작성/배포, 카드내역·접수전표 확인 (3초 폴링)
+  -> 정산단위 생성/배포 · PC 영수증 업로드 · 영수증↔카드내역 매칭 · 정산(전표작성)·상신 · 전표 접수 확인
 ```
+
+역할 분담 원칙: **유입(증빙 수집)만 모바일**, **정산·상신은 이어카운팅**에서 한다. 모바일에는 정산단위 생성 기능이 없다 (선택만 가능).
 
 ## Components
 
@@ -19,79 +21,112 @@
 | Mock E-Accounting 서버 | `server/index.js` | Express 앱, 라우터 등록 |
 | 인메모리 저장소 | `server/store.js` | fixtures 로드, 리셋, 전표 ID 시퀀스 |
 | 카드내역 라우트 | `server/routes/transactions.js` | 카드 승인내역 조회/상태 갱신 (기존 유지) |
-| 영수증 라우트 | `server/routes/receipts.js` | 업로드, 크롭(원본/파생 분리), OCR, Preset·비목·부가세 확정 |
-| 거래 매칭 라우트 | `server/routes/match.js` | 영수증 ↔ 카드내역 매칭 (기존 유지, Preset과 무관) |
-| 전표 라우트 | `server/routes/vouchers.js` | 전표 초안 생성, 상신, 목록 (Preset 반영하도록 확장) |
-| Preset 라우트 (신규) | `server/routes/presets.js` | Preset CRUD, 활성 목록 조회 |
+| 영수증 라우트 | `server/routes/receipts.js` | 업로드(모바일 촬영 + PC 파일), 크롭(원본/파생 분리), OCR, 정산단위·비목·부가세 확정 |
+| 거래 매칭 라우트 | `server/routes/match.js` | 영수증 ↔ 카드내역 매칭 (기존 유지, 정산단위와 무관) |
+| 전표 라우트 | `server/routes/vouchers.js` | 전표 초안 생성, 상신, 목록 (정산단위 반영하도록 확장) |
+| 정산단위 라우트 | `server/routes/presets.js` | 정산단위 CRUD, 활성 목록 조회 |
 | 참조 데이터 라우트 | `server/routes/reference.js` | 계정과목, 환율, 전결규정(fallback) |
-| 관리자 콘솔 | `server/public/index.html`, `admin.js`, `admin.css` | 카드내역/전표/Preset 화면 |
-| 모바일 웹앱 | `/app` (예정) | 촬영, 리뷰(Preset/비목/부가세), 정산하기, 상신 |
-| ~~출장 라우트~~ | ~~`server/routes/trips.js`~~ | **제거** — `Preset(type=TRIP)`으로 흡수 |
+| 이어카운팅 화면 | `eaccounting/` | 법인카드 정산(`card-settlement`, `voucher-create`), 해외/국내 출장비 정산(`travel-foreign/domestic`), 문서함(`mydocs-all`) + **신규: 정산단위 관리, 영수증 업로드, 매칭 화면** |
+| 모바일 웹앱 | `app/`, `design/screens/mobile/` | 촬영·크롭확인·파싱확인·저장, 정산단위 대시보드(읽기 전용) |
+| ~~출장 라우트~~ | ~~`server/routes/trips.js`~~ | **제거됨** — `정산단위(type=TRIP)`으로 흡수 (구현 반영 완료) |
 
 ## Data Flow
 
-### 증빙 캡처 흐름
+### 정산단위 생성 흐름 — 전부 이어카운팅에서 (모바일 생성 없음)
 
-1. 사용자가 영수증 촬영 → 원본 이미지 서버 업로드.
-2. 서버가 크롭 수행. **원본과 크롭본을 별도 경로에 분리 저장** (크롭 실패·리셋 대비 원본 보존).
-3. Vision LLM으로 OCR 파싱 (merchant/amount/currency/paidAt/items/부가세 추출).
-4. 서버는 활성 Preset 중 `matchKeywords`/기간 기준으로 `suggestedPresetId`를 계산해 응답에 포함.
-5. 리뷰 화면: 사용자가 Preset을 확정 (자동추천은 참고용 하이라이트, 최종 선택은 항상 사용자) → 선택된 Preset의 `allowedAccountCodes`가 2개 이상이면 비목도 선택 (1개면 자동 세팅) → 부가세 확인/수정 → (Optional) 적격증빙 경고 확인.
-6. 확정된 Receipt 저장 (`presetId`, `accountCode`, `vat.confirmed`, `checks[]` 포함).
+| 경로 | 트리거 | type | 비고 |
+|---|---|---|---|
+| 품의 자동 생성 | 출장 품의 승인 시 시스템이 자동 생성 | TRIP (해외) | 품의 시스템 연동은 비범위 — **PoC에서는 seed로 시뮬레이트** (데모 시작 시 도쿄 출장 정산단위가 이미 존재) |
+| 직원 직접 생성 | 이어카운팅에서 직원이 목적지·기간만 입력 | TRIP (국내) | 일비·비목·전결라인은 **국내출장 표준 기본값이 자동** 세팅 |
+| 관리자 배포 | 이어카운팅 정산단위 관리 화면에서 작성 | RECURRING / CAMPAIGN | 저장 즉시 배포 — 메일 등 별도 안내 단계 없음 |
 
-### Preset 배포 흐름
+### 증빙 유입 흐름 ① — 모바일 촬영 (출장·현장 결제)
 
-- **관리자 배포**: 관리자 콘솔의 Preset 탭에서 작성 → 저장 즉시 활성 Preset으로 등록, 다음 조회부터 앱에 노출. 메일 등 별도 안내 단계 없음 — 저장이 곧 배포.
-- **출장 등록 (품의 mock)**: 모바일 앱 "출장모드 시작" 폼 제출 → 동일 `POST /api/presets` 호출 (`type=TRIP`). 실제 품의 시스템 연동은 비범위 — 폼 제출 자체가 품의 역할을 겸함.
+7단계. ⚙️=백엔드 연산, 📱=사용자 확인·선택:
 
-### 거래 매칭 흐름 (기존 유지, 변경 없음)
+1. 📱 촬영
+2. ⚙️ 원본파일 서버 전송 (원본은 항상 보존)
+3. ⚙️ 자동 크롭 (원본/크롭본 별도 경로 분리 저장)
+4. 📱 **크롭 이미지 확인** — 어긋나면 "다시 크롭", 실패 시 원본 사용
+5. ⚙️ 정보 파싱 (Vision LLM: merchant/amount/currency/paidAt/items/부가세)
+6. 📱 **파싱 확인 + 정산단위·비목 선택** — 서버가 `matchKeywords`/기간으로 계산한 `suggestedPresetId`가 하이라이트되지만 최종 선택은 항상 사용자. `allowedAccountCodes`가 2개 이상이면 비목 선택 노출(1개면 자동). 부가세 확인/수정, 적격증빙 경고(Optional)도 이 단계에 표시
+7. 📱 저장 → 보관함 (`presetId`, `accountCode`, `vat.confirmed`, `checks[]` 포함)
 
-영수증 ↔ 카드승인내역 매칭은 Preset 지정과 **독립적인 별도 프로세스**다. 금액/일시/가맹점 유사도 기반 스코어링은 `docs/02-API-CONTRACT.md` 3절 그대로.
+사용자 개입은 4·6단계 두 번뿐이다.
 
-### 전표 생성 흐름
+### 증빙 유입 흐름 ② — PC 업로드 (비출장·구독형)
+
+AI구독료처럼 PDF 인보이스로 오는 건은 이어카운팅에서 직접 업로드한다:
+
+1. 🖥 이어카운팅 영수증 업로드 화면에서 파일(PDF/이미지) 선택
+2. ⚙️ 파싱 → 정산단위 키워드 자동추천 (예: "ANTHROPIC" → AI구독 정산단위)
+3. 🖥 확인 후 정산(전표작성)으로 이동
+
+### 매칭 흐름 — 이어카운팅 매칭 화면
+
+업로드된 영수증 ↔ 카드 statement(승인내역) 매칭은 이어카운팅의 매칭 화면에서 확인한다:
+
+- 자동 매칭(금액/일시/가맹점 스코어링, `docs/02-API-CONTRACT.md` 3절 그대로) + 낮은 점수 건만 수동 확정
+- 행별로 비목 확인, 증빙 추가·해제 가능
+- 거래 매칭은 정산단위 지정과 **독립적인 별도 프로세스**다
+
+### 정산(전표작성)·상신 흐름 — 이어카운팅에서 (반자동)
+
+정산은 이어카운팅의 기존 전표작성 화면(해외출장비 정산 / 법인카드 정산 등)에서 이루어진다. **정산단위가 지정한 칸은 자동완성·고정**되고, 나머지는 일반 정산처럼 사용자가 입력/확인한다:
+
+| 자동완성·고정 (정산단위) | 사용자 입력/확인 |
+|---|---|
+| 계정과목(비목), 예산부서(Cost Center), 적요(양식 자동 생성), 결재선(양식 자동 전개) | 금액·통화·환율(OCR값 확인), 부가세, 증빙일자, 세부내역 등 |
 
 `POST /api/vouchers/preview` 시:
 
-- `receipt.presetId`가 있으면 → 그 Preset의 `accountCode`(사용자가 고른 비목), `approvalLine`, `descriptionTemplate` 사용, Preset의 `usage`에 사용액 반영.
+- `receipt.presetId`가 있으면 → 그 정산단위의 규칙(비목·costCenter·적요양식·전결라인 양식) 자동 반영, `usage`에 사용액 차감.
 - 없으면 → 기존 P4 자동분류 로직 + `fixtures/approval-rules.json` 카테고리×금액구간 fallback.
 
 ## Entities
 
-### Preset (신규 핵심 엔티티)
+### 정산단위 (핵심 엔티티)
 
 ```jsonc
 {
-  "id": "ps_tokyo_trip",
-  "name": "7월 도쿄 출장",
-  "type": "TRIP",                 // TRIP | RECURRING | CAMPAIGN
-  "source": "trip_request",       // trip_request | admin
+  "id": "ps_ai_frontier",
+  "name": "AI Frontier 교육",
+  "type": "RECURRING",            // TRIP | RECURRING | CAMPAIGN
+  "source": "admin",              // trip_request(품의 자동, PoC는 seed) | employee(국내출장 직접) | admin(관리자 배포)
   "assignees": ["u_me"],
-  "period": { "start": "2026-07-14", "end": "2026-07-17" },  // TRIP만 사용
+  "period": null,                 // TRIP만 사용 (예: {"start":"2026-07-14","end":"2026-07-17"})
   "active": true,
   "rules": {
-    "allowedAccountCodes": ["TRAVEL_MEAL", "TRAVEL_TRANSPORT", "TRAVEL_LODGING"],
-    "limitKRW": 200000,
-    "limitPeriod": "daily",        // daily | monthly | total
-    "approvalLine": ["김민수 팀장"],
-    "descriptionTemplate": "도쿄출장 {merchant} {n}인",
-    "matchKeywords": ["JPY", "도쿄"],
+    "allowedAccountCodes": ["723105"],        // 허용 비목 (실계정코드). TRIP은 복수 (숙박/식대/교통)
+    "costCenter": "A860",                     // 예산부서 (예: [A860] SSC 교육)
+    "limitKRW": 300000,
+    "limitPeriod": "monthly",                 // daily(TRIP 일당) | monthly | total
+    "approvalLineTemplate": {                 // 전결라인 "양식" — 변수는 상신자 기준 자동 결정
+      "draft": "$DRAFTER",                    // 기안 = [기안자] 자동
+      "reviewers": ["이진현 팀원", "오정훈 팀장"],  // 검토 = 지정 검토자(고정)
+      "approve": "$SUPERIOR"                  // 승인 = [차상위자] 자동
+    },
+    "descriptionTemplate": "[이름][직급]_[월]월 AI Frontier",  // 적요양식 — [이름]·[직급]=프로필, [월]=결제월 치환
+    "matchKeywords": ["ANTHROPIC", "OPENAI", "AI Frontier"],
     "requireItemized": false
   },
-  "usage": { "usedKRW": 0, "byDay": {} }
+  "usage": { "usedKRW": 0, "byAccountCode": {} }   // TRIP 대시보드는 비목별 누적으로 표시 (일별 아님)
 }
 ```
 
-AI구독료 같은 단일 비목 Preset은 `allowedAccountCodes: ["WELFARE_AI"]`처럼 배열 길이 1 — 이 경우 리뷰 화면에서 비목 선택 단계가 자동으로 생략된다.
+- 단일 비목 정산단위(`allowedAccountCodes` 길이 1)는 리뷰 화면에서 비목 선택 단계가 자동 생략된다.
+- TRIP의 국내출장 표준 기본값: 직원은 목적지·기간만 입력하면 일비·허용비목·전결라인이 표준 규정으로 자동 세팅된다.
 
 ### Receipt (확장)
 
 ```jsonc
 {
   "id": "rcpt_001",
+  "source": "mobile",           // mobile(촬영) | pc(이어카운팅 업로드)
   "imageUrl": "/uploads/rcpt_001.jpg",       // 원본 — 항상 보존
   "croppedUrl": "/uploads/rcpt_001_crop.jpg", // 크롭본 — 리셋/재실행 가능
   "ocr": { "merchant": "...", "amount": 8800, "currency": "JPY", "paidAt": "...", "items": [], "confidence": 0.93 },
-  "matchedTxId": null,          // 거래 매칭 결과 (Preset과 무관)
+  "matchedTxId": null,          // 거래 매칭 결과 (정산단위와 무관)
   "presetId": "ps_tokyo_trip",  // null이면 일반 결제
   "accountCode": "TRAVEL_MEAL", // 사용자가 확정한 비목
   "vat": { "extracted": 800, "confirmed": null },
@@ -103,12 +138,20 @@ AI구독료 같은 단일 비목 Preset은 `allowedAccountCodes: ["WELFARE_AI"]`
 
 ### 폐기되는 엔티티
 
-- **Trip** → `Preset(type=TRIP)`으로 흡수. `fixtures`에 별도 `trips.json` 두지 않음.
-- **Budget** → `Preset(type=RECURRING)`의 `usage`로 흡수. `fixtures/budgets.json` 폐기 → `fixtures/presets.json`으로 대체.
+- **Trip** → `정산단위(type=TRIP)`으로 흡수. (구현 반영 완료 — `trips.js` 삭제됨)
+- **Budget** → `정산단위(type=RECURRING)`의 `usage`로 흡수. `fixtures/budgets.json` → `fixtures/presets.json`으로 대체.
 
 ### 유지되는 엔티티 (변경 없음)
 
 CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accounts — `docs/02-API-CONTRACT.md` 정의 그대로.
+
+## 모바일 정산단위 대시보드 (읽기 전용)
+
+배정된 정산단위의 사용 현황을 조회하는 화면. 생성·수정은 이어카운팅에서만.
+
+- **TRIP**: 일별 구분 없이 **비목별 누적** 현황. 특히 **일당(per-diem)** 한도 대비 사용/잔여를 중심으로 표시.
+- **RECURRING**: 월 한도 대비 사용/잔여 게이지.
+- 데이터는 `GET /api/presets?active=true`의 `usage`·`rules.limitKRW`를 그대로 렌더링 — 신규 API 불필요.
 
 ## Storage
 
@@ -117,7 +160,8 @@ CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accou
 
 ## Known Gaps
 
-- Preset 자동추천(`matchKeywords`)은 단순 문자열 포함 검사 수준 — 정교한 랭킹 없음.
-- 여러 Preset이 동시에 후보로 뜰 때의 우선순위 로직 없음 (의도적 — 사용자가 항상 직접 선택).
+- 정산단위 자동추천(`matchKeywords`)은 단순 문자열 포함 검사 수준 — 정교한 랭킹 없음.
+- 여러 정산단위가 동시에 후보로 뜰 때의 우선순위 로직 없음 (의도적 — 사용자가 항상 직접 선택).
+- 전결라인 양식의 `$SUPERIOR`(차상위자) 해석은 조직도 mock(`eaccounting/js/org-data.js`) 기준.
 - 단일 사용자(`u_me`) 하드코딩, 실제 인증 없음.
 - 프로덕션 보안·백업 체계 없음 (PoC 범위 밖).

@@ -100,7 +100,7 @@
 
 <div class="cover">
   <h1>법인카드 정산 고도화 PoC — 화면 목업</h1>
-  <div class="subtitle">Preset 기반 정산엔진 · 모바일 워크플로우 & 이어카운팅(회사 시스템)</div>
+  <div class="subtitle">정산단위 기반 정산엔진 · 모바일 워크플로우 & 이어카운팅(회사 시스템)</div>
   <div class="meta">작성일 2026-07-22 · 프로젝트 0722_Group1 · 본 문서는 설계 논의용 목업이며 최종 UI가 아님</div>
   <div class="legend" style="margin-top:10px">
     <span class="dot" style="background:#3f6fd6"></span>🖥️ 이어카운팅 (PC·회사 시스템)
@@ -108,14 +108,14 @@
   </div>
 </div>
 
-<!-- ============ SECTION 1: 이어카운팅 - Preset 세팅 ============ -->
+<!-- ============ SECTION 1: 이어카운팅 - 정산단위 세팅 ============ -->
 <section>
-<h2>1. 이어카운팅 — Preset 세팅 (일반 Preset 예시: AI Frontier 교육)</h2>
-<p class="subtitle">Preset 생성·배포는 이어카운팅에서만. 정산에 필요한 회계 항목을 Preset에 담아, 정산 시 사용자가 손댈 부분을 최소화한다.</p>
+<h2>1. 이어카운팅 — 정산단위 세팅 (일반 정산단위 예시: AI Frontier 교육)</h2>
+<p class="subtitle">정산단위 생성·배포는 이어카운팅에서만. 정산에 필요한 회계 항목을 정산단위에 담아, 정산 시 사용자가 손댈 부분을 최소화한다.</p>
 
 <div class="cols" style="margin-top:12px">
   <div class="panel">
-    <div class="ph pc">🖥️ Preset 정의</div>
+    <div class="ph pc">🖥️ 정산단위 정의</div>
     <div class="pb">
       <div class="f"><span class="k">이름</span><span class="v">AI Frontier 교육</span></div>
       <div class="f"><span class="k">유형</span><span class="v">RECURRING (월)</span></div>
@@ -168,15 +168,15 @@
 <!-- ============ SECTION 2: 정산 자동화 & 전표 접수 ============ -->
 <section class="page-break">
 <h2>2. 정산 자동화 & 전표 접수</h2>
-<p class="subtitle">영수증 저장 이후의 정산(매칭 → 전표 생성 → 상신)은 자동으로 처리된다. Preset이 회계 항목을 이미 싣고 있으므로 정산 단계에서 사람이 손댈 것이 없다. 별도의 정산 입력 화면은 두지 않는다.</p>
+<p class="subtitle">영수증 저장 이후의 정산(매칭 → 전표 생성 → 상신)은 자동으로 처리된다. 정산단위가 회계 항목을 이미 싣고 있으므로 정산 단계에서 사람이 손댈 것이 없다. 별도의 정산 입력 화면은 두지 않는다.</p>
 
 <h3 style="margin-top:14px">저장 이후 자동 처리 흐름</h3>
 <div class="flow" style="margin-top:6px">
-  <div class="stg"><div class="stg-h">저장된 영수증</div><div class="stg-v" style="font-size:9.5px">Preset·비목 확정본</div></div>
+  <div class="stg"><div class="stg-h">저장된 영수증</div><div class="stg-v" style="font-size:9.5px">정산단위·비목 확정본</div></div>
   <div class="arr">→</div>
   <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 자동 매칭</div><div class="stg-v" style="font-size:9.5px;color:#6b7488">카드내역 대조</div></div>
   <div class="arr">→</div>
-  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 전표 생성</div><div class="stg-v" style="font-size:9.5px;color:#6b7488">Preset 규칙 반영</div></div>
+  <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 전표 생성</div><div class="stg-v" style="font-size:9.5px;color:#6b7488">정산단위 규칙 반영</div></div>
   <div class="arr">→</div>
   <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 상신</div><div class="stg-v" style="font-size:9.5px;color:#6b7488">전결선 자동</div></div>
   <div class="arr">→</div>
@@ -196,7 +196,7 @@
     </div>
   </div>
   <div class="panel">
-    <div class="ph pc">Preset이 정산 시 자동으로 채우는 항목</div>
+    <div class="ph pc">정산단위가 정산 시 자동으로 채우는 항목</div>
     <div class="pb">
       <div class="f auto"><span class="k">비목(계정)</span><span class="v">[723101] 교육훈련비</span></div>
       <div class="f auto"><span class="k">Cost Center</span><span class="v">[A860] SSC 교육</span></div>
@@ -226,11 +226,11 @@
   <div class="arr">→</div>
   <div class="stg" style="background:#f4f6fa"><div class="stg-h">⚙️ 정보 파싱</div><div class="stg-v" style="font-size:9.3px;color:#6b7488">OCR</div></div>
   <div class="arr">→</div>
-  <div class="stg varbox"><div class="stg-h">📱 확인·선택</div><div class="stg-v" style="font-size:9.3px">Preset·비목</div></div>
+  <div class="stg varbox"><div class="stg-h">📱 확인·선택</div><div class="stg-v" style="font-size:9.3px">정산단위·비목</div></div>
   <div class="arr">→</div>
   <div class="stg"><div class="stg-h">📱 저장</div><div class="stg-v" style="font-size:9.5px">완료</div></div>
 </div>
-<div style="font-size:10px;color:#6b7488;margin-top:6px">원본은 서버에 항상 보존, 크롭·파싱은 백엔드가 수행. 사용자 개입은 <b>크롭 확인</b>과 <b>파싱 확인 + Preset/비목 선택</b> 두 번뿐. (적격증빙 경고·부가세 확인은 파싱 확인 단계에 선택적으로 함께 표시)</div>
+<div style="font-size:10px;color:#6b7488;margin-top:6px">원본은 서버에 항상 보존, 크롭·파싱은 백엔드가 수행. 사용자 개입은 <b>크롭 확인</b>과 <b>파싱 확인 + 정산단위/비목 선택</b> 두 번뿐. (적격증빙 경고·부가세 확인은 파싱 확인 단계에 선택적으로 함께 표시)</div>
 
 <h3>사용자 화면 (두 확인 지점)</h3>
 <div class="phones" style="grid-template-columns:repeat(2,1fr);max-width:560px">
@@ -246,25 +246,25 @@
     </div>
   </div>
   <div class="phone">
-    <div class="pt"><span>📱 파싱 확인 · Preset/비목 선택</span></div>
+    <div class="pt"><span>📱 파싱 확인 · 정산단위/비목 선택</span></div>
     <div class="pbd">
       <div>OCR: 스시로 신주쿠점 · ¥8,800 → ₩79,200</div>
-      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">Preset (자동추천)</div>
+      <div style="font-size:9.5px;color:#6b7488;margin-top:5px">정산단위 (자동추천)</div>
       <span class="chip hi">✓ 도쿄 출장</span><span class="chip">일반</span>
       <div style="font-size:9.5px;color:#6b7488;margin-top:5px">비목 (허용 3개 · 1개면 자동)</div>
       <span class="chip hi">식대</span><span class="chip">교통</span><span class="chip">숙박</span>
       <div class="warn" style="margin-top:6px">⚠️ (편의점 등) 상세내역 증빙 필요 — 선택적 경고</div>
       <div class="btn">저장</div>
-      <div class="op">파싱값 확인 → Preset·비목 선택(자동추천) → 저장</div>
+      <div class="op">파싱값 확인 → 정산단위·비목 선택(자동추천) → 저장</div>
     </div>
   </div>
 </div>
 </section>
 
-<!-- ============ SECTION 4: 모바일 - Preset 상태 대시보드 ============ -->
+<!-- ============ SECTION 4: 모바일 - 정산단위 상태 대시보드 ============ -->
 <section class="page-break">
-<h2>4. 모바일 — Preset 상태 대시보드 (읽기 전용)</h2>
-<p class="subtitle">배정된 Preset의 사용 현황을 한눈에. 생성·수정은 이어카운팅에서만, 모바일은 조회만 한다.</p>
+<h2>4. 모바일 — 정산단위 상태 대시보드 (읽기 전용)</h2>
+<p class="subtitle">배정된 정산단위의 사용 현황을 한눈에. 생성·수정은 이어카운팅에서만, 모바일은 조회만 한다.</p>
 
 <div class="dash" style="margin-top:12px">
   <div class="panel">
@@ -303,12 +303,12 @@
     <ul style="padding-left:18px;line-height:1.7">
       <li><b>출장(TRIP)</b>: 일별 구분 없이 <b>비목별</b> 누적 현황. 특히 <b>일당(per-diem)</b> 한도 대비 사용/잔여를 중심으로 표시</li>
       <li><b>월 한도(RECURRING)</b>: 교육·도서 등 배정 예산의 사용/잔여 게이지</li>
-      <li>영수증을 저장·정산하면 해당 Preset 사용량이 <b>자동 반영</b>되어 갱신</li>
+      <li>영수증을 저장·정산하면 해당 정산단위 사용량이 <b>자동 반영</b>되어 갱신</li>
     </ul>
     <h3>데이터 출처</h3>
     <p style="line-height:1.6">이미 설계된 <span class="tpl">GET /api/presets?active=true</span> 의 <span class="tpl">usage</span> · <span class="tpl">rules.limitKRW</span> 를 그대로 읽어 렌더링. 신규 API 없이 표시 화면만 추가.</p>
     <h3>정산 흐름과의 연결</h3>
-    <p style="line-height:1.6">이어카운팅에서 Preset을 배포 → 모바일에서 영수증 처리 시 자동 적용 → 사용량이 이 대시보드에 실시간으로 쌓인다. "규정을 배포하면 정산이 알아서 따라간다"는 구조를 사용자가 눈으로 확인하는 화면.</p>
+    <p style="line-height:1.6">이어카운팅에서 정산단위를 배포 → 모바일에서 영수증 처리 시 자동 적용 → 사용량이 이 대시보드에 실시간으로 쌓인다. "규정을 배포하면 정산이 알아서 따라간다"는 구조를 사용자가 눈으로 확인하는 화면.</p>
   </div>
 </div>
 </section>
