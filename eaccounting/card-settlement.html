@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 법인카드 정산</title>
+<link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <h2 class="page-title">법인카드 정산 <span class="fav">★</span></h2>
+
+    <!-- 검색 필터 -->
+    <div class="filter-box">
+      <div class="filter-grid">
+        <div class="field">
+          <label>사용일자</label>
+          <div class="ctrl">
+            <input type="date" value="2025-07-01"> <span>~</span> <input type="date" value="2026-07-22">
+          </div>
+        </div>
+        <div class="field"><label>승인번호</label><div class="ctrl"><input type="text" id="f-apprno"></div></div>
+        <div class="field"><label>진행상태</label><div class="ctrl">
+          <select id="f-status"><option value="">전체</option><option>미정산</option><option>정산완료</option></select>
+        </div></div>
+
+        <div class="field"><label>회사구분</label><div class="ctrl">
+          <select><option>SK E&amp;S - A000</option></select>
+        </div></div>
+        <div class="field"><label>사용자명/사번</label><div class="ctrl"><input type="text" id="f-owner"></div></div>
+        <div class="field"><label>가맹점</label><div class="ctrl"><input type="text" id="f-merchant"></div></div>
+      </div>
+      <button class="btn-search" onclick="applyFilter()">조회</button>
+    </div>
+
+    <div class="notice-bar"><span class="i">i</span>취소된 카드내역도 모두 정산이 필요합니다 정산시 결제취소건 모두 부가세없음에 체크하여 주시기 바랍니다.</div>
+
+    <!-- 툴바 -->
+    <div class="toolbar">
+      <button class="btn btn-dark" onclick="createVoucher()">✎ 전표작성</button>
+      <button class="btn btn-line" onclick="alert('데모 버전에서는 카드검색을 지원하지 않습니다.')">🔍 카드검색</button>
+      <button class="btn btn-line" onclick="alert('데모 버전에서는 엑셀다운로드를 지원하지 않습니다.')"><span class="xls">▦</span> 엑셀다운로드</button>
+    </div>
+
+    <!-- 목록 -->
+    <div class="table-wrap">
+      <table class="grid">
+        <colgroup>
+          <col style="width:44px"><col style="width:36px"><col style="width:92px"><col style="width:150px">
+          <col style="width:210px"><col style="width:110px"><col style="width:100px"><col style="width:80px">
+          <col style="width:130px"><col style="width:150px"><col style="width:90px"><col style="width:80px"><col style="width:80px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>No.</th><th><input type="checkbox" id="chk-all" onclick="toggleAll(this)"></th>
+            <th>사용일자</th><th>결재일시</th><th>가맹점상호</th><th>업종</th><th>사용금액</th>
+            <th>카드소유자</th><th>부서</th><th>카드번호</th><th>승인번호</th><th>진행상태</th><th>등록자</th>
+          </tr>
+        </thead>
+        <tbody id="tx-body"></tbody>
+      </table>
+    </div>
+
+    <div class="table-foot">
+      <div class="total">Total : <b id="total">0</b></div>
+      <div class="pagination">
+        <button>«</button><button>‹</button><button class="cur">1</button><button>›</button><button>»</button>
+      </div>
+      <div class="psize"><select><option>100</option><option>50</option><option>20</option></select></div>
+    </div>
+  </main>
+</div>
+
+<script src="js/layout.js"></script>
+<script src="js/card-data.js"></script>
+<script>
+renderChrome({
+  top: '법인카드',
+  active: '법인카드 정산',
+  breadcrumb: ['메뉴', '법인카드', '법인카드 정산'],
+});
+
+let view = CARD_TXNS.slice();
+
+function renderTable() {
+  const body = document.getElementById('tx-body');
+  body.innerHTML = view.map((t, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><input type="checkbox" class="row-chk" value="${t.apprNo}"></td>
+      <td>${t.useDate}</td>
+      <td>${t.payAt}</td>
+      <td class="l">${t.merchant}</td>
+      <td>${t.biz}</td>
+      <td class="r">${t.amount.toLocaleString('ko-KR')}</td>
+      <td>${t.owner}</td>
+      <td>${t.dept}</td>
+      <td>${t.cardNo}</td>
+      <td>${t.apprNo}</td>
+      <td class="${t.status === '미정산' ? 'state-red' : ''}">${t.status}</td>
+      <td>${t.registrant}</td>
+    </tr>`).join('')
+    + `<tr class="empty-pad"><td colspan="13"></td></tr>`;
+  document.getElementById('total').textContent = view.length;
+  document.getElementById('chk-all').checked = false;
+}
+
+function applyFilter() {
+  const apprno = document.getElementById('f-apprno').value.trim();
+  const status = document.getElementById('f-status').value;
+  const owner = document.getElementById('f-owner').value.trim();
+  const merchant = document.getElementById('f-merchant').value.trim();
+  view = CARD_TXNS.filter(t =>
+    (!apprno || t.apprNo.includes(apprno)) &&
+    (!status || t.status === status) &&
+    (!owner || t.owner.includes(owner)) &&
+    (!merchant || t.merchant.toLowerCase().includes(merchant.toLowerCase()))
+  );
+  renderTable();
+}
+
+function toggleAll(master) {
+  document.querySelectorAll('.row-chk').forEach(c => { c.checked = master.checked; });
+}
+
+function createVoucher() {
+  const checked = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
+  if (checked.length === 0) { alert('전표를 작성할 카드내역을 선택해 주세요.'); return; }
+  CARD_TXNS.forEach(t => { if (checked.includes(t.apprNo)) { t.status = '정산완료'; t.registrant = '유상욱'; } });
+  applyFilter();
+  alert(`선택한 ${checked.length}건으로 전표가 작성되었습니다. (전표작성 상세 화면은 연결 예정)`);
+}
+
+renderTable();
+</script>
+</body>
+</html>
