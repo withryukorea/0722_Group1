@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>e-Accounting - 국내출장비 정산</title>
+<link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+
+    <!-- 틀고정: 제목 + 탭바 -->
+    <div class="vc-sticky">
+      <div class="vc-title-row">
+        <h2>국내출장비 정산 <span class="fav off" style="font-size:19px;">★</span></h2>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-dark" onclick="alert('데모 버전에서는 임시저장을 지원하지 않습니다.')">🖫 임시저장</button>
+          <button class="btn btn-dark" onclick="submitVoucher()">🗗 미리보기(기안)</button>
+        </div>
+      </div>
+      <div class="tabs" id="tabs">
+        <div class="tab on" data-sec="sec-approval">결재선지정</div>
+        <div class="tab" data-sec="sec-overview">출장개요</div>
+        <div class="tab" data-sec="sec-settle">출장비 정산</div>
+        <div class="tab" data-sec="sec-budget">예산정보</div>
+        <div class="tab" data-sec="sec-usage">이용내역</div>
+        <div class="tab" data-sec="sec-attach">첨부파일 <span style="color:var(--red);" id="tab-file-cnt">0</span></div>
+      </div>
+    </div>
+
+    <!-- 결재선지정 -->
+    <section class="sect" id="sec-approval">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <h3 style="margin:0;">결재선지정 <span style="font-size:12.5px; color:var(--blue); font-weight:400;">ⓘ 주의사항</span></h3>
+        <button class="btn btn-line" onclick="alert('데모 버전에서는 결재선 변경을 지원하지 않습니다.')">⇆ 결재선 변경</button>
+      </div>
+      <table class="appr">
+        <tr>
+          <th style="width:19%;">기안</th><th colspan="3">검토</th><th style="width:19%;">승인</th>
+        </tr>
+        <tr>
+          <td>전력사업기획팀<br><b>유상욱 팀원</b></td>
+          <td style="width:19%;" id="review-1"></td><td style="width:19%;"></td><td style="width:19%;"></td>
+          <td>전력사업기획팀<br><b>김예섭 팀장</b></td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- 출장개요 -->
+    <section class="sect" id="sec-overview">
+      <h3>출장개요</h3>
+      <table class="kv">
+        <tr>
+          <td class="lbl-left">👤 출장자 <span class="req">*</span></td>
+          <td>
+            <input type="text" id="t-name" value="유상욱" style="width:220px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
+            <input type="date" id="t-from" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px; margin-left:10px;">
+            ~ <input type="date" id="t-to" onchange="calcNights()" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px;">
+            <input type="text" id="t-nights" disabled style="width:60px; height:32px; border:1px solid #cdd3dc; border-radius:4px; background:#f1f2f5; text-align:center; margin-left:10px;"> 박
+            <input type="text" id="t-days" disabled style="width:60px; height:32px; border:1px solid #cdd3dc; border-radius:4px; background:#f1f2f5; text-align:center; margin-left:6px;"> 일
+            <span style="color:var(--blue); font-size:18px; cursor:pointer; margin-left:6px;" onclick="alert('데모 버전에서는 출장자 추가를 지원하지 않습니다.')">⊕</span>
+          </td>
+        </tr>
+        <tr>
+          <td class="lbl-left">📍 출장지 <span class="req">*</span></td>
+          <td><input type="text" id="t-city" style="width:620px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;"></td>
+        </tr>
+        <tr>
+          <td class="lbl-left">💼 출장목적 <span class="req">*</span></td>
+          <td><input type="text" id="t-purpose" style="width:620px; height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;"></td>
+        </tr>
+      </table>
+    </section>
+
+    <!-- 출장비 정산 (요약) -->
+    <section class="sect" id="sec-settle">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <h3 style="margin:0;">출장비 정산</h3>
+        <button class="btn btn-line" onclick="alert('데모 버전에서는 옵션 펼치기를 지원하지 않습니다.')">⌄ 옵션 펼치기</button>
+      </div>
+      <table class="trip-sum">
+        <tr>
+          <th colspan="2" rowspan="2" style="width:24%;">구분</th>
+          <th colspan="2">현금</th><th colspan="2">법인카드</th>
+          <th rowspan="2" style="width:15%;">계(a + b + c + d)</th>
+          <th rowspan="2" style="width:12%;">지급한도</th>
+        </tr>
+        <tr><th>기 정산(a)</th><th>현 정산(b)</th><th>기 정산(c)</th><th>현 정산(d)</th></tr>
+        <tbody id="sum-body"></tbody>
+      </table>
+    </section>
+
+    <!-- 예산정보 -->
+    <section class="sect" id="sec-budget">
+      <h3>예산정보</h3>
+      <div class="info-bar" style="margin-top:10px;">ⓘ 아래의 이용내역을 작성하시면 예산정보가 표시됩니다.</div>
+    </section>
+
+    <!-- 이용내역: 카드 + 현금 -->
+    <section class="sect" id="sec-usage">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <h3 style="margin:0;">카드이용내역</h3>
+        <button class="btn btn-dark" onclick="alert('데모 버전에서는 카드검색을 지원하지 않습니다.')">🔍 카드검색</button>
+      </div>
+      <table class="kv" id="card-detail">
+        <tr><td class="lbl">카드소지자</td><td style="width:34%;"></td><td class="lbl">카드번호</td><td></td></tr>
+        <tr><td class="lbl">이용일자</td><td></td><td class="lbl">가맹점</td><td></td></tr>
+        <tr><td class="lbl">가맹점주소</td><td></td><td class="lbl">승인금액</td><td></td></tr>
+        <tr><td class="lbl">공급가액</td><td></td><td class="lbl">부가세</td>
+            <td><input type="text" value="0" disabled
+              style="width:120px; height:30px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px; text-align:right; background:#f1f2f5;">
+              <label style="margin-left:10px; color:#999;"><input type="checkbox" disabled> 부가세없음</label></td></tr>
+      </table>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin:14px 0 8px;">
+        <button class="btn btn-line" onclick="alert('적용할 카드내역이 없습니다.')">🖶 일괄적용</button>
+        <button class="btn btn-line" onclick="alert('삭제할 행이 없습니다.')">— 행삭제</button>
+      </div>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead>
+            <tr><th style="width:38px;">No.</th><th style="width:32px;"><input type="checkbox"></th>
+              <th style="width:110px;">출장유형</th><th>세부내역</th><th>가맹점명</th><th style="width:110px;">금액</th>
+              <th style="width:140px;">예산부서</th><th>비고(선택)</th><th style="width:80px;">기능</th>
+              <th style="width:80px;">증빙파일</th><th style="width:90px;">증빙파일개수</th></tr>
+          </thead>
+          <tbody><tr><td colspan="11" style="color:var(--text-sub); height:52px;">카드검색으로 출장 기간의 사용내역을 불러오세요.</td></tr></tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin:26px 0 8px;">
+        <h3 style="margin:0;">현금이용내역
+          <span style="font-size:12.5px; color:var(--blue); font-weight:400;">ⓘ 실비 건별 정산 : 영수증 필첨</span></h3>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-line" onclick="bulkApplyCash()">🖶 일괄적용</button>
+          <button class="btn btn-line" onclick="addCashRow()">＋ 행추가</button>
+          <button class="btn btn-line" onclick="deleteCashRows()">— 행삭제</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead>
+            <tr><th style="width:38px;">No.</th><th style="width:32px;"><input type="checkbox" onclick="toggleAll(this,'cash-chk')"></th>
+              <th style="width:110px;">출장유형</th><th>세부내역</th><th style="width:120px;">금액</th>
+              <th style="width:150px;">예산부서</th><th>비고(선택)</th><th style="width:95px;">사용자</th>
+              <th style="width:130px;">사용일자</th><th style="width:80px;">증빙파일</th><th style="width:90px;">증빙파일개수</th></tr>
+          </thead>
+          <tbody id="cash-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 첨부 -->
+    <section class="sect" id="sec-attach">
+      <h3>첨부</h3>
+      <div class="attach-panel">
+        <div class="attach-head">
+          <span class="cnt">결재 문서 첨부 <b>0</b> 건</span>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-line" onclick="alert('데모 버전에서는 결재 문서 조회를 지원하지 않습니다.')">🔍 결재 문서 조회</button>
+            <button class="btn btn-line">✕ 전체 삭제</button>
+          </div>
+        </div>
+        <table class="grid">
+          <thead><tr><th class="l" style="text-align:left; padding-left:16px;">제목</th>
+            <th style="width:140px;">구분</th><th style="width:140px;">기안자명</th></tr></thead>
+        </table>
+        <div class="attach-empty"></div>
+        <div class="attach-note">
+          ⓘ 소속팀 구성원이 기안한 문서만 조회가능합니다.<br>
+          ⓘ 서면품의서는 스캔하여 첨부 이용 바랍니다.
+        </div>
+        <div class="attach-head">
+          <span class="cnt">첨부파일 <b id="file-cnt">0</b> 건</span>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-line" onclick="document.getElementById('file-input').click()">🔍 첨부파일</button>
+            <button class="btn btn-line" onclick="clearFiles()">✕ 전체 삭제</button>
+            <button class="btn btn-line">⬇ 전체 내려받기</button>
+          </div>
+        </div>
+        <input type="file" id="file-input" multiple accept="image/*,.pdf" style="display:none;" onchange="addFiles(this)">
+        <div class="attach-empty" id="file-list">"첨부파일" 버튼을 클릭하세요.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 출장비 개요조회 (국내) 팝업 -->
+<div class="modal-back" id="trip-modal">
+  <div class="modal" style="width:760px;">
+    <div class="modal-head">
+      <span class="x" onclick="closeTripModal()">✕</span>
+      출장비 개요조회 (국내)
+    </div>
+    <div class="modal-body">
+      <div class="popup-form">
+        <div class="rows">
+          <div class="row">
+            <span class="lb">유형</span>
+            <label><input type="radio" name="trip-mode" value="new" checked> 새출장 개요 작성</label>
+            <label><input type="radio" name="trip-mode" value="add"> 출장 개요 추가 정산</label>
+          </div>
+          <div class="row">
+            <span class="lb">출장자</span>
+            <input type="text" value="유상욱" style="width:180px; height:34px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
+            <span style="color:#666;">[ 부서명 : 전력사업기획팀 ]</span>
+          </div>
+        </div>
+        <button class="btn-search" style="height:60px;" onclick="searchTrips()">조회</button>
+      </div>
+
+      <div style="font-size:14px; margin-bottom:8px;">Total : <b id="trip-total">0</b></div>
+      <div class="popup-tbl">
+        <table class="grid">
+          <thead><tr><th style="width:44px;">No.</th><th style="width:36px;"></th>
+            <th>출장일자</th><th>출장지</th><th style="width:110px;">전표상태</th></tr></thead>
+          <tbody id="trip-body"></tbody>
+        </table>
+        <div class="none" id="trip-none">조회된 데이터가 없습니다.</div>
+      </div>
+
+      <div style="display:flex; justify-content:center; gap:8px; margin-top:18px;">
+        <button class="btn btn-dark" onclick="closeTripModal()">전표작성</button>
+        <button class="btn btn-line" onclick="closeTripModal()">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/layout.js"></script>
+<script src="js/accounts-data.js"></script>
+<script>
+renderChrome({
+  top: '전불/출장비',
+  active: '국내출장비 정산',
+  breadcrumb: ['메뉴', '전불/출장비', '국내출장비 정산'],
+});
+
+let cashLines = [];   // {type, detail, amount, budgetDept, memo, user, date}
+
+/* ── 팝업 (국내는 기존 출장 개요가 없어 새출장 작성 흐름) ── */
+function searchTrips() {
+  document.getElementById('trip-total').textContent = '0';
+  document.getElementById('trip-none').textContent = '조회된 데이터가 없습니다.';
+}
+function closeTripModal() { document.getElementById('trip-modal').style.display = 'none'; }
+
+/* ── 출장개요 ── */
+function calcNights() {
+  const f = document.getElementById('t-from').value, t = document.getElementById('t-to').value;
+  if (!f || !t) return;
+  const nights = Math.max(0, (new Date(t) - new Date(f)) / 86400000);
+  document.getElementById('t-nights').value = nights;
+  document.getElementById('t-days').value = nights + 1;
+}
+
+/* ── 현금이용내역 ── */
+const TYPE_OPTS = ['일당', '숙박비', '교통비', '기타', '일당초과'];
+function addCashRow() {
+  cashLines.push({ type: '교통비', detail: '', amount: 0, budgetDept: '', memo: '', user: '유상욱', date: '' });
+  renderCashLines(); renderSummary();
+}
+function updCash(i, key, val) {
+  cashLines[i][key] = key === 'amount' ? Number(val.replaceAll(',', '')) || 0 : val;
+  renderCashLines(); renderSummary();
+}
+function renderCashLines() {
+  document.getElementById('cash-body').innerHTML = cashLines.length ? cashLines.map((l, i) => `
+    <tr>
+      <td>${i + 1}</td><td><input type="checkbox" class="cash-chk" value="${i}"></td>
+      <td><select onchange="updCash(${i},'type',this.value)" style="height:28px; border:1px solid #cdd3dc; border-radius:4px; font-size:12.5px;">
+          ${TYPE_OPTS.map(o => `<option ${o === l.type ? 'selected' : ''}>${o}</option>`).join('')}</select></td>
+      <td><input value="${l.detail}" onchange="updCash(${i},'detail',this.value)"
+          style="width:100%; height:28px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px; font-size:12.5px;"></td>
+      <td><input value="${l.amount || ''}" onchange="updCash(${i},'amount',this.value)"
+          style="width:100%; height:28px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px; font-size:12.5px; text-align:right;"></td>
+      <td><select onchange="updCash(${i},'budgetDept',this.value)" style="width:100%; height:28px; border:1px solid #cdd3dc; border-radius:4px; font-size:12.5px;">
+          <option value=""></option>
+          ${BUDGET_DEPTS.map(d => `<option value="[${d.code}]${d.name}" ${l.budgetDept === `[${d.code}]${d.name}` ? 'selected' : ''}>[${d.code}]${d.name}</option>`).join('')}</select></td>
+      <td><input value="${l.memo}" onchange="updCash(${i},'memo',this.value)"
+          style="width:100%; height:28px; border:1px solid #cdd3dc; border-radius:4px; padding:0 6px; font-size:12.5px;"></td>
+      <td>${l.user}</td>
+      <td><input type="date" value="${l.date}" onchange="updCash(${i},'date',this.value)"
+          style="height:28px; border:1px solid #cdd3dc; border-radius:4px; font-size:12px;"></td>
+      <td><span style="cursor:pointer;" onclick="alert('증빙파일은 모바일 앱의 영수증이 자동 첨부될 예정입니다.')">📎</span></td>
+      <td>0</td>
+    </tr>`).join('')
+    : `<tr><td colspan="11" style="color:var(--text-sub); height:52px;"></td></tr>`;
+}
+function bulkApplyCash() { cashLines.forEach(l => { l.budgetDept = l.budgetDept || '[AQ131]전력사업기획팀'; }); renderCashLines(); }
+function deleteCashRows() {
+  const del = [...document.querySelectorAll('.cash-chk:checked')].map(c => Number(c.value));
+  if (!del.length) { alert('삭제할 행을 선택해 주세요.'); return; }
+  for (const i of del.sort((a, b) => b - a)) cashLines.splice(i, 1);
+  renderCashLines(); renderSummary();
+}
+function toggleAll(m, cls) { document.querySelectorAll('.' + cls).forEach(c => { c.checked = m.checked; }); }
+
+/* ── 출장비 정산 요약표 (국내: 임원/팀장·팀원 구분) ── */
+function sums(type) {
+  return cashLines.filter(l => l.type === type).reduce((s, l) => s + l.amount, 0);
+}
+const fmt = n => n ? n.toLocaleString('ko-KR') : '';
+function renderSummary() {
+  const daily = sums('일당'), lodge = sums('숙박비'), trans = sums('교통비'), etc = sums('기타'), over = sums('일당초과');
+  const days = Number(document.getElementById('t-days').value) || 0;
+  const nights = Number(document.getElementById('t-nights').value) || 0;
+  const capDaily = days ? days * 50000 : '';      // 국내 일당 한도(데모): 50,000/일
+  const capLodge = nights ? nights * 150000 : ''; // 국내 숙박 한도(데모): 150,000/박
+  const total = daily + lodge + trans + etc + over;
+  const row = (c1, c2, v, cap) => `
+    <tr>${c1}${c2}<td class="r"></td><td class="r">${fmt(v)}</td><td class="r"></td><td class="r"></td>
+    <td class="r">${fmt(v)}</td><td class="cap">${typeof cap === 'number' ? fmt(cap) : cap}</td></tr>`;
+  document.getElementById('sum-body').innerHTML =
+    row(`<td class="grp" rowspan="2" style="width:10%;">일당</td>`, `<td class="grp">임원</td>`, 0, '') +
+    row('', `<td class="grp">팀장/팀원</td>`, daily, capDaily) +
+    row(`<td class="grp" rowspan="2">숙박비</td>`, `<td class="grp">임원/팀장</td>`, 0, '') +
+    row('', `<td class="grp">팀원</td>`, lodge, capLodge) +
+    row(`<td class="grp" colspan="2">교통비</td>`, '', trans, '') +
+    row(`<td class="grp" colspan="2">기타</td>`, '', etc, '') +
+    row(`<td class="grp" colspan="2">일당초과</td>`, '', over, '') +
+    `<tr><td class="grp" colspan="2">총계</td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td>
+     <td class="r"></td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td><td class="cap">-</td></tr>`;
+  document.getElementById('review-1').innerHTML = total > 300000 ? '전력사업본부<br><b>박정민 부장</b>' : '';
+}
+
+/* ── 첨부파일 ── */
+const files = [];
+function addFiles(input) {
+  for (const f of input.files) files.push(f.name);
+  input.value = '';
+  document.getElementById('file-cnt').textContent = files.length;
+  document.getElementById('tab-file-cnt').textContent = files.length;
+  document.getElementById('file-list').innerHTML = files.length
+    ? files.map(n => `📎 ${n}`).join('<br>') : '"첨부파일" 버튼을 클릭하세요.';
+}
+function clearFiles() { files.length = 0; addFiles({ files: [], value: '' }); }
+
+/* ── 탭 틀고정 + 스크롤 연동 ── */
+const tabs = [...document.querySelectorAll('.tab')];
+tabs.forEach(t => t.addEventListener('click', () => {
+  document.getElementById(t.dataset.sec).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}));
+window.addEventListener('scroll', () => {
+  let cur = 0;
+  tabs.forEach((t, i) => { if (document.getElementById(t.dataset.sec).getBoundingClientRect().top < 190) cur = i; });
+  tabs.forEach((t, i) => t.classList.toggle('on', i === cur));
+}, { passive: true });
+
+/* ── 상신 ── */
+async function submitVoucher() {
+  if (!cashLines.length) { alert('이용내역을 먼저 작성해 주세요.'); return; }
+  const total = cashLines.reduce((s, l) => s + l.amount, 0);
+  const city = document.getElementById('t-city').value || '국내';
+  const voucher = await eaccApi('/api/vouchers', {
+    body: {
+      title: `국내출장비 정산 (${city})`,
+      lines: cashLines.map(l => ({ amountKRW: l.amount, description: `[현금/${l.type}] ${l.detail || '실비'}` })),
+      approvalLine: total <= 300000 ? ['김예섭 팀장'] : ['김예섭 팀장', '박정민 부장'],
+    },
+  });
+  if (voucher) {
+    alert(`전표 [${voucher.id}]가 상신되었습니다.\n결재라인: ${voucher.approvalLine.join(' → ')}`);
+    location.href = 'mydocs-all.html';
+  } else {
+    alert('전표가 상신되었습니다. (오프라인 모드 — 서버 연결 시 나의 문서함에 표시됩니다)');
+  }
+}
+
+renderCashLines();
+renderSummary();
+
+/* 미리보기 편의: ?demo=1 이면 팝업 닫힌 상태로 시작 */
+if (location.search.includes('demo')) closeTripModal();
+</script>
+</body>
+</html>

@@ -41,7 +41,7 @@ const EACC = {
       items: [
         { label: '전불 신청', icon: '📄' },
         { label: '전불 정산', icon: '🧾' },
-        { label: '국내출장비 정산', icon: '🚄' },
+        { label: '국내출장비 정산', icon: '🚄', href: 'travel-domestic.html' },
         { label: '해외출장비 정산', icon: '✈️', href: 'travel-foreign.html' },
       ],
     },
