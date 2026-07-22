@@ -1,0 +1,21 @@
+{
+  "merchant": "OpenAI OpCo, LLC",
+  "amount": 22.00,
+  "currency": "USD",
+  "paidAt": null,
+  "cardLast4": null,
+  "items": [
+    { "name": "ChatGPT Plus Subscription (per seat) Jul 9–Aug 9, 2026", "qty": 1, "unitPrice": 20.00, "amount": 20.00 }
+  ],
+  "confidence": null,
+
+  "_docType": "invoice",
+  "_expectedCategory": "WELFARE_AI",
+  "_fxRate": 1500,
+  "_amountKRW": 33000,
+  "_tax": { "vatRate": 0.1, "vatUSD": 2.00, "vatKRW": 3000, "vatKRWOnDocument": 3022 },
+  "_invoiceNo": "TUNC0J2S-0014",
+  "_issuedAt": "2026-07-09",
+  "_dueAt": "2026-07-09",
+  "_note": "⚠️ **인보이스(청구서)이지 영수증이 아니다.** 같은 건(TUNC0J2S-0014)에 대해 인보이스와 영수증 2장이 존재하므로, 둘 다 등록하면 동일 결제가 **중복 전표**로 잡힐 수 있다.\n구분 방법: 인보이스는 'Amount due', 영수증은 'Amount paid'/'Date paid'와 Payment history 표가 있다. 인보이스에는 결제수단·결제일이 없어 paidAt과 cardLast4가 null이다.\n→ 중복 판정 규칙(invoiceNo 기준 dedupe)이 필요하다. 이 두 장을 그 테스트 페어로 쓰면 된다."
+}

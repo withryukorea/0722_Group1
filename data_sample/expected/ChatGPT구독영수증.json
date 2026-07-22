@@ -1,0 +1,22 @@
+{
+  "merchant": "OpenAI OpCo, LLC",
+  "amount": 22.00,
+  "currency": "USD",
+  "paidAt": "2026-07-09T00:00:00+09:00",
+  "cardLast4": null,
+  "items": [
+    { "name": "ChatGPT Plus Subscription (per seat) Jul 9–Aug 9, 2026", "qty": 1, "unitPrice": 20.00, "amount": 20.00 }
+  ],
+  "confidence": null,
+
+  "_docType": "receipt",
+  "_expectedCategory": "WELFARE_AI",
+  "_fxRate": 1500,
+  "_amountKRW": 33000,
+  "_tax": { "vatRate": 0.1, "vatUSD": 2.00, "vatKRW": 3000, "vatKRWOnDocument": 3022 },
+  "_invoiceNo": "TUNC0J2S-0014",
+  "_receiptNo": "2610-8289-3063",
+  "_paymentMethod": "Visa - ****",
+  "_masked": ["결제자 실명", "이메일", "카드 뒤 4자리"],
+  "_note": "PDF 전자영수증. 텍스트 레이어가 있어 Vision OCR 없이 파싱 가능 → 이미지 경로와 분리 처리 필요.\n**유일한 외화(USD) 샘플**이며 환율 검증에 쓸 수 있다. 문서 안에 사업자가 계산한 원화 환산액(VAT $2.00 = ₩3,022 → 환율 약 1,511원/USD)이 들어 있어, fixtures/fx.json의 USD 1,380과 다르다. 어느 쪽을 쓸지 규칙 필요.\n금액이 소수점(22.00)이라 정수 원화만 가정한 코드에서 깨질 수 있음.\n원본에는 카드 뒤 4자리가 있었으나 개인정보 마스킹으로 제거했다(Visa - ****). 따라서 전 샘플에서 cardLast4를 얻을 수 있는 건이 하나도 없다 → 매칭은 카드번호에 의존하면 안 된다."
+}
