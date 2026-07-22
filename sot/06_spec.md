@@ -16,8 +16,10 @@
 
 ### 정산단위 엔진
 
-- 정산단위 엔티티: `type`(TRIP/RECURRING/CAMPAIGN), `allowedAccountCodes[]`(실계정코드), **`costCenter`**, `limitKRW`/`limitPeriod`, **`approvalLineTemplate`**(기안[기안자]→검토 지정→승인[차상위자] 양식), **`descriptionTemplate`**([이름][직급]_[월]월 … 변수 치환), `matchKeywords`, `usage`(비목별 누적).
-- 생성은 **이어카운팅에서만**: 관리자 배포 폼(RECURRING/CAMPAIGN) + 직원 국내출장 생성(목적지·기간만 입력, 표준 기본값 자동) + 해외출장 seed. 목록/비활성화 포함.
+- 정산단위 엔티티: `type`(TRIP/RECURRING/CAMPAIGN), **`target`**(전사/팀/개인) × **`limitBasis`**(1인당/공동), `allowedAccountCodes[]`(실계정코드), **`costCenter`**, `limitKRW`/`limitPeriod`, **`approvalLineTemplate`**(기안[기안자]→검토 지정 또는 상대 직책→승인[차상위자] 양식), **`descriptionTemplate`**([이름][직급]_[월]월 … 변수 치환, `[` 트리거 드롭다운 편집), `matchKeywords`, `usage`(비목별 누적).
+- 생성은 **이어카운팅 정산단위 관리 페이지에서만**: 4블록 폼(기본/회계 요소/배포 대상/자동화 양식) — 관리자 배포(RECURRING/CAMPAIGN) + 직원 국내출장 생성(목적지·기간만 입력, 표준 기본값 자동) + 해외출장 seed. 전결라인 편집은 기존 결재선 변경 팝업 차용 + 상대 직책([상위자]/[차상위자]/[차차상위자]) 항목 추가.
+- 관리 목록은 대시보드형: 이름·유형·대상·소진 게이지·사용자 수·건수 + 행 클릭 상세(사용자별/비목별). 목록/비활성화 포함.
+- 직급은 전원 "매니저" — `[직급]` 변수는 항상 매니저로 렌더, 상대 결재자는 조직도·직책 기준 해석.
 - 모바일에는 생성 기능 없음 — 영수증 리뷰에서 활성 정산단위를 후보로 제시(자동추천 하이라이트), 선택만.
 - `allowedAccountCodes.length > 1`일 때만 비목 선택 UI 노출.
 - 모바일 정산단위 대시보드(읽기 전용): TRIP은 비목별 누적·일당(per-diem) 중심, RECURRING은 월한도 게이지.
@@ -90,7 +92,7 @@
 |---|---|---|
 | 📱 촬영/크롭확인/파싱확인·선택 | `app/`, `design/screens/mobile/capture` | ♻️ 골격 있음 — 크롭확인 단계·정산단위 선택 정합 필요 |
 | 📱 정산단위 대시보드 | `design/screens/mobile/index` | ♻️ 골격 있음 — 일당·비목별 형식으로 조정 |
-| 🖥 정산단위 관리(생성/배포) | eaccounting 신규 | 🆕 |
+| 🖥 정산단위 관리(생성/배포+대시보드 목록) | eaccounting 신규 — 상세는 `03_user_scenarios.md` A1/A1-b. 결재선 팝업(`approval-line.js`)·계정과목 팝업은 기존 차용 | 🆕 |
 | 🖥 PC 영수증 업로드 | `design/screens/pc/upload` 참고 → eaccounting | 🆕/♻️ |
 | 🖥 매칭 화면 (증빙 추가·해제) | `design/screens/pc/settlement` 참고 → eaccounting | 🆕/♻️ |
 | 🖥 정산: 해외출장비 정산 | `eaccounting/travel-foreign.html` | ♻️ 정산단위 자동채움 연결 |
