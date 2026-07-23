@@ -38,10 +38,10 @@ renderChrome({
 /* 오프라인 폴백 (서버 없이 파일로 열었을 때) */
 const FALLBACK_PRESETS = [
   { id: 'ps_ai_sub', name: 'AI구독료 정산', type: 'RECURRING',
-    rules: { limitKRW: 300000, limitPeriod: 'monthly', allowedAccountCodes: ['WELFARE_AI'], approvalLine: ['김아무개 팀장'] },
+    rules: { limitKRW: 300000, limitPeriod: 'monthly', allowedAccountCodes: ['WELFARE_AI'], approvalLine: ['김현준 기술위원'] },
     usage: { usedKRW: 120000, byDay: {} } },
   { id: 'ps_tokyo_trip', name: '7월 도쿄 출장', type: 'TRIP', period: { start: '2026-07-14', end: '2026-07-17' },
-    rules: { limitKRW: 200000, limitPeriod: 'daily', allowedAccountCodes: ['TRAVEL_MEAL', 'TRAVEL_TRANSPORT', 'TRAVEL_LODGING'], approvalLine: ['김아무개 팀장'] },
+    rules: { limitKRW: 200000, limitPeriod: 'daily', allowedAccountCodes: ['TRAVEL_MEAL', 'TRAVEL_TRANSPORT', 'TRAVEL_LODGING'], approvalLine: ['김현준 기술위원'] },
     usage: { usedKRW: 0, byDay: {} } },
 ];
 

@@ -49,7 +49,7 @@
         <tr>
           <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
           <td style="width:19%;" id="review-1"></td><td style="width:19%;"></td><td style="width:19%;"></td>
-          <td>전력사업기획팀<br><b>김아무개 팀장</b></td>
+          <td>전력사업기획팀<br><b>김현준 기술위원</b></td>
         </tr>
       </table>
     </section>
@@ -597,7 +597,7 @@ async function submitVoucher() {
         }),
         ...cashLines.map(l => ({ amountKRW: l.krw, description: `[현금/${l.type}] ${l.detail || '실비'}` })),
       ],
-      approvalLine: apvLineNames() || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 실장']),
+      approvalLine: apvLineNames() || (total <= 300000 ? ['김현준 기술위원'] : ['김현준 기술위원', '박아무개 실장']),
     },
   });
   if (r.ok) {

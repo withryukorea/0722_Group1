@@ -113,7 +113,7 @@ function presetInfoHtml(p, merchant, applied) {
     .replaceAll("{merchant}", merchant || "").replaceAll("[이름]", D.USER.name);
   const line = [`${D.USER.name}(기안)`,
     ...((p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.reviewers) || []),
-    ...(p.rules.approvalLineTemplate ? [p.rules.approvalLineTemplate.approve === "$SUPERIOR" ? "팀장(승인)" : p.rules.approvalLineTemplate.approve] : (p.rules.approvalLine || []))
+    ...(p.rules.approvalLineTemplate ? [p.rules.approvalLineTemplate.approve === "$SUPERIOR" ? "김현준 기술위원(승인)" : p.rules.approvalLineTemplate.approve] : (p.rules.approvalLine || []))
   ].join(" → ");
   return `<div class="preset-why" style="margin-top:10px;${applied ? "background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55" : ""}">
     ⚡ <b>정산 정보 ${applied ? "자동 적용됨" : "미리보기 (프리셋 적용 시 확정)"}</b> — ${p.name}<br>

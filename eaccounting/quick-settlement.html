@@ -234,8 +234,8 @@ function fallbackRender() {
   const byCat = {};
   rows.forEach(r => { (byCat[r.category] = byCat[r.category] || { sum: 0, n: 0 }); byCat[r.category].sum += r.amountKRW; byCat[r.category].n++; });
   const total = rows.reduce((s, r) => s + r.amountKRW, 0);
-  const required = ["홍길동(기안)", "김팀장"];
-  if (total > 300000) required.push("박실장");
+  const required = ["홍길동(기안)", "김현준 기술위원"];
+  if (total > 300000) required.push("박아무개 실장");
 
   const trip = D.TRIPS.find(t => t.id === unit.id);
   const capBlock = trip ? (() => {

@@ -115,8 +115,8 @@ function presetInfoHtml(p) {
     .replaceAll("{merchant}", (current.ocr || {}).merchant || "").replaceAll("[이름]", D.USER.name);
   const line = [`${D.USER.name}(기안)`,
     ...((p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.reviewers) || []),
-    (p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.approve === "$SUPERIOR") ? "팀장(승인)"
-      : ((p.rules.approvalLine || []).slice(-1)[0] || "팀장(승인)")
+    (p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.approve === "$SUPERIOR") ? "김현준 기술위원(승인)"
+      : ((p.rules.approvalLine || []).slice(-1)[0] || "김현준 기술위원(승인)")
   ].join(" → ");
   return `<div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin-top:10px">
     ⚡ <b>정산 정보 자동 적용</b> — 저장 시 이대로 확정됩니다<br>

@@ -4,7 +4,7 @@
    - 적용 시: 화면의 table.appr(기안/검토x3/승인)을 채우고
      window._apvLine 에 저장 → 각 화면 submit이 이 값을 우선 사용
    ============================================================ */
-const APV_DEFAULT_LINE = [{ type: '승인', name: '김아무개 팀장', dept: '전력사업기획팀' }];
+const APV_DEFAULT_LINE = [{ type: '승인', name: '김현준 기술위원', dept: '전력사업기획팀' }];
 window._apvLine = null;          // 적용된 수동 결재선 (null이면 화면의 자동 규칙 사용)
 
 let _apvDraft = [];              // 팝업 안에서 편집 중인 결재선

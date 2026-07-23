@@ -19,7 +19,7 @@
         "reviewers": ["최아무개 매니저"],
         "approve": "$SUPERIOR"
       },
-      "approvalLine": ["최아무개 매니저", "김아무개 팀장"],
+      "approvalLine": ["최아무개 매니저", "김현준 기술위원"],
       "descriptionTemplate": "[AI구독료] {merchant}_[이름]",
       "matchKeywords": ["ANTHROPIC", "OPENAI", "CLAUDE", "CHATGPT", "GITHUB", "CURSOR"],
       "requireItemized": false
@@ -46,7 +46,7 @@
         "reviewers": [],
         "approve": "$SUPERIOR"
       },
-      "approvalLine": ["김아무개 팀장"],
+      "approvalLine": ["김현준 기술위원"],
       "descriptionTemplate": "[도서비] {merchant}_[이름]",
       "matchKeywords": ["문고", "서점", "YES24", "알라딘"],
       "requireItemized": false
@@ -73,7 +73,7 @@
         "reviewers": [],
         "approve": "$SUPERIOR"
       },
-      "approvalLine": ["김아무개 팀장"],
+      "approvalLine": ["김현준 기술위원"],
       "descriptionTemplate": "[복지] {merchant}_[이름]",
       "matchKeywords": [],
       "requireItemized": false
@@ -102,7 +102,7 @@
         "reviewers": [],
         "approve": "$SUPERIOR"
       },
-      "approvalLine": ["김아무개 팀장"],
+      "approvalLine": ["김현준 기술위원"],
       "descriptionTemplate": "도쿄출장 {merchant}",
       "matchKeywords": ["JPY", "도쿄", "TOKYO"],
       "requireItemized": false
@@ -131,7 +131,7 @@
         "reviewers": [],
         "approve": "$SUPERIOR"
       },
-      "approvalLine": ["김아무개 팀장"],
+      "approvalLine": ["김현준 기술위원"],
       "descriptionTemplate": "부산출장 {merchant}",
       "matchKeywords": ["부산", "울산", "KTX", "철도", "서울역"],
       "requireItemized": false

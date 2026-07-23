@@ -1,0 +1,22 @@
+{
+  "id": "rcpt_009",
+  "_source": "data_sample/expected/백세촌국밥영수증.json 값 그대로 (confidence만 OCR 시뮬레이션 값)",
+  "imageUrl": "/data_sample/images/백세촌국밥영수증.jpg",
+  "croppedUrl": "/data_sample/images/백세촌국밥영수증.jpg",
+  "ocr": {
+    "merchant": "백세촌24시순대돼지국밥",
+    "amount": 12000,
+    "currency": "KRW",
+    "paidAt": "2026-04-15T12:47:19+09:00",
+    "serviceDate": "2026-04-15",
+    "vat": 1091,
+    "invoiceNo": null,
+    "cardLast4": null,
+    "items": [
+      { "name": "전부섞어국밥", "unitPrice": 12000, "qty": 1, "amount": 12000 }
+    ],
+    "confidence": 0.92
+  },
+  "matchedTxId": null,
+  "tripId": null
+}

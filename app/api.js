@@ -93,12 +93,12 @@ export function demoPresets() {
   return [
     {
       id: 'ps_ai_frontier', name: 'AI Frontier 교육', type: 'RECURRING', source: 'admin', active: true,
-      rules: { allowedAccountCodes: ['WELFARE_AI'], limitKRW: 300000, limitPeriod: 'monthly', approvalLine: ['이아무개 팀원', '오아무개 팀장', '김아무개 기술위원'], descriptionTemplate: '[이름][직급]_[월]월 AI Frontier', matchKeywords: ['ANTHROPIC', 'OPENAI', 'AI Frontier'] },
+      rules: { allowedAccountCodes: ['WELFARE_AI'], limitKRW: 300000, limitPeriod: 'monthly', approvalLine: ['이아무개 팀원', '오아무개 팀장', '김현준 기술위원'], descriptionTemplate: '[이름][직급]_[월]월 AI Frontier', matchKeywords: ['ANTHROPIC', 'OPENAI', 'AI Frontier'] },
       usage: { usedKRW: 120000, byDay: {} },
     },
     {
       id: 'ps_books', name: '복지-도서', type: 'RECURRING', source: 'admin', active: true,
-      rules: { allowedAccountCodes: ['WELFARE_BOOK'], limitKRW: 200000, limitPeriod: 'monthly', approvalLine: ['김아무개 팀장'], descriptionTemplate: '도서구입 {merchant}', matchKeywords: ['문고', '서점'] },
+      rules: { allowedAccountCodes: ['WELFARE_BOOK'], limitKRW: 200000, limitPeriod: 'monthly', approvalLine: ['김현준 기술위원'], descriptionTemplate: '도서구입 {merchant}', matchKeywords: ['문고', '서점'] },
       usage: { usedKRW: 33000, byDay: {} },
     },
   ];
