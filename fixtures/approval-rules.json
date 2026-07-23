@@ -17,6 +17,9 @@
   { "category": "WELFARE_AI",       "maxKRW": 300000,    "approvers": ["김현준 기술위원"] },
   { "category": "WELFARE_AI",       "maxKRW": 99999999,  "approvers": ["김현준 기술위원", "박아무개 실장"] },
 
+  { "category": "SGA_MEETING",      "maxKRW": 100000,    "approvers": ["김현준 기술위원"] },
+  { "category": "SGA_MEETING",      "maxKRW": 99999999,  "approvers": ["김현준 기술위원", "박아무개 실장"] },
+
   { "category": "EDU_DIY100",       "maxKRW": 300000,    "approvers": ["김현준 기술위원"] },
   { "category": "EDU_DIY100",       "maxKRW": 99999999,  "approvers": ["김현준 기술위원", "박아무개 실장"] },
 
