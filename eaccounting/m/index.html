@@ -12,7 +12,7 @@
   <header class="app-head"></header>
   <main class="app-body">
 
-    <!-- PC 간편정산 대시보드와 같은 전체 누적 총액 -->
+    <!-- PC 증빙보관함 대시보드와 같은 전체 누적 총액 -->
     <section class="hero">
       <div class="h-label" id="heroLabel">등록 지출 총액 (전체 누적)</div>
       <div class="h-amount num" id="heroTotal"></div>
@@ -73,7 +73,7 @@ const $ = (id) => document.getElementById(id);
     const un = receipts.filter(r => !r.matchedTxId).length;
     $("heroTrip").innerHTML = un
       ? `<div class="g-head"><span>🔗 미매칭 영수증</span><b>${un}건</b></div>
-         <div class="g-foot"><span>PC AXE-acc › 간편정산 › 자동매칭에서 처리하세요</span></div>`
+         <div class="g-foot"><span>PC AXE-acc › 증빙보관함 › 자동매칭에서 처리하세요</span></div>`
       : `<div class="g-foot"><span>모든 영수증이 매칭되었습니다 ✓</span></div>`;
 
     $("recent").innerHTML = receipts.slice()

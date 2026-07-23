@@ -74,7 +74,7 @@
         <button class="btn" id="btnMore">계속 촬영</button>
         <a class="btn primary" href="receipts.html">보관함 보기</a>
       </div>
-      <p class="muted" style="margin-top:16px;line-height:1.5">정산·전표 생성은 <b>PC AXE-acc › 간편정산</b>에서 진행하세요<br>(같은 저장소 — 방금 촬영한 영수증이 바로 보입니다)</p>
+      <p class="muted" style="margin-top:16px;line-height:1.5">정산·전표 생성은 <b>PC AXE-acc › 증빙보관함</b>에서 진행하세요<br>(같은 저장소 — 방금 촬영한 영수증이 바로 보입니다)</p>
     </section>
 
   </main>
@@ -288,7 +288,7 @@ $("btnSave").onclick = async () => {
   const o = current.ocr || {};
   const p = presetOf(pickedPreset);
   $("doneMsg").innerHTML = `<b>${o.merchant || current.id}</b> · ${D.krw(current.amountKRW)}<br>
-    ${p ? `프리셋 「${p.name}」` : "일반 결제"}로 저장되었습니다.${current.ocrMode === "woz" ? " (기존 데모)" : ""}<br>보관함과 이어카운팅 간편정산에 같은 데이터가 바로 표시됩니다.`;
+    ${p ? `프리셋 「${p.name}」` : "일반 결제"}로 저장되었습니다.${current.ocrMode === "woz" ? " (기존 데모)" : ""}<br>보관함과 이어카운팅 증빙보관함에 같은 데이터가 바로 표시됩니다.`;
   show("done");
 };
 </script>

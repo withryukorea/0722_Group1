@@ -133,7 +133,7 @@ function render() {
     : `<div class="section-title">내 전표 ${rows.length}건 <span class="muted">기안자 ${D.USER.name}</span></div>`;
 
   $("content").innerHTML = head + (rows.map(v => voucherCard(v, seg === "inbox")).join("")
-    || `<div class="card"><p class="muted">${seg === "inbox" ? "결재할 문서가 없습니다 ✓" : "상신한 전표가 없습니다 — PC 간편정산에서 전표를 만들어보세요"}</p></div>`);
+    || `<div class="card"><p class="muted">${seg === "inbox" ? "결재할 문서가 없습니다 ✓" : "상신한 전표가 없습니다 — PC 증빙보관함에서 전표를 만들어보세요"}</p></div>`);
 
   document.querySelectorAll("[data-open]").forEach(el =>
     el.onclick = () => { expanded = expanded === el.dataset.open ? null : el.dataset.open; render(); });

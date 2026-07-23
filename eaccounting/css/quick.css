@@ -1,5 +1,5 @@
 /* ============================================================
-   간편정산 콘텐츠 스타일 — 시제품#1(sk-theme.css + pc.css) 이식본
+   증빙보관함 콘텐츠 스타일 — 시제품#1(sk-theme.css + pc.css) 이식본
    원본: design/components/{sk-theme,pc}.css
    모든 규칙은 .qk 래퍼로 스코핑 — common.css(E-acc 채름)와 토큰(--line 등)·
    클래스(.field/.toolbar/.btn 등)가 겹치므로 절대 전역으로 풀지 말 것.
