@@ -46,9 +46,10 @@ app.use("/api", (req, res) => {
 // ── 업로드된 영수증 이미지 (P3) ───────────────────────────────
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ── 모바일웹 PWA → /app ───────────────────────────────────────
-// 같은 서버에서 서빙되므로 앱의 apiBase가 자동으로 같은 오리진을 가리킨다 (배포 URL 하나로 전 화면 접근)
-app.use("/app", express.static(path.join(__dirname, "..", "app")));
+// ── [v2 통합] 모바일 단일화 — 구 /app(찍으면 끝 PWA)은 이어카운팅 모바일 /eaccounting/m/ 로 흡수 ──
+//    두 벌이던 모바일을 하나로 통합. PWA(설치·오프라인) 자산은 /eaccounting/m/ 로 이관됨.
+//    옛 링크·설치본이 깨지지 않도록 /app/* → /eaccounting/m/ 로 302 리다이렉트한다.
+app.use("/app", (req, res) => res.redirect(302, "/eaccounting/m/"));
 
 // ── [v2 전면개편] 별도 PC웹 폐지 — 이어카운팅 "간편정산" 하위메뉴로 흡수 ──
 //    구 /pc/* 화면(업로드·매칭·정산·대시보드)은 이제 eaccounting/quick-*.html 로 통합됐다.
@@ -98,9 +99,9 @@ app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);
   console.log(`  ├ 메인 포털   : http://localhost:${PORT}/          ← 접속링크 2개`);
   console.log(`  ├ 이어카운팅  : http://localhost:${PORT}/eaccounting/   (간편정산 메뉴 포함 — 구 PC웹 흡수)`);
-  console.log(`  ├ 모바일 촬영 : http://localhost:${PORT}/eaccounting/m/`);
-  console.log(`  ├ 모바일웹    : http://localhost:${PORT}/app/`);
+  console.log(`  ├ 모바일      : http://localhost:${PORT}/eaccounting/m/   (설치형 PWA — 구 /app 흡수)`);
   console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/admin/`);
-  console.log(`  ├ 구 PC웹     : http://localhost:${PORT}/pc/  → 간편정산으로 리다이렉트 (별도 PC웹 폐지)`);
+  console.log(`  ├ 구 PC웹     : http://localhost:${PORT}/pc/   → 간편정산으로 리다이렉트 (별도 PC웹 폐지)`);
+  console.log(`  ├ 구 모바일   : http://localhost:${PORT}/app/  → /eaccounting/m/ 로 리다이렉트 (모바일 단일화)`);
   console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
 });
