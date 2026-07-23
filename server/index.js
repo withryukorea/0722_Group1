@@ -50,19 +50,28 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // 같은 서버에서 서빙되므로 앱의 apiBase가 자동으로 같은 오리진을 가리킨다 (배포 URL 하나로 전 화면 접근)
 app.use("/app", express.static(path.join(__dirname, "..", "app")));
 
-// ── 데모 혼선 방지: PC 정적 목업(시안)은 하드코딩 데모 data.js 로만 그려져
-//    라이브 API와 무관한 가짜 숫자(예: ₩488,710)를 "실데이터처럼" 보여준다.
-//    라이브 /pc/ 로 302 리다이렉트해 "모바일 ≠ PC 사용총액" 착오를 원천 차단한다.
-//    (디자인 원본은 로컬 `node design/serve.js` 또는 design/html/*.html 스냅샷으로 계속 열람 가능)
-app.use("/design/screens/pc", (req, res) => res.redirect(302, "/pc/"));
+// ── [v2 전면개편] 별도 PC웹 폐지 — 이어카운팅 "간편정산" 하위메뉴로 흡수 ──
+//    구 /pc/* 화면(업로드·매칭·정산·대시보드)은 이제 eaccounting/quick-*.html 로 통합됐다.
+//    옛 링크·북마크가 깨지지 않도록 대응 화면으로 302 리다이렉트한다. "별도 PC웹은 더 이상 존재하지 않는다".
+const QUICK_REDIRECT = [
+  [/^\/upload/i, "/eaccounting/quick-upload.html"],
+  [/^\/expenses|^\/match/i, "/eaccounting/quick-match.html"],
+  [/^\/settlement/i, "/eaccounting/quick-settlement.html"],
+];
+function toQuick(req, res) {
+  const sub = req.path || "/";
+  const hit = QUICK_REDIRECT.find(([re]) => re.test(sub));
+  res.redirect(302, hit ? hit[1] : "/eaccounting/quick-dashboard.html"); // 기본(/pc, /pc/index) → 분석 대시보드
+}
+app.use("/pc", toQuick);
+app.use("/design/screens/pc", toQuick);
 
-// ── PC웹 화면 (design/ — 개발 진행 중 시안 포함) → /design ────
+// ── PC웹 시안(design/) → /design ──────────────────────────────
 app.use("/design", express.static(path.join(__dirname, "..", "design")));
 app.use("/data_sample", express.static(path.join(__dirname, "..", "data_sample"))); // 시안이 참조하는 샘플 이미지
 
 // ── 메인 접속 포털 (꼬리 없는 루트 URL) ───────────────────────
-// 루트(/)는 3개 접속링크(이어카운팅·모바일웹·PC웹)만 있는 랜딩 페이지.
-// 실제 화면은 각자 꼬리 URL(/eaccounting, /app, /pc)로 분리해 서빙한다.
+// 루트(/)는 접속링크(이어카운팅·모바일)만 있는 랜딩 페이지. PC웹 카드는 폐지(간편정산으로 흡수).
 app.use("/", express.static(path.join(__dirname, "..", "landing")));
 
 // ── 직원용 이어카운팅 화면 → /eaccounting ─────────────────────
@@ -72,9 +81,7 @@ app.use("/eaccounting", express.static(path.join(__dirname, "..", "eaccounting")
 // ── 관리자 웹화면 (정적 파일) → /admin ────────────────────────
 app.use("/admin", express.static(path.join(__dirname, "public")));
 
-// ── PC 웹(분석·정산 대시보드) → /pc ───────────────────────────
-// 모바일 웹과 "동일한 데이터"를 같은 서버 API(same-origin)로 읽는 독립 페이지.
-app.use("/pc", express.static(path.join(__dirname, "..", "pc")));
+// (구 /pc 정적 서빙은 위에서 간편정산 리다이렉트로 대체됨 — 별도 PC웹 폐지)
 
 // ── 전역 에러 핸들러 (4-arg) ──────────────────────────────────
 // 라우트에서 던진 예외·multer 업로드 오류 등이 여기로 모인다.
@@ -89,10 +96,11 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`\n  가짜 E-Accounting 서버 실행 중`);
-  console.log(`  ├ 메인 포털   : http://localhost:${PORT}/          ← 접속링크 3개`);
-  console.log(`  ├ 이어카운팅  : http://localhost:${PORT}/eaccounting/`);
+  console.log(`  ├ 메인 포털   : http://localhost:${PORT}/          ← 접속링크 2개`);
+  console.log(`  ├ 이어카운팅  : http://localhost:${PORT}/eaccounting/   (간편정산 메뉴 포함 — 구 PC웹 흡수)`);
+  console.log(`  ├ 모바일 촬영 : http://localhost:${PORT}/eaccounting/m/`);
   console.log(`  ├ 모바일웹    : http://localhost:${PORT}/app/`);
-  console.log(`  ├ PC 웹(라이브): http://localhost:${PORT}/pc/  ← 실데이터, 모바일과 동일`);
   console.log(`  ├ 관리자 화면 : http://localhost:${PORT}/admin/`);
+  console.log(`  ├ 구 PC웹     : http://localhost:${PORT}/pc/  → 간편정산으로 리다이렉트 (별도 PC웹 폐지)`);
   console.log(`  └ API 예시    : http://localhost:${PORT}/api/transactions\n`);
 });
