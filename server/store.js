@@ -170,4 +170,18 @@ function replaceState(saved) {
   recomputeUsage(db);
 }
 
-module.exports = { db, nextVoucherId, nextReceiptId, nextPresetId, reset, recomputeUsage, replaceState };
+// 데모 증빙(시드 영수증)이 항상 존재하도록 보정한다.
+// Supabase 복원 상태에 시드 영수증이 빠져 있으면(예: 최초 시드 이후 새로 추가된 데모 증빙,
+// 시연 중 삭제분) 다시 채워 넣는다 → "시연에서 항상 보여야 하는" AI구독 등 데모 증빙 보장.
+// 업로드분(rcpt_113~)·기타 상태는 건드리지 않는 멱등 연산. 추가된 건수를 반환한다.
+function ensureSeedReceipts(target = db) {
+  const have = new Set(target.receipts.map((r) => r.id));
+  const missing = initial.receiptsSeed.filter((s) => !have.has(s.id));
+  if (!missing.length) return 0;
+  missing.forEach((s) => target.receipts.push(clone(s)));
+  linkSeedMatches(target);
+  recomputeUsage(target);
+  return missing.length;
+}
+
+module.exports = { db, nextVoucherId, nextReceiptId, nextPresetId, reset, recomputeUsage, replaceState, ensureSeedReceipts };
