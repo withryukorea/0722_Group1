@@ -1,0 +1,22 @@
+{
+  "id": "rcpt_008",
+  "_source": "data_sample/expected/ktx영수증_울산서울.json 값 그대로 (confidence만 OCR 시뮬레이션 값)",
+  "imageUrl": "/data_sample/images/ktx영수증_울산서울.jpg",
+  "croppedUrl": "/data_sample/images/ktx영수증_울산서울.jpg",
+  "ocr": {
+    "merchant": "한국철도공사 (KTX)",
+    "amount": 53500,
+    "currency": "KRW",
+    "paidAt": "2026-04-13T00:00:00+09:00",
+    "serviceDate": "2026-04-15",
+    "vat": null,
+    "invoiceNo": null,
+    "cardLast4": null,
+    "items": [
+      { "name": "KTX 062 울산→서울 일반실 12호차 2A 어른 1매", "qty": 1, "amount": 53500 }
+    ],
+    "confidence": 0.95
+  },
+  "matchedTxId": null,
+  "tripId": null
+}
