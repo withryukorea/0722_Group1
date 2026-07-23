@@ -5,7 +5,7 @@
   const VAT_ACCOUNT = '[416101]부가가치세-매입';
   const CARD_ACCOUNT = '[410902]미지급비용-신용카드';
   const DEPT_NAME = { AQ131: 'Upstream기술팀', AQ132: '전력수급2팀', AQ133: '전력사업운영실' };
-  const DEPT_OF = { '김현준 기술위원': 'Upstream기술팀', '박아무개 실장': 'Upstream사업실', '최아무개 매니저': '경영기획실', '김예섬 팀장': 'Upstream기술팀' };
+  const DEPT_OF = { '김현준 기술위원': 'Upstream기술팀', '박아무개 실장': 'Upstream사업실', '최아무개 매니저': 'HR서비스센터', '김예섬 팀장': 'Upstream기술팀' };
   const params = new URLSearchParams(location.search);
   const requestedVoucherId = params.get('voucherId');
   const requestedIds = (params.get('txIds') || '').split(',').filter(Boolean);

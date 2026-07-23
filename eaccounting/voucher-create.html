@@ -539,7 +539,7 @@ window.addEventListener('scroll', () => {
    나머지는 사용자가 확인/수정한다. 사용자가 이미 입력한 칸은 덮어쓰지 않는다. */
 let previewData = null;                  // 마지막 preview 응답 (상신 시 receiptId/presetId/결재선의 근거)
 const previewByTx = new Map();           // txId → preview 라인
-const DEPT_OF = { '김현준 기술위원': 'Upstream기술팀', '박아무개 실장': 'Upstream사업실', '최아무개 매니저': '지원팀' };
+const DEPT_OF = { '김현준 기술위원': 'Upstream기술팀', '박아무개 실장': 'Upstream사업실', '최아무개 매니저': 'HR서비스센터' };
 
 async function loadPreview() {
   if (!draft.apiMode) return false;
@@ -690,7 +690,7 @@ function applyAiPolicy() {
   });
   // 고정 검토자 추가 (결재선 변경 팝업과 같은 체계 사용 → 결재선지정 표에 즉시 반영)
   window._apvLine = [
-    { type: '검토', name: '최아무개 매니저', dept: '지원팀' },
+    { type: '검토', name: '최아무개 매니저', dept: 'HR서비스센터' },
     { type: '승인', name: '김현준 기술위원', dept: 'Upstream기술팀' },
   ];
   apvApplyToTable(window._apvLine);
