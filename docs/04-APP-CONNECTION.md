@@ -2,7 +2,7 @@
 
 > 이 문서는 앱이 서버에 **어떻게 붙는지**만 다룹니다.
 > 데이터 모양(스키마)·매칭 규칙은 [`02-API-CONTRACT.md`](02-API-CONTRACT.md)가 원본입니다.
-> **확정 사항:** 백엔드는 **단일 서버**(OCR·매칭·출장까지 전부 이 서버의 라우트), OCR은 **서버 OCR + WoZ(사전매핑) 폴백**.
+> **확정 사항:** 백엔드는 **단일 서버**(OCR·매칭·출장까지 전부 이 서버의 라우트), 실제 이미지 업로드는 **서버 Vision OCR 성공 시에만 저장**합니다.
 
 ## 0. 한 줄 요약
 
@@ -75,9 +75,10 @@ GET  {API_BASE}/api/fx           환율 테이블          ─ P1(구현됨)
 | 앱 화면/동작 | 호출 | 담당 | 지금 상태 |
 |---|---|---|---|
 | 미정산 카드목록 | `GET /api/transactions` | P1 | ✅ 동작 |
-| 영수증 업로드→OCR | `POST /api/receipts` | P3 | ⏳ 501 (WoZ 폴백 데이터는 준비됨) |
-| 매칭 | `POST /api/match` | P4 | ⏳ 501 |
-| 전표 초안 | `POST /api/vouchers/preview` | P4 | ⏳ 501 |
+| 영수증 업로드→OCR | `POST /api/receipts` | P3 | ✅ 실제 OCR 성공 건만 저장 |
+| OCR 설정 확인 | `GET /api/receipts/ocr-status` | P3 | ✅ 비밀값 제외 상태 반환 |
+| 매칭 | `POST /api/match` | P4 | ✅ 동작 |
+| 전표 초안 | `POST /api/vouchers/preview` | P4 | ✅ 동작 |
 | 전표 상신 | `POST /api/vouchers` | P1 | ✅ 동작 |
 | 복지 한도 | `GET /api/budgets` | P1 | ✅ 동작 |
 | 계정과목표 | `GET /api/accounts` | P1 | ✅ 동작 |
@@ -85,28 +86,26 @@ GET  {API_BASE}/api/fx           환율 테이블          ─ P1(구현됨)
 | 환율 | `GET /api/fx` | P1 | ✅ 동작 |
 | 출장 | `POST/GET /api/trips` | P5 | ⏳ 501 |
 
-> **지금 당장 앱 개발 시작 가능**: ✅ 엔드포인트로 UI를 붙이고, ⏳(501)은 방어코드로 감싸두면
-> P3/P4/P5가 push하는 즉시(autoDeploy) 실제 응답으로 바뀝니다.
+> 실제 데이터 화면은 API 실패를 샘플 성공으로 바꾸지 않습니다. 실패 상태를 사용자에게 표시하고 재시도할 수 있게 합니다.
 
 ```js
-async function callOrStub(url, opts, stub) {
-  try {
-    const r = await fetch(url, opts);
-    if (r.status === 501) return stub;   // 아직 미구현 → 목업으로 진행
-    if (!r.ok) throw new Error(r.status);
-    return await r.json();
-  } catch { return stub; }
+async function callApi(url, opts) {
+  const r = await fetch(url, opts);
+  const body = await r.json().catch(() => null);
+  if (!r.ok) throw new Error(body?.message || `API ${r.status}`);
+  return body;
 }
 ```
 
-## 4. 서버 OCR + WoZ 폴백 (동작 원리)
+## 4. 실제 OCR 저장 원칙
 
-`POST /api/receipts`(P3)는 원칙적으로 이미지를 받아 OCR API를 호출하지만,
-인식 실패/시연 안정성을 위해 **`fixtures/receipts-ocr/`의 사전매핑 결과로 폴백**합니다.
+`POST /api/receipts`는 이미지를 받아 Vision OCR을 호출합니다.
+가맹점과 금액을 정상 인식한 경우에만 Receipt를 저장하고 목록에 노출합니다.
 
-- 폴백 데이터는 이미 준비됨 → [`fixtures/receipts-ocr/index.json`](../fixtures/receipts-ocr/index.json)
-- 데모 영수증 7종(커피/치킨/Anthropic/택시x2/오피스디포/OpenAI)이 실제 카드거래 7건과 1:1로 매칭되도록 값이 맞춰져 있음.
-- 앱은 폴백이든 실제 OCR이든 **동일한 Receipt JSON**을 받으므로 신경 쓸 것 없음.
+- 응답의 `ocrMode`가 `real`이어야 실제 인식 성공입니다.
+- 키 미설정·제공자 오류·타임아웃·불완전한 인식 결과는 4xx/5xx와 `saved:false`를 반환합니다.
+- 실패한 업로드 파일과 DB 항목은 즉시 제거되며 샘플 영수증으로 대체하지 않습니다.
+- `GET /api/receipts/ocr-status`에서 `configured:true`, `actualUploadFallback:false`를 확인할 수 있습니다.
 
 ## 5. 데모 운영 체크리스트
 

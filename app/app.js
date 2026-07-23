@@ -2,7 +2,6 @@ import { ACCOUNT_OPTIONS, APP_CONFIG } from './config.js';
 import {
   checkHealth,
   confirmReceipt,
-  demoReceipt,
   listReceipts,
   listPresets,
   uploadReceipt,
@@ -30,6 +29,7 @@ const state = {
   file: null,
   localImageUrl: '',
   receipt: null,
+  uploadError: '',
   mode: 'checking',
   receiptFilter: 'all',
 };
@@ -69,18 +69,18 @@ const dateTime = (value) => value
 function setMode(mode) {
   state.mode = mode;
   connectionDot.classList.toggle('is-live', mode === 'live');
-  connectionDot.classList.toggle('is-demo', mode === 'demo');
+  connectionDot.classList.toggle('is-demo', mode !== 'live');
   connectionLabel.textContent = mode === 'live'
     ? '서버 연결'
-    : mode === 'demo'
-      ? '데모 모드'
+    : mode === 'offline'
+      ? '서버 연결 실패'
       : '연결 확인 중';
 }
 
 function modeBadge() {
   return state.mode === 'live'
     ? '<span class="mode-badge live">실제 API</span>'
-    : '<span class="mode-badge">데모 폴백</span>';
+    : '<span class="mode-badge">서버 연결 필요</span>';
 }
 
 function renderNav(route = state.route, focused = false) {
@@ -182,7 +182,7 @@ function receiptVisual(preferCropped = false) {
     : '';
   const imageUrl = serverImage || state.localImageUrl;
   if (imageUrl) return `<img class="receipt-image" src="${escapeHtml(imageUrl)}" alt="${preferCropped ? '자동 크롭된 영수증' : '선택한 영수증 사진'}">`;
-  return `<div class="receipt-paper" aria-label="샘플 영수증"><b>PAUL BASSETT</b><span>2026.07.21 12:24</span><i></i><span>회의 음료</span><strong>₩ 20,500</strong></div>`;
+  return '<div class="receipt-paper" aria-label="영수증 이미지 없음"><b>영수증 이미지 없음</b><span>사진을 다시 선택해 주세요.</span></div>';
 }
 
 function screenTripSetup() {
@@ -271,7 +271,7 @@ function screenDashboard() {
   state.route = 'dashboard';
   renderNav('dashboard');
   const metrics = receiptMetrics();
-  const metricSourceLabel = state.mode === 'live' ? '라이브 증빙 기준' : '데모 데이터';
+  const metricSourceLabel = state.mode === 'live' ? '라이브 증빙 기준' : '서버 연결 필요';
   if (!state.tripPreset) {
     const recentRows = state.receipts.length
       ? state.receipts.slice(0, 4).map(receiptRow).join('')
@@ -377,7 +377,10 @@ function screenReceipts() {
 function screenCapture() {
   state.route = 'capture';
   renderNav('capture');
-  root.innerHTML = `<section class="hero-screen capture-screen">${progress('capture')}<div class="capture-heading"><span class="eyebrow">${escapeHtml(state.tripPreset?.name || '일반 경비 증빙')}</span><h1>영수증을 프레임에<br>맞춰주세요</h1><p>촬영 후 자동 크롭 → OCR → 정산단위 추천이 이어집니다.</p></div><button class="camera-stage" type="button" data-action="camera" aria-label="영수증 촬영"><span class="camera-guide"><i></i><i></i><i></i><i></i></span><span class="camera-stage-copy"><b>영수증 전체가 보이게 촬영하세요</b><small>빛 반사와 그림자를 피하면 더 정확합니다</small></span></button><div class="capture-controls"><button class="capture-side" type="button" data-action="gallery"><span aria-hidden="true">▧</span><b>갤러리</b></button><button class="shutter" type="button" data-action="camera" aria-label="촬영"><span class="camera-icon" aria-hidden="true"></span></button><button class="capture-side" type="button" data-action="sample"><span aria-hidden="true">▤</span><b>샘플</b></button></div><div class="trust-note"><span aria-hidden="true">✓</span><p><b>추천은 자동 적용되지 않습니다.</b><br>OCR 결과·정산단위·비목·부가세는 저장 전 직접 확정합니다.</p></div></section>`;
+  const error = state.uploadError
+    ? `<div class="evidence-warning ocr-error"><b>인식 실패 · 저장되지 않았습니다</b><span>${escapeHtml(state.uploadError)}</span></div>`
+    : '';
+  root.innerHTML = `<section class="hero-screen capture-screen">${progress('capture')}<div class="capture-heading"><span class="eyebrow">${escapeHtml(state.tripPreset?.name || '일반 경비 증빙')}</span><h1>영수증을 프레임에<br>맞춰주세요</h1><p>촬영 후 자동 크롭 → OCR → 정산단위 추천이 이어집니다.</p></div>${error}<button class="camera-stage" type="button" data-action="camera" aria-label="영수증 촬영"><span class="camera-guide"><i></i><i></i><i></i><i></i></span><span class="camera-stage-copy"><b>영수증 전체가 보이게 촬영하세요</b><small>빛 반사와 그림자를 피하면 더 정확합니다</small></span></button><div class="capture-controls"><button class="capture-side" type="button" data-action="gallery"><span aria-hidden="true">▧</span><b>갤러리</b></button><button class="shutter" type="button" data-action="camera" aria-label="촬영"><span class="camera-icon" aria-hidden="true"></span></button><span></span></div><div class="trust-note"><span aria-hidden="true">✓</span><p><b>실제 OCR 성공 결과만 저장됩니다.</b><br>가맹점·금액을 인식하지 못하면 임의 샘플 대신 재촬영을 안내합니다.</p></div></section>`;
 }
 
 function screenProcessing(label = '영수증을 읽고 있어요') {
@@ -411,7 +414,7 @@ function screenReview() {
   const ocr = state.receipt.ocr;
   const suggestedId = state.receipt.suggestedPresetId || state.tripPreset?.id;
   const checks = state.receipt.checks || [];
-  root.innerHTML = `<section class="content-screen">${progress('review')}<div class="section-heading"><div><span class="eyebrow">OCR 확인 · 정산단위 선택</span><h1>서버에 저장할 내용을 확인해주세요</h1></div>${modeBadge()}</div><div class="receipt-summary">${receiptVisual()}<div><span>인식 신뢰도</span><b>${Math.round((ocr.confidence || 0.9) * 100)}%</b><small>원본·크롭본이 함께 보존됩니다</small></div></div><form class="form-card review-form" id="ocr-form"><label>가맹점<input name="merchant" value="${escapeHtml(ocr.merchant)}" required></label><div class="form-grid"><label>결제금액<div class="input-unit"><input name="amount" inputmode="numeric" value="${escapeHtml(ocr.amount)}" required><span>${escapeHtml(ocr.currency || 'KRW')}</span></div></label><label>통화<select name="currency"><option ${ocr.currency === 'KRW' ? 'selected' : ''}>KRW</option><option ${ocr.currency === 'JPY' ? 'selected' : ''}>JPY</option><option ${ocr.currency === 'USD' ? 'selected' : ''}>USD</option></select></label></div><label>결제일시<input name="paidAt" type="datetime-local" value="${escapeHtml(String(ocr.paidAt).slice(0, 16))}" required></label><fieldset class="choice-field"><legend>정산단위 <small>자동추천은 강조해 표시</small></legend><div class="choice-list">${state.presets.map((preset) => `<label class="choice-chip ${preset.id === suggestedId ? 'suggested' : ''}"><input type="radio" name="presetId" value="${escapeHtml(preset.id)}" ${preset.id === suggestedId ? 'checked' : ''}><span>${preset.id === suggestedId ? '✓ ' : ''}${escapeHtml(preset.name)}</span></label>`).join('')}<label class="choice-chip"><input type="radio" name="presetId" value=""><span>일반 결제</span></label></div></fieldset><fieldset class="choice-field"><legend>비목 <small>선택한 정산단위에서 허용된 항목만 표시</small></legend><div class="choice-list" id="account-choice"></div></fieldset><label>부가세 확인 <small class="optional-label">선택 확인</small><div class="input-unit"><input name="vatConfirmed" inputmode="numeric" value="${escapeHtml(state.receipt.vat?.extracted || 0)}"><span>원</span></div></label>${checks.map((check) => `<div class="evidence-warning"><b>⚠ ${escapeHtml(check.message)}</b><span>경고가 있어도 저장할 수 있습니다.</span></div>`).join('')}</form><button class="button primary full" type="button" data-action="save-receipt">확인하고 저장 <span>→</span></button><button class="text-button" type="button" data-action="crop-back">크롭 이미지 다시 확인</button></section>`;
+  root.innerHTML = `<section class="content-screen">${progress('review')}<div class="section-heading"><div><span class="eyebrow">OCR 확인 · 정산단위 선택</span><h1>서버에 저장할 내용을 확인해주세요</h1></div>${modeBadge()}</div><div class="receipt-summary">${receiptVisual()}<div><span>인식 신뢰도</span><b>${Math.round((ocr.confidence || 0.9) * 100)}%</b><small>원본·크롭본이 함께 보존됩니다</small></div></div><form class="form-card review-form" id="ocr-form"><label>가맹점<input name="merchant" value="${escapeHtml(ocr.merchant)}" required></label><div class="form-grid"><label>결제금액<div class="input-unit"><input name="amount" inputmode="numeric" value="${escapeHtml(ocr.amount)}" required><span>${escapeHtml(ocr.currency || 'KRW')}</span></div></label><label>통화<select name="currency"><option ${ocr.currency === 'KRW' ? 'selected' : ''}>KRW</option><option ${ocr.currency === 'JPY' ? 'selected' : ''}>JPY</option><option ${ocr.currency === 'USD' ? 'selected' : ''}>USD</option></select></label></div><label>결제일시<input name="paidAt" type="datetime-local" value="${escapeHtml(String(ocr.paidAt || '').slice(0, 16))}" required></label><fieldset class="choice-field"><legend>정산단위 <small>자동추천은 강조해 표시</small></legend><div class="choice-list">${state.presets.map((preset) => `<label class="choice-chip ${preset.id === suggestedId ? 'suggested' : ''}"><input type="radio" name="presetId" value="${escapeHtml(preset.id)}" ${preset.id === suggestedId ? 'checked' : ''}><span>${preset.id === suggestedId ? '✓ ' : ''}${escapeHtml(preset.name)}</span></label>`).join('')}<label class="choice-chip"><input type="radio" name="presetId" value=""><span>일반 결제</span></label></div></fieldset><fieldset class="choice-field"><legend>비목 <small>선택한 정산단위에서 허용된 항목만 표시</small></legend><div class="choice-list" id="account-choice"></div></fieldset><label>부가세 확인 <small class="optional-label">선택 확인</small><div class="input-unit"><input name="vatConfirmed" inputmode="numeric" value="${escapeHtml(state.receipt.vat?.extracted || 0)}"><span>원</span></div></label>${checks.map((check) => `<div class="evidence-warning"><b>⚠ ${escapeHtml(check.message)}</b><span>경고가 있어도 저장할 수 있습니다.</span></div>`).join('')}</form><button class="button primary full" type="button" data-action="save-receipt">확인하고 저장 <span>→</span></button><button class="text-button" type="button" data-action="crop-back">크롭 이미지 다시 확인</button></section>`;
   const form = document.querySelector('#ocr-form');
   form.addEventListener('change', (event) => { if (event.target.name === 'presetId') updateAccountChips(form); });
   updateAccountChips(form);
@@ -441,7 +444,7 @@ async function reloadPresetsAndReceipts() {
   const [receipts, presets] = await Promise.all([listReceipts(), listPresets()]);
   state.receipts = receipts.data;
   state.presets = presets.data;
-  setMode(presets.mode === 'live' ? 'live' : 'demo');
+  setMode(presets.mode === 'live' ? 'live' : 'offline');
   if (state.tripPreset) state.tripPreset = state.presets.find((p) => p.id === state.tripPreset.id) || null;
 }
 
@@ -482,6 +485,7 @@ async function useFile(file) {
   if (file.size > 12 * 1024 * 1024) return notify('12MB 이하의 사진을 선택해주세요.');
   if (state.localImageUrl) URL.revokeObjectURL(state.localImageUrl);
   state.file = file;
+  state.uploadError = '';
   state.localImageUrl = URL.createObjectURL(file);
   screenProcessing();
   try {
@@ -493,18 +497,10 @@ async function useFile(file) {
     screenCropConfirm();
   } catch (error) {
     setMode('checking');
+    state.uploadError = error?.message || '영수증을 인식하지 못했습니다. 사진을 다시 촬영해 주세요.';
     screenCapture();
-    notify('영수증을 서버에 올리지 못했습니다. 연결을 확인하고 다시 시도해주세요.');
+    notify(state.uploadError);
   }
-}
-
-async function useSample() {
-  state.receipt = { ...demoReceipt(), suggestedPresetId: state.tripPreset?.id || null };
-  state.localImageUrl = '';
-  setMode('demo');
-  screenProcessing('샘플 영수증을 준비하고 있어요');
-  await new Promise((resolve) => setTimeout(resolve, 450));
-  screenCropConfirm();
 }
 
 async function saveReceipt() {
@@ -602,7 +598,6 @@ root.addEventListener('click', async (event) => {
   if (action === 'picker-cancel') { screenTripSetup(); return; }
   if (action === 'camera') cameraInput.click();
   if (action === 'gallery') galleryInput.click();
-  if (action === 'sample') await useSample();
   if (action === 'crop-confirm') screenReview();
   if (action === 'crop-back') screenCropConfirm();
   if (action === 'recrop') cameraInput.click();
@@ -626,7 +621,7 @@ async function init() {
   state.receipts = receipts.data;
   state.presets = presets.data;
   state.tripPreset = state.presets.find((item) => item.type === 'TRIP' && item.active) || null;
-  setMode(transactions.mode === 'live' ? 'live' : 'demo');
+  setMode([transactions, receipts, presets].every((result) => result.mode === 'live') ? 'live' : 'offline');
   navigate(location.hash.slice(1) || 'dashboard');
 }
 

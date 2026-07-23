@@ -23,7 +23,7 @@
 | 추가 | `POST /api/presets` — 이어카운팅 전용: 관리자 배포(RECURRING/CAMPAIGN)·직원 국내출장 생성(TRIP, 표준 기본값). 해외출장 TRIP은 품의 자동생성을 seed로 시뮬레이트. **모바일에서는 호출하지 않음** |
 | 추가 | `GET /api/presets?active=true` — 모바일 리뷰 선택지·대시보드 + 이어카운팅 목록 공용 |
 | 추가 | `PATCH /api/presets/:id` — 비활성화/수정 |
-| 변경 | `POST /api/receipts` 응답에 `suggestedPresetId`, `checks[]` 추가 |
+| 변경 | `POST /api/receipts` 응답에 `suggestedPresetId`, `checks[]`, `ocrMode:"real"` 추가. 실제 이미지 OCR 실패 시 저장하지 않고 오류 반환(WoZ 자동 폴백 금지) |
 | 추가 | `PATCH /api/receipts/:id` — 사용자가 `presetId`·`accountCode` 확정, `vat.confirmed` 저장 |
 | 변경 | `POST /api/vouchers/preview` — `receipt.presetId` 있으면 그 정산단위 규칙 사용, 없으면 기존 P4 자동분류 + fallback |
 | 추가 | `GET /api/travel-policy` — 국내·해외 출장비 화면이 공통 지급기준을 조회 |
@@ -35,7 +35,8 @@
 |---|---|---|
 | GET | `/api/transactions?status=unmatched` | 카드승인내역 목록 (기존 유지) |
 | PATCH | `/api/transactions/:id` | 상태/매칭 갱신 (기존 유지) |
-| POST | `/api/receipts` (multipart) | 영수증 업로드(모바일 촬영 + 이어카운팅 PC 파일 공용) → 크롭(원본/파생 분리)+OCR, `suggestedPresetId`·`checks[]` 포함해 반환 |
+| POST | `/api/receipts` (multipart) | 영수증 업로드(모바일 촬영 + 이어카운팅 PC 파일 공용) → 실제 OCR 성공 시에만 저장, `ocrMode:"real"`·`suggestedPresetId`·`checks[]` 포함해 반환 |
+| GET | `/api/receipts/ocr-status` | 비밀값 없이 OCR 설정 여부·모델·실업로드 폴백 금지 상태 조회 |
 | PATCH | `/api/receipts/:id` | 사용자가 `presetId`·`accountCode`·`vat.confirmed` 확정 |
 | POST | `/api/match` | body: `{receiptIds[]}` → 거래 매칭 결과 `[{receiptId, txId, score}]` |
 | POST | `/api/vouchers/preview` | 매칭된 건들로 전표 초안 생성 (정산단위 규칙 반영) |
@@ -114,7 +115,17 @@
 ### 영수증 — source·크롭 분리·OCR 수정
 
 `POST /api/receipts` — multipart `image`(원본, 항상 보존) + 선택 `cropped`(크롭본) + `source`("mobile"|"pc", 기본 mobile).
-응답에 `source`, `crop: {status: "auto"|"manual"|"original", updatedAt}` 추가. WoZ 폴백은 기존과 동일(`?key=`).
+실제 이미지에서는 Vision OCR로 가맹점·금액을 검증한 경우에만 저장하고 `ocrMode:"real"`, `source`, `crop: {status: "auto"|"manual"|"original", updatedAt}`를 반환한다.
+키 누락·제공자 오류·타임아웃·필수값 인식 실패 시 `4xx/5xx`, `ocrMode:"failed"`, `saved:false`를 반환하며 Receipt 목록에는 추가하지 않는다.
+`POST /api/receipts`에는 샘플 fixture 호출 경로가 없다. 실제 이미지가 없거나 OCR이 실패하면 저장하지 않고 오류를 반환한다.
+
+| 실패 | HTTP | 의미 |
+|---|---:|---|
+| `IMAGE_REQUIRED` | 400 | 이미지가 없음 |
+| `OCR_UNSUPPORTED_MEDIA` | 415 | 지원하지 않는 파일 형식 |
+| `OCR_NOT_CONFIGURED` | 503 | 실제 OCR API 키 미설정 |
+| `OCR_PROVIDER_ERROR` / `OCR_INVALID_RESULT` | 502 | 제공자 오류 또는 가맹점·금액 검증 실패 |
+| `OCR_TIMEOUT` | 504 | 인식 제한시간 초과 |
 
 `POST /api/receipts/:id/crop` — 재크롭: multipart `cropped` 파일 → `crop.status:"manual"` / `{"useOriginal":true}` → 원본 폴백(`crop.status:"original"`).
 

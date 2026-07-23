@@ -11,3 +11,12 @@ services:
     startCommand: node server/index.js
     healthCheckPath: /api/transactions   # 이 경로가 200이면 정상 기동으로 판단
     autoDeploy: true      # main 에 푸시하면 자동 재배포
+    envVars:
+      - key: LETSUR_API_KEY
+        sync: false       # Render 대시보드에서 실제 키를 입력해야 실 OCR 활성화
+      - key: LETSUR_BASE_URL
+        value: https://gw.letsur.ai
+      - key: OCR_MODEL
+        value: gpt-4o
+      - key: OCR_TIMEOUT_MS
+        value: 30000

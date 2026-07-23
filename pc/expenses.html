@@ -159,7 +159,7 @@ function render() {
         <td>${t ? `<span class="badge neutral">${t.title}</span>`
           : (r.presetId ? `<span class="badge neutral" title="정산단위(세트)">🧩 ${D.presetName(r.presetId)}</span>` : '<span class="muted">—</span>')}</td>
         <td class="muted">${r.budgetDept || "—"}</td>
-        <td class="muted">${r.source === "pdf" ? "PDF 파싱" : "사진 OCR"}</td>
+        <td class="muted">${r.ocrMode === "real" ? `실제 OCR · ${r.source === "pc" ? "PC" : "모바일"}` : "서버 등록 데이터"}</td>
         <td>${STATUS_BADGE[r.status]}${flags}</td>
       </tr>`;
     }).join("")}</tbody>`;
@@ -283,14 +283,14 @@ function openDrawer(id) {
   const url = D.imgUrl(r.img);
   $("dTitle").textContent = r.merchant;
   $("dBody").innerHTML = `
-    ${url ? `<img class="d-img" src="${url}" alt="영수증 원본">` : `<div class="d-img" style="padding:44px 0;text-align:center;color:#8A90A0;font-size:38px">${r.source === "pdf" ? "📄 PDF 원본" : "🧾"}</div>`}
+    ${url ? `<img class="d-img" src="${url}" alt="영수증 원본">` : '<div class="d-img" style="padding:44px 0;text-align:center;color:#8A90A0;font-size:38px">🧾</div>'}
     <dl>
       <dt>결제금액</dt><dd class="num">${D.money(r)}${r.currency !== "KRW" ? ` (환율 ${r.fxRate} → ${D.krw(r.amountKRW)})` : ""}</dd>
       <dt>결제일시</dt><dd>${D.dt(r.paidAt)}</dd>
       <dt>이용일</dt><dd>${D.dateShort(r.serviceDate)}${r.serviceDate !== r.paidAt.slice(0, 10) ? ' <span class="badge warn">사전결제 — 이용일 기준 판정</span>' : ""}</dd>
       <dt>분류</dt><dd><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span> <span class="muted">(${D.CATEGORIES[r.category].name})</span></dd>
       <dt>출장 연결</dt><dd>${t ? `${t.title} (${D.dateShort(t.startDate)}~${D.dateShort(t.endDate)})` : "없음"}</dd>
-      <dt>출처</dt><dd>${r.source === "pdf" ? "PDF 업로드 (텍스트 파싱)" : "사진 촬영/업로드 (Vision OCR)"}</dd>
+      <dt>출처</dt><dd>${r.ocrMode === "real" ? `실제 Vision OCR · ${r.source === "pc" ? "PC 업로드" : "모바일 촬영/업로드"}` : "서버 초기 등록 데이터"}</dd>
       ${(() => { const v = D.vatInfo(r); return v ? `<dt>부가세</dt><dd style="font-weight:600;line-height:1.5">${v.text}<br>
         <span class="badge ${v.warn ? "warn" : "neutral"}">${v.warn ? "⚠ " : ""}${v.badge}</span></dd>` : ""; })()}
       ${(() => {

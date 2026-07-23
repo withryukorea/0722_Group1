@@ -354,6 +354,9 @@ h1 em { color: var(--coral); font-style: normal; }
 .evidence-warning { padding: 11px; display: grid; gap: 3px; border: 1px solid #e5aa72; border-radius: 11px; background: #fff6ec; color: #9b5f27; }
 .evidence-warning b { font-size: 10px; }
 .evidence-warning span { font-size: 8px; }
+.ocr-error { margin: 0 0 14px; background: #fff1f0; border-color: #f0aaa4; color: #9b231c; }
+.ocr-error b { font-size: 11px; }
+.ocr-error span { font-size: 9px; line-height: 1.45; }
 .auto-filled-card > div:not(.attachment-row) { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: start; padding: 4px 0; }
 .auto-filled-card > div:not(.attachment-row) span { color: var(--muted); font-size: 10px; }
 .auto-filled-card > div:not(.attachment-row) b { font-size: 11px; line-height: 1.45; }

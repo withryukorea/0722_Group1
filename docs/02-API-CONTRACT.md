@@ -187,7 +187,7 @@ fixtures/
   - `tx_001~007` 국내 실데모 7건(폴바셋/치킨/ANTHROPIC/택시x2/오피스디포/OPENAI — receipts-ocr과 1:1)
   - `tx_101~108` 도쿄 출장(JPY) / `tx_201~203` 간식·도서
 - **CardTransaction 선택 필드**: `biz`(업종), `apprNo`(승인번호) — 화면 표시용, 없어도 동작
-- **POST /api/receipts** ✅: multipart(`image`) 또는 JSON `{key}` (데모키: coffee/chicken/anthropic/taxi1/taxi2/officedepot/openai, 생략 시 미사용 데모건 자동 배정). 실제 OCR 실패/미호출 시 WoZ 폴백
+- **POST /api/receipts** ✅: multipart(`image`) 실제 Vision OCR. 인식 성공 건만 `ocrMode:"real"`로 저장하며 실패·미설정 시 오류와 `saved:false`를 반환한다. 실제 이미지의 WoZ 폴백은 금지한다.
   - `GET /api/receipts`, `GET /api/receipts/:id`, `GET /api/receipts/:id/image`(업로드 원본 또는 OCR 값으로 그린 데모 SVG)
 - **POST /api/match** ✅: 금액60/일시30/가맹점10 점수제, score≥70이면 서버가 즉시 매칭 확정(tx.status=matched)
 - **POST /api/vouchers/preview** ✅: 계정과목 자동분류 + 부가세 분리(`supplyKRW`/`vatKRW`, 면세·구독은 0) + 전결라인(approval-rules 기반)
@@ -202,7 +202,7 @@ fixtures/
 - **Trip/Budget 폐기**: `trips.js`·`budgets.json` 삭제. 단 기존 호출자 호환을 위해 `GET·POST /api/trips`(TRIP Preset 별칭)와 `GET /api/budgets`(RECURRING Preset usage 계산 shim)는 유지
 - **Receipt 확장** ✅: 응답에 `suggestedPresetId`(TRIP 기간 → 키워드 순 추천), `checks[]`(ITEMIZED_REQUIRED/VAT_CHECK/DUPLICATE_DOCUMENT — 경고만, 차단 없음), `fxRate`/`amountKRW`(결제 시점 환율 고정 저장), `serviceDate`(출장 기간 판정용 — 매칭은 paidAt), `vat{extracted,confirmed}`
 - **PATCH /api/receipts/:id** ✅: 사용자가 presetId·accountCode·vat.confirmed 확정. 허용 비목 1개면 자동 세팅, 허용 외 비목은 400
-- **실 OCR 훅** ✅: server/.env의 LETSUR_API_KEY 있으면 Letsur AI Gateway(Vision)로 실제 OCR, 실패·미설정 시 WoZ 폴백 (데모 100% 재현 유지)
+- **실 OCR 훅** ✅: `server/.env`의 `LETSUR_API_KEY`로 Letsur AI Gateway(Vision)를 호출한다. 실패·미설정 시 샘플을 반환하지 않고 오류 처리하며 이미지 없는 fixture 호출 경로는 제공하지 않는다.
 - **preview Preset 분기** ✅: receipt.presetId 있으면 그 Preset의 비목·전결라인·적요 템플릿 사용 + `warnings[]`(PRESET_LIMIT_EXCEEDED — 경고만), 없으면 기존 자동분류+전결규정 fallback
 - **상신 시 usage 차감** ✅: submitted 전표만 Preset usage(usedKRW/byDay)에 합산 (초안 합산 금지)
 - **fixtures 갱신**: fx USD 1380→**1500**(데모 확정 환율), 계정과목 `SGA_POSTAGE`(판관비-우편) 신설, data_sample 실물 영수증 대응 카드승인내역 `tx_301~310` 추가 (부산·울산 출장 동선 + USD 구독 2건)

@@ -32,6 +32,10 @@ function merchantScore(a, b) {
 
 function scorePair(receipt, tx) {
   const o = receipt.ocr || {};
+  // 승인번호는 카드사 거래와 영수증을 직접 잇는 최우선 키다.
+  const approvalNo = String(o.approvalNo || "").replace(/\D/g, "");
+  const txApprovalNo = String(tx.apprNo || tx.approvalNo || "").replace(/\D/g, "");
+  if (approvalNo.length >= 4 && approvalNo === txApprovalNo) return 100;
   let s = 0;
   // 금액 60점 — 원화 환산 기준으로 비교
   const raw = Number(o.amount) || 0;

@@ -27,7 +27,7 @@
 - `GET /api/receipts`
 - `GET /api/transactions`
 
-쓰기 요청에는 데모 폴백을 적용하지 않습니다. 서버 저장에 실패하면 성공 화면으로 넘어가지 않고 현재 단계에 머물러 재시도를 안내합니다. `샘플` 버튼은 화면 확인 전용이며 서버에 저장되지 않았음을 완료 화면에 명시합니다.
+읽기·쓰기 요청 모두 샘플 데이터로 폴백하지 않습니다. 서버 저장에 실패하면 성공 화면으로 넘어가지 않고 현재 단계에 머물러 실제 오류와 재시도를 안내합니다.
 
 `PATCH /api/receipts/:id` 응답은 수정된 `ocr`, `presetId`, `accountCode`, `vat.confirmed`를 그대로 반환해야 합니다. 모바일은 응답값을 다시 검증하고, 일부 값이 저장되지 않았으면 완료로 처리하지 않습니다.
 
@@ -39,13 +39,12 @@
 <script>
   window.RECEIPT_APP_CONFIG = {
     apiBase: 'https://example-api.invalid',
-    eAccountingUrl: 'https://example.invalid/eaccounting/',
-    demoFallback: true
+    eAccountingUrl: 'https://example.invalid/eaccounting/'
   };
 </script>
 ```
 
-`demoFallback`은 목록 조회용 데모에만 적용됩니다. 실제 업로드와 수정 저장은 항상 서버 성공 응답이 있어야 완료로 표시됩니다.
+API 조회에 실패하면 빈 상태와 연결 오류를 표시하며 샘플 목록으로 대체하지 않습니다. 실제 업로드와 수정 저장은 항상 서버 성공 응답이 있어야 완료로 표시됩니다.
 
 ## 구현 기준
 

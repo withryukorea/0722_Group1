@@ -10,8 +10,9 @@
 2. 대시보드 → **New +** → **Blueprint**
 3. **`withryukorea/0722_Group1`** 저장소 선택 → **Connect**
    - 저장소 루트의 `render.yaml` 을 자동으로 읽어 설정이 채워집니다.
-4. **Apply** 클릭 → 빌드가 시작됩니다 (몇 분 소요).
-5. 완료되면 `https://mock-eaccounting-xxxx.onrender.com` 형태의 **공개 URL**이 생깁니다.
+4. Render 서비스의 **Environment**에서 `LETSUR_API_KEY`에 실제 키를 입력합니다. 키는 Git에 커밋하지 않습니다.
+5. **Apply** 클릭 → 빌드가 시작됩니다 (몇 분 소요).
+6. 완료되면 `https://mock-eaccounting-xxxx.onrender.com` 형태의 **공개 URL**이 생깁니다.
 
 > ⚠️ 무료 플랜은 15분간 요청이 없으면 잠듭니다. 잠든 뒤 첫 접속은 30~50초 걸릴 수 있어요.
 > **시연 직전에 한 번 열어 미리 깨워두세요.**
@@ -20,6 +21,9 @@
 
 - 브라우저에서 공개 URL 열기 → 메인 대시보드가 보이면 성공
 - `공개URL/api/transactions` → JSON 7건이 나오면 API 정상
+- `공개URL/api/receipts/ocr-status` → `configured:true`, `actualUploadFallback:false`면 실제 OCR 준비 완료
+
+`configured:false`라면 영수증을 샘플 데이터로 대체하지 않고 업로드 실패로 표시합니다. Render의 `LETSUR_API_KEY`를 설정한 뒤 서비스를 다시 배포하세요.
 
 ## 3. 모바일 앱(다른 팀원)과 연결
 

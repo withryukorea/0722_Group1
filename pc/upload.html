@@ -14,7 +14,7 @@
   <div class="page-head">
     <div>
       <h1>영수증 업로드</h1>
-      <div class="desc">사진(JPG/PNG)과 전자영수증(PDF)을 끌어다 놓으면 자동 크롭 → OCR/파싱 → 프리셋 분류까지 진행됩니다</div>
+      <div class="desc">영수증 사진(JPG/PNG/WebP)을 올리면 실제 Vision OCR → 프리셋 분류까지 진행됩니다</div>
     </div>
   </div>
 
@@ -24,18 +24,12 @@
       <div class="dropzone" id="dz">
         <div class="dz-icon">🧾</div>
         <h3>여기로 파일을 끌어다 놓으세요</h3>
-        <p class="muted">또는 <label style="color:var(--sk-red);font-weight:700;cursor:pointer">파일 선택<input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden></label> · 여러 장 동시 업로드 가능</p>
+        <p class="muted">또는 <label style="color:var(--sk-red);font-weight:700;cursor:pointer">파일 선택<input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp" hidden></label> · 여러 장 동시 업로드 가능</p>
         <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
-          <span class="badge info">📷 사진 → Vision OCR 경로</span>
-          <span class="badge neutral">📄 PDF → 텍스트 파싱 경로</span>
+          <span class="badge info">📷 실제 사진 → Vision OCR</span>
+          <span class="badge neutral">인식 성공 건만 저장</span>
         </div>
       </div>
-
-      <!-- 데모 샘플 버튼 -->
-      <section class="card" style="margin-top:14px">
-        <div class="card-title">데모 샘플로 시험하기 <span class="more">data_sample/ 실제 영수증</span></div>
-        <div class="chips" id="demoChips"></div>
-      </section>
 
       <!-- 처리 큐 -->
       <section class="card" style="margin-top:14px">
@@ -73,9 +67,9 @@ const $ = (id) => document.getElementById(id);
 
 /* 파이프라인 단계 안내 */
 const STEPS = [
-  ["업로드", "사진·PDF 접수 (모바일 앱과 동일 저장소)"],
+  ["업로드", "JPG·PNG·WebP 사진 접수 (모바일 앱과 동일 저장소)"],
   ["자동 크롭", "영수증 영역 감지 — 실패 시 원본 사용"],
-  ["OCR / 파싱", "사진은 Vision OCR, PDF는 텍스트 레이어 파싱"],
+  ["OCR / 파싱", "Vision OCR로 가맹점·금액·결제일시를 실제 인식"],
   ["프리셋 분류", "출장 일정·가맹점 프리셋으로 대분류/세부비목 자동 지정"],
   ["중복 검사", "invoiceNo 기준 — 인보이스/영수증 중복 자동 제외"],
   ["카드 매칭", "금액·일시·가맹점으로 법인카드 승인내역과 매칭"]
@@ -86,66 +80,26 @@ $("pipeSteps").innerHTML = STEPS.map(([t, d], i) => `
     <div style="font-size:12.5px"><b>${t}</b><div class="muted" style="margin-top:1px">${d}</div></div>
   </div>`).join("");
 
-/* 데모 샘플 */
-const DEMOS = [
-  { rid: "r_paris", label: "🧾 파리크라상 (국내출장 식대)" },
-  { rid: "r_ktx1", label: "🚄 KTX 승차권 (사전결제)" },
-  { rid: "r_gpt", label: "📄 ChatGPT 구독 PDF ($22)" },
-  { rid: "r_gpt_inv", label: "⚠️ ChatGPT 인보이스 (중복 케이스)" },
-  { rid: "r_sushi", label: "✈ 스시로 신주쿠 (¥8,800)" },
-  { rid: "hotel", label: "🏨 호텔 영수증 (복합 항목 케이스)" }
-];
-/* 복합(숙박+세탁+조식) 영수증 데모 — 항목 분리는 자동화하지 않고 플래그만 (팀 확정 사항) */
-const HOTEL_DEMO = {
-  id: "demo_hotel", merchant: "신주쿠 그랜드호텔 (복합 영수증)", amount: 28600, currency: "JPY",
-  fxRate: 9, amountKRW: 257400, paidAt: "2026-07-22T11:00", serviceDate: "2026-07-20",
-  category: "TRAVEL_LODGING", tripId: "trip_tokyo", source: "photo", img: null, status: "matched",
-  splitNeeded: true, approvalNo: "88012345",
-  vat: { basis: "missing", needCheck: true },
-  why: "숙박(¥24,000)+세탁(¥1,800)+조식(¥2,800) 복합 영수증 감지 — 통짜로 숙박비 계정에 넣고 '항목 분리 필요' 플래그만 표시합니다 (자동 분리 안 함)"
-};
-$("demoChips").innerHTML = DEMOS.map(d => `<button class="chip" data-rid="${d.rid}">${d.label}</button>`).join("");
-document.querySelectorAll("#demoChips .chip").forEach(c =>
-  c.onclick = () => enqueue(c.dataset.rid === "hotel" ? HOTEL_DEMO : D.sampleReceipt(c.dataset.rid), null));
-
 /* 업로드 큐 */
 let queue = [];
-const PHASES = ["업로드", "크롭", "OCR", "분류", "중복검사", "매칭"];
-
-/* 데모 샘플(파일 없음) — 실제 서버 유입 없이 파이프라인만 시연 */
-function enqueue(sample, file) {
-  const item = {
-    kind: "demo",
-    id: "q" + Date.now() + Math.random().toString(36).slice(2, 5),
-    name: file ? file.name : sample.merchant,
-    sample, phase: 0,
-    isPdf: file ? file.type === "application/pdf" || /\.pdf$/i.test(file.name) : sample.source === "pdf",
-    objUrl: file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null
-  };
-  queue.unshift(item);
-  renderQueue();
-  const timer = setInterval(() => {
-    item.phase++;
-    if (item.phase >= PHASES.length) { clearInterval(timer); showResult(item); }
-    renderQueue();
-  }, 420);
-}
 
 /* 실제 업로드(드롭·파일 선택) — POST /api/receipts 로 유입. 성공 응답 시에만 완료 표시. */
 function uploadFile(file) {
+  const isImage = Boolean(file && file.type && file.type.startsWith("image/"));
   const item = {
     kind: "upload",
     id: "q" + Date.now() + Math.random().toString(36).slice(2, 5),
-    name: file.name,
+    name: file ? file.name : "알 수 없는 파일",
     file,                    // 재시도용 원본 파일 보관
-    isPdf: file.type === "application/pdf" || /\.pdf$/i.test(file.name),
-    objUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
-    status: "uploading",     // uploading | done | failed
-    error: null,
+    isPdf: false,
+    objUrl: isImage ? URL.createObjectURL(file) : null,
+    status: isImage ? "uploading" : "failed",     // uploading | done | failed
+    error: isImage ? null : "현재 실제 OCR은 JPG·PNG·WebP 등 이미지 영수증만 지원합니다.",
     receipt: null
   };
   queue.unshift(item);
-  sendUpload(item);
+  if (isImage) sendUpload(item);
+  else renderQueue();
 }
 
 async function sendUpload(item) {
@@ -169,25 +123,7 @@ async function sendUpload(item) {
 
 function renderQueue() {
   $("queueCount").textContent = queue.length + "건";
-  $("queue").innerHTML = queue.map(it =>
-    it.kind === "upload" ? renderUploadItem(it) : renderDemoItem(it)
-  ).join("") || '<p class="muted" style="padding:8px 0">업로드된 파일이 여기에 표시됩니다</p>';
-}
-
-function renderDemoItem(it) {
-  const done = it.phase >= PHASES.length;
-  const dup = it.sample && it.sample.status === "duplicate" && done;
-  return `
-    <div style="padding:10px 0;border-bottom:1px solid var(--line)">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <b style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.isPdf ? "📄" : "📷"} ${it.name}</b>
-        ${done ? (dup ? '<span class="badge danger">중복 감지 — 제외</span>' : '<span class="badge ok">✓ 완료</span>')
-               : `<span class="badge info">${PHASES[it.phase]} 중…</span>`}
-      </div>
-      <div class="pipeline" style="margin-top:6px">
-        ${PHASES.map((p, i) => `${i ? '<span class="arrow">›</span>' : ""}<b style="color:${i < it.phase ? "var(--ok)" : i === it.phase && !done ? "var(--sk-red)" : "var(--ink-3)"}">${p}</b>`).join("")}
-      </div>
-    </div>`;
+  $("queue").innerHTML = queue.map(renderUploadItem).join("") || '<p class="muted" style="padding:8px 0">업로드된 파일이 여기에 표시됩니다</p>';
 }
 
 function renderUploadItem(it) {
@@ -222,30 +158,6 @@ $("queue").addEventListener("click", (e) => {
   if (it) sendUpload(it);
 });
 
-function showResult(it) {
-  const r = it.sample || D.sampleReceipt("r_paris");
-  const G = D.GROUPS[D.groupOf(r)];
-  const t = r.tripId ? D.TRIPS.find(x => x.id === r.tripId) : null;
-  const url = it.objUrl || D.imgUrl(r.img);
-  $("lastResult").innerHTML = `
-    ${url ? `<img src="${url}" style="width:100%;max-height:200px;object-fit:contain;background:#14161B;border-radius:10px" alt="">` : ""}
-    <dl style="display:grid;grid-template-columns:86px 1fr;row-gap:7px;font-size:13px;margin-top:12px">
-      <dt class="muted">가맹점</dt><dd style="font-weight:700">${r.merchant}</dd>
-      <dt class="muted">금액</dt><dd class="num" style="font-weight:700">${D.money(r)}${r.currency !== "KRW" ? ` → ${D.krw(r.amountKRW)}` : ""}</dd>
-      <dt class="muted">일시</dt><dd>${D.dt(r.paidAt)}</dd>
-      <dt class="muted">분류</dt><dd><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span></dd>
-      ${t ? `<dt class="muted">출장 연결</dt><dd>${t.title}</dd>` : ""}
-    </dl>
-    ${(() => { const v = D.vatInfo(r); return v ? `<div class="pipeline" style="margin-top:8px"><b>부가세</b> ${v.text}
-      <span class="badge ${v.warn ? "warn" : "neutral"}">${v.badge}</span></div>` : ""; })()}
-    <div class="preset-why" style="margin-top:10px">${r.why}</div>
-    ${r.splitNeeded ? `<div class="preset-why" style="background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn);margin-top:8px">
-      🏷 <b>항목 분리 필요</b> — 복합 영수증입니다. 자동 분리하지 않습니다. 정산 검토 단계에서 수동으로 계정을 나눠주세요.</div>` : ""}
-    ${r.status === "duplicate"
-      ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:8px"><b>중복 감지</b> — 동일 결제건의 영수증이 이미 등록되어 있어 전표에서 제외됩니다.</div>`
-      : `<a class="btn primary block" style="margin-top:12px" href="expenses.html">사용내역에서 확인 ›</a>`}`;
-}
-
 /* 실제 업로드 성공 결과 — 서버가 저장한 receipt(JSON) 기준으로만 표시 */
 function showServerResult(it) {
   const r = it.receipt || {};
@@ -261,6 +173,7 @@ function showServerResult(it) {
       <dt class="muted">가맹점</dt><dd style="font-weight:700">${o.merchant || "(인식 결과 없음)"}</dd>
       <dt class="muted">금액</dt><dd class="num" style="font-weight:700">${amount.toLocaleString()} ${cur}${cur !== "KRW" && krw ? ` → ${krw.toLocaleString()}원` : ""}</dd>
       <dt class="muted">일시</dt><dd>${o.paidAt || "—"}</dd>
+      <dt class="muted">인식 방식</dt><dd><span class="badge ok">실제 OCR</span></dd>
       <dt class="muted">접수 ID</dt><dd class="num">${r.id}</dd>
     </dl>
     ${dup ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:8px"><b>중복 문서 감지</b> — 동일 결제건 영수증이 이미 등록되어 있을 수 있습니다.</div>` : ""}
