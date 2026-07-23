@@ -80,7 +80,7 @@
     }
   ],
   "totalKRW": 79200,
-  "approvalLine": ["김팀장", "박부장"],  // 전결규정으로 자동 결정
+  "approvalLine": ["김팀장", "박실장"],  // 전결규정으로 자동 결정
   "status": "draft"          // draft | submitted | (approved)
 }
 ```

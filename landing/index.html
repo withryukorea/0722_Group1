@@ -39,8 +39,8 @@
     h1 { font-size: 28px; margin: 0 0 10px; font-weight: 800; }
     header p { margin: 0; color: var(--muted); font-size: 15px; }
     .cards {
-      display: grid; gap: 20px; width: 100%; max-width: 900px;
-      grid-template-columns: repeat(3, 1fr);
+      display: grid; gap: 20px; width: 100%; max-width: 620px;
+      grid-template-columns: repeat(2, 1fr);
     }
     @media (max-width: 720px) { .cards { grid-template-columns: 1fr; max-width: 420px; } }
     .card {
@@ -82,7 +82,7 @@
   <header>
     <div class="brand"><span class="dot"></span>전표 자동화 데모</div>
     <h1>접속 포털</h1>
-    <p>영수증 → OCR → 자동 배분 → 전표 첨부까지, 3개 화면으로 이어지는 흐름</p>
+    <p>영수증 → OCR → 자동 배분 → 전표 첨부까지 · PC 정산은 이어카운팅 <b>간편정산</b> 메뉴로 통합됐습니다</p>
   </header>
 
   <main class="cards">
@@ -97,17 +97,9 @@
     <a class="card" href="/app/" target="_blank" rel="noopener">
       <div class="icon">📱</div>
       <h2>모바일웹</h2>
-      <p class="desc">영수증을 촬영·업로드하면 OCR로 금액·가맹점을 자동 인식. 현장에서 바로 올리는 모바일 PWA.</p>
+      <p class="desc">영수증을 촬영·업로드하면 OCR로 금액·가맹점을 자동 인식. 현장에서 바로 올리는 모바일 PWA. (E-acc 전용 모바일 창은 <code style="font-size:11px">/eaccounting/m/</code>)</p>
       <span class="go">바로가기 →</span>
       <span class="url">/app/</span>
-    </a>
-
-    <a class="card" href="/pc/" target="_blank" rel="noopener">
-      <div class="icon">🖥️</div>
-      <h2>PC웹</h2>
-      <p class="desc">정산·분석 대시보드. 모바일과 동일한 실데이터를 같은 서버에서 읽어 집계·현황을 보여주는 화면.</p>
-      <span class="go">바로가기 →</span>
-      <span class="url">/pc/</span>
     </a>
   </main>
 

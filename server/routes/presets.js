@@ -20,7 +20,7 @@ const PROFILE = {
   rank: "매니저",
   team: "전력사업기획팀",
   costCenter: "AQ131",
-  superiors: ["김아무개 팀장", "박아무개 부장"], // 차상위 → 차차상위
+  superiors: ["김아무개 팀장", "박아무개 실장"], // 차상위 → 차차상위
 };
 
 /* 전결라인 양식($DRAFTER/$SUPERIOR/$SUPERIOR2) → 실제 이름으로 해석
