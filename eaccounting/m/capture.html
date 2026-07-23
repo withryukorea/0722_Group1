@@ -124,6 +124,13 @@ function runScan(promise, imgSrc) {
   $("scanline").style.display = "block";
   const shot = $("shotImg");
   if (imgSrc) { shot.src = imgSrc; shot.style.display = ""; } else { shot.style.display = "none"; }
+  if (!imgSrc) {
+    // 샘플/PDF 등 로컬 파일이 없는 경우 — 서버 응답이 오는 대로 스캔 연출 도중에 영수증 이미지를 채운다
+    promise.then((receipt) => {
+      const src = receipt && (receipt.croppedUrl || receipt.imageUrl);
+      if (src) { shot.src = src; shot.style.display = ""; }
+    });
+  }
 
   Promise.all([promise, new Promise(res => setTimeout(res, 1600))]).then(([receipt]) => {
     $("scanline").style.display = "none";
