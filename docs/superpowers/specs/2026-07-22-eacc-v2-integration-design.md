@@ -2,6 +2,8 @@
 
 2026-07-22 · 작성: ramiremilife-a (+ Claude) · 작업 브랜치: `Main_2200_v2`
 
+> 2026-07-23 운영 보정: 실제 영수증 업로드는 `ocrMode:"real"` 성공 건만 저장한다. API/OCR 실패 시 데모키·SKD 내장 데이터로 전환하지 않으며 오류/빈 상태를 표시한다. 상세 계약은 `sot/05_api.md`가 우선한다.
+
 ## 배경
 
 시제품#1까지는 "찍으면 끝"(design/)과 Mock E-Accounting(eaccounting/)을 별개 솔루션으로 개발했다.
@@ -38,7 +40,7 @@
 
 | 원본 (시제품#1) | 새 파일 | 사이드바 메뉴 | 핵심 API |
 |---|---|---|---|
-| pc/upload.html | quick-upload.html | 📸 영수증 업로드 | POST /api/receipts (multipart 또는 데모키) |
+| pc/upload.html | quick-upload.html | 📸 영수증 업로드 | POST /api/receipts (multipart 이미지, 실제 OCR 전용) |
 | pc/expenses.html | quick-match.html | 🔗 자동매칭 | GET /api/receipts, POST /api/match, PATCH /api/receipts/:id |
 | pc/settlement.html | quick-settlement.html | 🧾 정산·전표 생성 | POST /api/vouchers/preview, POST /api/vouchers |
 | pc/index.html | quick-dashboard.html | 📊 분석 대시보드 | GET /api/receipts·transactions·presets |

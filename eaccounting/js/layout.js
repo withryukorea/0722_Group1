@@ -72,8 +72,7 @@ const EACC = {
 };
 
 /* API 헬퍼 — 서버(P1)로 서빙 중이면 같은 오리진 /api 사용, file:// 로 직접 열었으면
-   localhost:4000 을 시도, 둘 다 실패하면 null 반환 → 각 화면은 내장 목데이터로 폴백.
-   (서버가 죽어도 시연이 멈추지 않게 하는 안전장치) */
+   localhost:4000 을 시도한다. 실패 시 null을 반환하며 실 영수증·금액 화면은 샘플로 대체하지 않는다. */
 async function eaccApi(path, options) {
   const bases = location.protocol === 'file:'
     ? ['http://localhost:4000']

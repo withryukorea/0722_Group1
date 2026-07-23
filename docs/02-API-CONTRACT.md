@@ -224,3 +224,5 @@ fixtures/
 
 - **GET /api/stats** 신설 ✅: 간편정산 분석 대시보드용 읽기 전용 집계. 응답 `{ totalKRW, count, matched, unmatched, byAccount[{code,name,totalKRW,count}], byMonth[{month,totalKRW,byAccount}], vouchers{count,totalKRW}, presets[{id,name,type,usedKRW,limitKRW}] }`. 계정 판정: receipt.accountCode → preset 허용비목(1개) → 매칭 tx classify() → UNCLASSIFIED. store 무변경 (server/routes/stats.js)
 - **PATCH /api/vouchers/:id** 신설 ✅ (2026-07-23): 결재 처리. body `{action:"approve"|"reject", comment?}`. submitted 전표만 허용(그 외 409). 반려 시 포함 거래를 matched/unmatched로 원복 + 반려 전표의 현금성 라인은 usage 재집계에서 제외 → 수정 후 재상신 가능
+- **활성 화면 경로** ✅: 구 `/pc/*`는 폐지되어 `eaccounting/quick-upload|match|settlement|dashboard.html`로 리다이렉트한다. 모바일은 `eaccounting/m/`이며 양쪽 모두 같은 `/api/receipts` 목록을 사용한다.
+- **샘플 성공 금지** ✅: 간편정산 업로드·모바일 촬영·보관함·대시보드는 API/OCR 실패 시 내장 샘플로 전환하지 않는다. `ocrMode:"real"` 성공 건만 완료로 표시한다.

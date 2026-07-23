@@ -23,13 +23,12 @@
       <div class="cam-controls">
         <button class="cam-side" id="btnGallery">
           <span class="ic">🖼️</span>갤러리
-          <input type="file" id="fileInput" accept="image/*,.pdf" hidden>
+          <input type="file" id="fileInput" accept="image/*" hidden>
         </button>
         <button class="shutter" id="btnShoot" aria-label="촬영"></button>
         <input type="file" id="camInput" accept="image/*" capture="environment" hidden>
-        <button class="cam-side" id="btnSample"><span class="ic">🧾</span>샘플</button>
+        <span class="cam-side" aria-hidden="true"></span>
       </div>
-      <div class="chips" id="sampleChips" style="display:none;margin-top:10px;justify-content:center"></div>
       <p class="muted" style="text-align:center;margin-top:10px" id="camNote">
         촬영하거나 갤러리에서 불러오면 자동 크롭 → OCR → 프리셋 분류까지 자동으로 진행됩니다
       </p>
@@ -96,29 +95,19 @@ const show = (stage) => {
   window.scrollTo(0, 0);
 };
 
-/* 서버 프리셋 캐시 (미연결이면 null → 폴백 모드) */
+/* 서버 프리셋 캐시 */
 let PRESETS = null;
 (async () => {
   PRESETS = await eaccApi("/api/presets");
-  if (!PRESETS) $("camNote").innerHTML = '<span class="badge neutral">서버 미연결</span> 내장 데모로 동작합니다 — 촬영·샘플 모두 시뮬레이션';
+  if (!PRESETS) $("camNote").innerHTML = '<span class="badge danger">서버 연결 실패</span> 실제 영수증을 저장하려면 서버 연결이 필요합니다.';
 })();
 const presetOf = (id) => (PRESETS || []).find(p => p.id === id) || null;
 
-/* 서버 WoZ 데모 샘플 (fixtures/receipts-ocr 7종 중 모바일 데모 5종) */
-const SAMPLES = [
-  { key: "coffee",    label: "☕ 폴바셋 커피" },
-  { key: "chicken",   label: "🍗 치킨 (회식)" },
-  { key: "taxi1",     label: "🚕 카카오택시" },
-  { key: "anthropic", label: "🤖 Anthropic 구독" },
-  { key: "openai",    label: "📄 OpenAI (PDF)" }
-];
-
-let current = null;       // 서버 Receipt 또는 폴백 SKD 행
+let current = null;       // 서버에 저장된 실제 OCR Receipt
 let pickedPreset = null;  // 사용자가 고른 presetId
-let localPicked = null;   // 폴백 모드 분류 선택
 
 /* ---- 스캔 연출 + 서버 호출 ---- */
-function runScan(promise, imgSrc, fallbackRid) {
+function runScan(promise, imgSrc) {
   $("camMsg").textContent = "영수증 인식 중… 자동 크롭 → OCR";
   $("scanline").style.display = "block";
   const shot = $("shotImg");
@@ -127,28 +116,36 @@ function runScan(promise, imgSrc, fallbackRid) {
   Promise.all([promise, new Promise(res => setTimeout(res, 1600))]).then(([receipt]) => {
     $("scanline").style.display = "none";
     $("camMsg").textContent = "영수증을 프레임 안에 맞춰주세요";
-    if (receipt) {
-      current = receipt; pickedPreset = receipt.suggestedPresetId || null;
-      renderServerResult(imgSrc);
-    } else {
-      const r = D.RECEIPTS.find(x => x.id === (fallbackRid || "r_paris"));
-      current = { ...r, __local: true }; localPicked = null;
-      renderLocalResult(imgSrc || D.imgUrl(r.img));
-    }
+    current = receipt; pickedPreset = receipt.suggestedPresetId || null;
+    renderServerResult(imgSrc);
     show("result");
+  }).catch((error) => {
+    $("scanline").style.display = "none";
+    $("camMsg").textContent = "영수증을 프레임 안에 맞춰주세요";
+    $("camNote").innerHTML = `<span class="badge danger">인식 실패 · 저장 안 됨</span> ${error.message || "사진을 다시 촬영해 주세요."}`;
+    current = null;
+    show("cam");
   });
 }
 
 async function postMultipart(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    throw new Error("현재 실제 OCR은 이미지 영수증만 지원합니다.");
+  }
   const fd = new FormData(); fd.append("image", file);
+  fd.append("source", "mobile");
   const bases = location.protocol === "file:" ? ["http://localhost:4000"] : ["", "http://localhost:4000"];
+  let lastError = null;
   for (const base of bases) {
     try {
       const res = await fetch(base + "/api/receipts", { method: "POST", body: fd });
-      if (res.ok) return await res.json();
-    } catch (e) { /* 다음 후보 */ }
+      const body = await res.json().catch(() => null);
+      if (res.ok && body && body.ocrMode === "real") return body;
+      lastError = new Error((body && body.message) || `영수증 인식 실패 (HTTP ${res.status})`);
+      if (![404, 405].includes(res.status)) break;
+    } catch (e) { lastError = e; }
   }
-  return null;
+  throw lastError || new Error("영수증 인식 서버에 연결할 수 없습니다.");
 }
 
 /* ---- 서버 결과 렌더 ---- */
@@ -158,7 +155,7 @@ function renderServerResult(imgSrc) {
   if (img) { $("resultImg").src = img; $("resultImg").style.display = ""; $("resultNoImg").style.display = "none"; }
   else { $("resultImg").style.display = "none"; $("resultNoImg").style.display = ""; }
   $("conf").textContent = o.confidence != null ? Math.round(o.confidence * 100) + "%" : "—";
-  $("okBadge").textContent = "✓ 서버 저장 · " + r.id;
+  $("okBadge").textContent = "✓ 실제 OCR 저장 · " + r.id;
   const cur = o.currency || "KRW";
   $("ocrGrid").innerHTML = `
     <dt>가맹점</dt><dd>${o.merchant || "(미인식)"}</dd>
@@ -213,28 +210,6 @@ function renderPresetCap() {
   $("capCard").innerHTML = html;
 }
 
-/* ---- 폴백(서버 미연결) 결과 렌더 — 시제품#1 로직 ---- */
-function renderLocalResult(imgSrc) {
-  const r = current;
-  if (imgSrc) { $("resultImg").src = imgSrc; $("resultImg").style.display = ""; $("resultNoImg").style.display = "none"; }
-  else { $("resultImg").style.display = "none"; $("resultNoImg").style.display = ""; }
-  $("conf").textContent = "93%";
-  $("okBadge").textContent = "✓ 자동 크롭 · OCR 완료 (내장 데모)";
-  $("ocrGrid").innerHTML = `
-    <dt>가맹점</dt><dd>${r.merchant}</dd>
-    <dt>결제금액</dt><dd class="num">${D.money(r)}${r.currency !== "KRW" ? ` <span class="badge info">× ${r.fxRate} = ${D.krw(r.amountKRW)}</span>` : ""}</dd>
-    <dt>결제일시</dt><dd>${D.dt(r.paidAt)}</dd>
-    <dt>결제수단</dt><dd>법인카드 (SK카드)</dd>`;
-  const auto = D.groupOf(r);
-  const sel = localPicked || auto;
-  $("catChips").innerHTML = D.GROUP_ORDER.map(g =>
-    `<button class="chip ${sel === g ? "on brand" : ""}" data-g="${g}">${D.GROUPS[g].name}${g === auto ? " · 자동" : ""}</button>`).join("");
-  $("catChips").querySelectorAll(".chip").forEach(c =>
-    c.onclick = () => { localPicked = c.dataset.g; renderLocalResult(imgSrc); });
-  $("whyBox").innerHTML = `<b>분류 근거</b> · ${r.why} <br><span style="opacity:.8">세부비목: ${D.subOf(r)}</span>`;
-  $("capCard").innerHTML = `<div class="card-title">한도 확인</div><p class="muted">서버 미연결 — 데모 모드에서는 한도 차감이 시뮬레이션되지 않습니다.</p>`;
-}
-
 /* ---- 이벤트 ---- */
 $("btnShoot").onclick = () => $("camInput").click();     // 실기기: 카메라, PC: 파일 선택
 $("camInput").onchange = (e) => {
@@ -247,34 +222,24 @@ $("fileInput").onchange = (e) => {
   const f = e.target.files[0];
   if (!f) return;
   const url = f.type.startsWith("image/") ? URL.createObjectURL(f) : null;
-  runScan(postMultipart(f), url, f.type.startsWith("image/") ? "r_paris" : "r_gpt");
-};
-$("btnSample").onclick = () => {
-  const box = $("sampleChips");
-  box.style.display = box.style.display === "none" ? "flex" : "none";
-  box.innerHTML = SAMPLES.map(s => `<button class="chip" data-key="${s.key}">${s.label}</button>`).join("");
-  box.querySelectorAll(".chip").forEach(c => c.onclick = () => {
-    box.style.display = "none";
-    runScan(eaccApi("/api/receipts", { body: { key: c.dataset.key } }), null);
-  });
+  runScan(postMultipart(f), url);
 };
 $("btnRetake").onclick = () => show("cam");
 $("btnMore").onclick = () => show("cam");
 $("btnSave").onclick = async () => {
-  if (current && !current.__local) {
-    /* 서버 모드: 프리셋 선택을 확정 (PATCH) */
-    if (pickedPreset !== (current.presetId || null)) {
-      await eaccApi(`/api/receipts/${current.id}`, { method: "PATCH", body: { presetId: pickedPreset } });
+  if (!current || current.ocrMode !== "real") return;
+  if (pickedPreset !== (current.presetId || null)) {
+    const saved = await eaccApiTry(`/api/receipts/${current.id}`, { method: "PATCH", body: { presetId: pickedPreset } });
+    if (!saved.ok) {
+      alert("정산단위를 저장하지 못했습니다. 서버 연결을 확인하고 다시 시도해 주세요.");
+      return;
     }
-    const o = current.ocr || {};
-    const p = presetOf(pickedPreset);
-    $("doneMsg").innerHTML = `<b>${o.merchant || current.id}</b> · ${D.krw(current.amountKRW)}<br>
-      ${p ? `프리셋 「${p.name}」` : "일반 결제"}로 저장되었습니다.<br>정산 시 카드승인내역과 자동 매칭됩니다.`;
-  } else {
-    const g = localPicked || D.groupOf(current);
-    $("doneMsg").innerHTML = `<b>${current.merchant}</b> · ${D.krw(current.amountKRW)}<br>
-      ${D.GROUPS[g].name} › ${D.subOf(current)} 으로 저장되었습니다. (내장 데모)`;
+    current = saved.data;
   }
+  const o = current.ocr || {};
+  const p = presetOf(pickedPreset);
+  $("doneMsg").innerHTML = `<b>${o.merchant || current.id}</b> · ${D.krw(current.amountKRW)}<br>
+    ${p ? `프리셋 「${p.name}」` : "일반 결제"}로 저장되었습니다.<br>보관함과 PC 간편정산에 같은 데이터가 바로 표시됩니다.`;
   show("done");
 };
 </script>
