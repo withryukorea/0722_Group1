@@ -123,6 +123,7 @@
   | 실패 | HTTP | 의미 |
   |---|---:|---|
   | `IMAGE_REQUIRED` | 400 | 이미지도 데모 key도 없음 |
+  | `INVALID_DEMO_KEY` | 400 | 명시한 데모 key가 fixtures에 없음 |
   | `OCR_UNSUPPORTED_MEDIA` | 415 | 이미지 아님(PDF 등) |
   | `OCR_NOT_CONFIGURED` | 503 | 실 OCR 키(`LETSUR_API_KEY`) 미설정 |
   | `OCR_PROVIDER_ERROR`/`OCR_INVALID_RESULT` | 502 | 제공자 오류 또는 가맹점·금액 검증 실패 |
@@ -137,7 +138,7 @@
 
 응답 공통에 `ocrMode`, `source`("mobile"|"pc"), `crop:{status:"auto"|"manual"|"original", updatedAt}` 포함.
 
-> 배포: `LETSUR_API_KEY`는 Render 대시보드(또는 로컬 `server/.env`, git 무시)에만 넣는다 — 커밋 금지. `render.yaml`은 `sync:false`로 참조만.
+> 배포: `render.yaml`은 `LETSUR_API_KEY`를 `sync:false`로 선언한다. 실제 값은 Render Environment에 비공개로 설정한다. 실제 사진 업로드는 `ocrMode:"real"`만 성공으로 취급하고, 실패 시 WoZ 데이터나 기존 시드로 자동 전환하지 않는다.
 
 `POST /api/receipts/:id/crop` — 재크롭: multipart `cropped` 파일 → `crop.status:"manual"` / `{"useOriginal":true}` → 원본 폴백(`crop.status:"original"`).
 

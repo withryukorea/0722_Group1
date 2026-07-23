@@ -120,12 +120,20 @@ router.post("/", upload.fields([{ name: "image", maxCount: 1 }, { name: "cropped
     ocrMode = "real";
   } else {
     // 이미지 없이 온 요청 = 데모 샘플칩({key}) — WoZ 픽스처로 데모 재현. (실 업로드 아님)
+    if (!demoKey) {
+      removeUpload(cropped);
+      return res.status(400).json({
+        error: "IMAGE_REQUIRED",
+        message: "실제 OCR용 이미지 또는 명시적인 데모 key가 필요합니다.",
+        ocrMode: "failed", saved: false,
+      });
+    }
     woz = pickWoz(demoKey);
     if (!woz) {
       removeUpload(cropped);
       return res.status(400).json({
-        error: "IMAGE_REQUIRED",
-        message: "실제 OCR을 실행할 영수증 이미지가 필요합니다. (데모는 샘플 key로 호출하세요)",
+        error: "INVALID_DEMO_KEY",
+        message: "등록되지 않은 데모 key입니다.",
         ocrMode: "failed", saved: false,
       });
     }

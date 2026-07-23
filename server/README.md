@@ -29,7 +29,7 @@ npm start
 | GET | `/api/accounts` | 계정과목 코드표 | ✅ P1 |
 | GET | `/api/travel-policy` | 국내·해외 출장비 지급 기준 | ✅ 기준표 연동 |
 | POST | `/api/reset` | 데모 초기화 | ✅ P1 |
-| POST | `/api/receipts` | 업로드→OCR | ✅ P3 (WoZ 폴백 포함) |
+| POST | `/api/receipts` | 실 이미지→Vision OCR / 명시적 `{key}`→WoZ 데모 | ✅ P3 (실 이미지 실패 시 미저장) |
 | POST | `/api/match` | 영수증↔거래 매칭 | ✅ P4 |
 | POST | `/api/vouchers/preview` | 전표 초안 생성 | ✅ P4 |
 | POST/GET | `/api/trips` `/api/trips/:id` | 출장 등록/조회 | ✅ TRIP Preset 별칭 (presets.js) |
