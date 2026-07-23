@@ -18,8 +18,12 @@
     </div>
   </div>
 
-  <!-- 정산 단위 탭 (출장건별 분리) -->
-  <div class="chips" id="unitTabs" style="margin-bottom:14px"></div>
+  <!-- 정산 단위 탭 (출장건별 + 사용자 세트) -->
+  <div class="chips" id="unitTabs" style="margin-bottom:10px"></div>
+  <!-- 정산단위 관리 액션 (새로 만들기 / 영수증 추가 / 삭제) -->
+  <div id="unitActions" style="margin:0 0 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div>
+  <!-- 영수증 추가 픽커 (열릴 때만 채워짐) -->
+  <div id="pickerBox"></div>
 
   <div class="grid c2">
     <div>
@@ -62,37 +66,124 @@ SKP.chrome("settlement");
 SKD.mountBadge();
 const $ = (id) => document.getElementById(id);
 
-/* ---- 정산 단위: 출장건별 분리 + 월 정산(일반·복지) ----
-   출장 탭은 하드코딩하지 않고 라이브 D.TRIPS(=서버 TRIP 프리셋)에서 파생한다.
-   (과거엔 trip_busan/trip_tokyo 를 고정 → 라이브 프리셋 id(ps_*)와 불일치해
-    출장 탭이 항상 비고 한도검증도 안 뜨는 버그가 있었음) */
+/* ---- 정산 단위: 출장건별 + 사용자 정산단위(세트) + 월 정산(일반·복지) ----
+   출장 탭은 라이브 D.TRIPS(=서버 TRIP 프리셋), 사용자 세트는 비-TRIP 프리셋에서 파생한다.
+   세트에 담긴 영수증은 월정산·확인필요에서 빠지고, 자기 세트 탭에만 잡힌다(중복 표시 방지).
+   담기/빼기/삭제/신규 뮤테이션 후 SKD.reload()→buildUnits() 로 탭을 다시 만든다. */
 const ym = D.TODAY.slice(0, 7);                 // 결제월 스코프 (예: "2026-07")
 const monLabel = parseInt(ym.slice(5, 7), 10) + "월";
-const tripUnits = D.TRIPS.slice()
-  .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""))
-  .map(t => {
-    const dest = t.destination || t.title;
-    const nat = t.type === "foreign" ? "해외" : "국내";
-    const emoji = t.type === "foreign" ? "✈" : "🚄";
-    const done = t.status === "done";           // 출장 종료 후에만 상신 가능
-    const startMon = t.startDate ? parseInt(t.startDate.slice(5, 7), 10) + "월 " : "";
-    return {
-      id: t.id, trip: t,
-      label: `${emoji} ${dest} 출장${t.status === "active" ? " (진행중)" : ""}`,
-      filter: r => r.tripId === t.id,
-      title: `${startMon}${nat}출장비 정산 — ${dest}`,
-      ready: done,
-      notReadyMsg: t.endDate ? `출장 종료(${D.dateShort(t.endDate)}) 후 상신 가능` : "출장 종료 후 상신 가능"
-    };
-  });
-const UNITS = [
-  ...tripUnits,
-  { id: "monthly", label: `🗂 ${monLabel} 일반·복지 정산`, filter: r => !r.tripId && r.paidAt.startsWith(ym),
-    title: `${monLabel} 일반경비·복지비 정산`, ready: true },
-  { id: "etc", label: "❓ 확인 필요 건", filter: r => r.status === "review" && !r.paidAt.startsWith(ym),
-    title: "분류 확인 필요 건", ready: false, notReadyMsg: "분류 확정 후 상신 가능" }
-];
+
+function buildUnits() {
+  const tripUnits = D.TRIPS.slice()
+    .sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""))
+    .map(t => {
+      const dest = t.destination || t.title;
+      const nat = t.type === "foreign" ? "해외" : "국내";
+      const emoji = t.type === "foreign" ? "✈" : "🚄";
+      const done = t.status === "done";           // 출장 종료 후에만 상신 가능
+      const startMon = t.startDate ? parseInt(t.startDate.slice(5, 7), 10) + "월 " : "";
+      return {
+        id: t.id, trip: t,
+        label: `${emoji} ${dest} 출장${t.status === "active" ? " (진행중)" : ""}`,
+        filter: r => r.tripId === t.id,
+        title: `${startMon}${nat}출장비 정산 — ${dest}`,
+        ready: done,
+        notReadyMsg: t.endDate ? `출장 종료(${D.dateShort(t.endDate)}) 후 상신 가능` : "출장 종료 후 상신 가능"
+      };
+    });
+  // 사용자 정산단위(세트) = 활성 비-TRIP 프리셋. 빈 세트도 노출해 "담기" 대상이 되게 한다.
+  const presetUnits = D.PRESETS
+    .filter(p => p.type !== "TRIP" && p.active !== false)
+    .map(p => ({
+      id: p.id, preset: p,
+      label: `🧩 ${p.name}`,
+      filter: r => r.presetId === p.id,
+      title: `${p.name} 정산`,
+      ready: true
+    }));
+  return [
+    ...tripUnits,
+    ...presetUnits,
+    { id: "monthly", label: `🗂 ${monLabel} 일반·복지 정산`, filter: r => !r.tripId && !r.presetId && r.paidAt.startsWith(ym),
+      title: `${monLabel} 일반경비·복지비 정산`, ready: true },
+    { id: "etc", label: "❓ 확인 필요 건", filter: r => r.status === "review" && !r.presetId && !r.paidAt.startsWith(ym),
+      title: "분류 확인 필요 건", ready: false, notReadyMsg: "분류 확정 후 상신 가능" }
+  ];
+}
+let UNITS = buildUnits();
 let unit = UNITS[0];
+
+/* 뮤테이션 후 탭 재구성 — 가능하면 preferId(방금 만든/보던 단위) 유지, 없으면 첫 탭 */
+function rebuildUnits(preferId) {
+  UNITS = buildUnits();
+  const want = preferId || (unit && unit.id);
+  unit = UNITS.find(u => u.id === want) || UNITS[0];
+}
+
+/* ---- 정산단위 담기/빼기/삭제/신규 (서버 반영 후 reload→재렌더) ---- */
+async function assignTo(ids, presetId) {
+  await PC_API.request("/api/receipts/bulk", { method: "PATCH", body: { ids, presetId } });
+  await SKD.reload();
+  rebuildUnits();
+  $("pickerBox").innerHTML = "";
+  render();
+}
+async function newUnit() {
+  const name = prompt("새 정산단위 이름을 입력하세요");
+  if (!name || !name.trim()) return;
+  try {
+    const created = await PC_API.request("/api/presets", { method: "POST", body: { name: name.trim(), type: "RECURRING", rules: { allowedAccountCodes: ["WELFARE_ETC"] } } });
+    await SKD.reload();
+    rebuildUnits(created.id);
+    render();
+  } catch (e) { alert("정산단위 생성 실패: " + ((e && e.message) || e)); }
+}
+async function deleteUnit() {
+  const p = unit.preset; if (!p) return;
+  if (!confirm(`'${p.name}' 정산단위를 삭제할까요?\n딸린 영수증은 미배정 상태로 돌아갑니다(계정과목은 유지).`)) return;
+  try {
+    await PC_API.request("/api/presets/" + encodeURIComponent(p.id), { method: "DELETE" });
+    await SKD.reload();
+    rebuildUnits("monthly");
+    $("pickerBox").innerHTML = "";
+    render();
+  } catch (e) {
+    const in409 = e && e.status === 409;
+    alert("삭제 실패: " + ((e && e.message) || e) + (in409 ? "\n(이미 전표 상신된 영수증이 포함되어 있습니다 — 삭제 대신 비활성화만 가능)" : ""));
+  }
+}
+/* 이 세트에 없는 영수증을 골라 담는 픽커 */
+function openPicker() {
+  const pid = unit.preset.id;
+  const cands = D.RECEIPTS.filter(r => r.status !== "duplicate" && r.presetId !== pid);
+  $("pickerBox").innerHTML = `
+    <section class="card" style="margin-bottom:14px;border:1px dashed var(--sk-red)">
+      <div class="card-title">이 정산단위에 영수증 추가 <span class="more">${cands.length}건 후보</span></div>
+      <div style="max-height:260px;overflow:auto">
+        ${cands.map(r => {
+          const cur = r.presetId ? `현재: ${D.presetName(r.presetId)}`
+            : (r.tripId ? `현재: ${(D.TRIPS.find(t => t.id === r.tripId) || {}).title || "출장"}` : "미배정");
+          return `<label style="display:flex;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);cursor:pointer">
+            <input type="checkbox" class="pickR" value="${r.id}">
+            <span style="flex:1"><b style="font-size:12.5px">${r.merchant}</b>
+              <span class="muted" style="font-size:11px">· ${D.krw(r.amountKRW)} · ${D.dateShort(r.serviceDate)} · ${cur}</span></span>
+          </label>`;
+        }).join("") || '<p class="muted" style="padding:8px 0">추가할 수 있는 영수증이 없습니다</p>'}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+        <button class="btn sm primary" id="pickConfirm">선택한 영수증 담기</button>
+        <button class="btn sm ghost" id="pickCancel">닫기</button>
+        <span class="muted" id="pickMsg" style="font-size:11.5px"></span>
+      </div>
+    </section>`;
+  $("pickConfirm").onclick = async () => {
+    const ids = [...document.querySelectorAll(".pickR:checked")].map(c => c.value);
+    if (!ids.length) { $("pickMsg").textContent = "담을 영수증을 선택하세요"; return; }
+    $("pickConfirm").disabled = true; $("pickMsg").textContent = "저장 중…";
+    try { await assignTo(ids, pid); } catch (e) { $("pickMsg").textContent = "저장 실패: " + ((e && e.message) || e); $("pickConfirm").disabled = false; }
+  };
+  $("pickCancel").onclick = () => { $("pickerBox").innerHTML = ""; };
+}
 let submitted = {};
 let submitError = {};    // 상신 실패 상태 — 서버 미접수를 성공으로 위장하지 않는다
 const manualPick = {};   // F2: 수동 매칭 결과 rid → txId | "personal"
@@ -110,7 +201,19 @@ function render() {
   $("unitTabs").innerHTML = UNITS.map(u =>
     `<button class="chip ${unit.id === u.id ? "on brand" : ""}" data-u="${u.id}">${u.label}${submitted[u.id] ? " ✓" : ""}</button>`).join("");
   document.querySelectorAll("#unitTabs .chip").forEach(c =>
-    c.onclick = () => { unit = UNITS.find(u => u.id === c.dataset.u); render(); });
+    c.onclick = () => { unit = UNITS.find(u => u.id === c.dataset.u); $("pickerBox").innerHTML = ""; render(); });
+
+  /* 정산단위 관리 액션: 항상 [+ 새 정산단위], 사용자 세트일 때 [영수증 추가]·[삭제] */
+  $("unitActions").innerHTML =
+    `<button class="btn sm" id="btnNewUnit">➕ 새 정산단위</button>` +
+    (unit.preset
+      ? `<button class="btn sm ghost" id="btnAddRcpt">＋ 영수증 추가</button>
+         <button class="btn sm ghost" id="btnDelUnit" style="color:var(--danger)">🗑 정산단위 삭제</button>
+         <span class="muted" style="font-size:11.5px">🧩 사용자 정산단위 — 아래 목록에서 빼거나, ‘영수증 추가’로 담아 세트를 구성하세요</span>`
+      : "");
+  const nu = $("btnNewUnit"); if (nu) nu.onclick = newUnit;
+  const ad = $("btnAddRcpt"); if (ad) ad.onclick = openPicker;
+  const du = $("btnDelUnit"); if (du) du.onclick = deleteUnit;
 
   const rows = D.RECEIPTS.filter(r => r.status !== "duplicate").filter(unit.filter);
 
@@ -147,10 +250,14 @@ function render() {
             ${c.merchant} · ${D.krw(c.amountKRW)} · ${D.dateShort(c.approvedAt)}</button>`).join("")}
         <button class="btn sm ghost cand" data-r="${r.id}" data-tx="personal">해당 없음 (개인경비)</button>
       </div>
-    </div>` : ""}`;
+    </div>` : ""}
+    ${unit.preset ? `<div style="text-align:right;margin:-2px 0 10px">
+      <button class="btn sm ghost setRemove" data-r="${r.id}" style="color:var(--danger)">− 이 세트에서 빼기</button></div>` : ""}`;
   }).join("") || '<p class="muted" style="padding:12px 0">이 정산 단위에 연결된 영수증이 없습니다</p>';
   document.querySelectorAll("#matchList .cand").forEach(b =>
     b.onclick = () => { manualPick[b.dataset.r] = b.dataset.tx; render(); });
+  document.querySelectorAll("#matchList .setRemove").forEach(b =>
+    b.onclick = () => assignTo([b.dataset.r], null));
 
   /* 미매칭 tx (월정산 탭에서만 표시) */
   const um = unit.id === "monthly" ? D.CARD_TX.filter(t => !t.receiptId) : [];

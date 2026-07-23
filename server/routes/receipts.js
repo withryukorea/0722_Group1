@@ -7,7 +7,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
-const { db, nextReceiptId } = require("../store");
+const { db, nextReceiptId, recomputeUsage } = require("../store");
 const { suggestPreset } = require("./presets");
 
 const router = express.Router();
@@ -171,6 +171,41 @@ router.post("/:id/crop", upload.single("cropped"), (req, res) => {
   res.json(r);
 });
 
+// PATCH /api/receipts/bulk — 여러 영수증을 한 번에 정산단위(Preset)에 담기/빼기 (세트 편집·가감)
+// body: { ids: string[], presetId: string|null }  presetId=null 이면 소속 해제
+// ※ 반드시 "/:id" 라우트보다 먼저 등록해야 한다 (안 그러면 /bulk 가 :id="bulk" 로 잡힘)
+router.patch("/bulk", (req, res) => {
+  const b = req.body || {};
+  const ids = Array.isArray(b.ids) ? b.ids : [];
+  if (!ids.length) return res.status(400).json({ error: "EMPTY_IDS", hint: "ids 배열에 영수증 1개 이상이 필요합니다." });
+
+  let preset = null;
+  if (b.presetId != null) {
+    preset = db.presets.find((x) => x.id === b.presetId && x.active !== false);
+    if (!preset) return res.status(400).json({ error: "INVALID_PRESET", hint: "활성 Preset이 아닙니다" });
+  }
+
+  const updated = [];
+  const missing = [];
+  for (const id of ids) {
+    const r = db.receipts.find((x) => x.id === id);
+    if (!r) { missing.push(id); continue; }
+    if (b.presetId == null) {
+      r.presetId = null; // 세트에서 빼기 — accountCode 는 유지
+    } else {
+      r.presetId = preset.id;
+      // 허용 비목이 1개뿐인 프리셋이면 자동 세팅 (기존 단건 PATCH 와 동일 규칙, 이미 값 있으면 유지)
+      if ((preset.rules.allowedAccountCodes || []).length === 1 && !r.accountCode) {
+        r.accountCode = preset.rules.allowedAccountCodes[0];
+      }
+    }
+    updated.push(r);
+  }
+
+  recomputeUsage(db); // 소속 변경분을 usage 단일 소스에서 즉시 재집계 (매칭된 영수증만 반영)
+  res.json({ updated: updated.length, presetId: b.presetId ?? null, missing, receipts: updated });
+});
+
 // PATCH /api/receipts/:id — 사용자가 OCR 파싱값 수정·Preset·비목·부가세를 확정 (sot/05, 유입 흐름 6단계)
 router.patch("/:id", (req, res) => {
   const r = db.receipts.find((x) => x.id === req.params.id);
@@ -215,6 +250,8 @@ router.patch("/:id", (req, res) => {
   if (b.serviceDate !== undefined) r.serviceDate = b.serviceDate;
   if (b.tripId !== undefined) r.tripId = b.tripId;
   if (b.source === "mobile" || b.source === "pc") r.source = b.source;
+  // 소속(presetId)이나 비목(accountCode)이 바뀌면 usage 를 재집계 (bulk 와 동일 단일 소스 유지)
+  if (b.presetId !== undefined || b.accountCode !== undefined) recomputeUsage(db);
   res.json(r);
 });
 

@@ -2,7 +2,7 @@
 // 관리자 콘솔의 Preset 작성(RECURRING/CAMPAIGN)과 이어카운팅 "국내출장 직접 생성"(TRIP)이 같은 API를 쓴다.
 // 저장이 곧 배포 — 별도 안내 단계 없음. 해외출장 TRIP은 품의 자동생성을 seed 로 시뮬레이트.
 const express = require("express");
-const { db, nextPresetId } = require("../store");
+const { db, nextPresetId, recomputeUsage } = require("../store");
 const router = express.Router();
 
 /* 환율 조회 — fx.json이 {rates:{...}} 구조든 평면 맵이든 동작 */
@@ -158,6 +158,30 @@ router.patch("/:id", (req, res) => {
     }
   }
   res.json(p);
+});
+
+// DELETE /api/presets/:id — 정산단위 하드 삭제 (딸린 영수증 소속 해제 + usage 재집계)
+// 가드: 이 프리셋 소속 영수증 중 이미 전표 상신(vouchered)된 게 있으면 삭제 불가 → 비활성화(PATCH active:false) 유도
+router.delete("/:id", (req, res) => {
+  const idx = db.presets.findIndex((x) => x.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "preset not found" });
+
+  const vouchered = db.receipts.some((r) => {
+    if (r.presetId !== req.params.id || !r.matchedTxId) return false;
+    const tx = db.transactions.find((t) => t.id === r.matchedTxId);
+    return tx && tx.status === "vouchered";
+  });
+  if (vouchered) {
+    return res.status(409).json({ error: "PRESET_IN_USE", hint: "이미 전표가 상신된 영수증이 포함된 정산단위입니다. 삭제 대신 비활성화(active:false)만 가능합니다." });
+  }
+
+  let unassigned = 0;
+  for (const r of db.receipts) {
+    if (r.presetId === req.params.id) { r.presetId = null; unassigned += 1; } // accountCode 는 유지
+  }
+  db.presets.splice(idx, 1);
+  recomputeUsage(db);
+  res.json({ ok: true, id: req.params.id, unassigned });
 });
 
 /* ── 영수증 → Preset 자동추천 (sot/02: 단순 문자열 포함 수준, 최종 선택은 항상 사용자) ──
