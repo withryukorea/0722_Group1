@@ -1,5 +1,6 @@
 // 가짜 E-Accounting 서버 (P1)
 // 실행: npm install → npm start  (기본 포트 4000)
+require("./loadenv"); // server/.env → process.env (실 OCR 키 로딩). 반드시 다른 require보다 먼저.
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
