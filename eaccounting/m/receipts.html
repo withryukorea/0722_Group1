@@ -38,7 +38,7 @@ let filter = "all";
 let sExpanded = null;     // 후보 패널이 열린 영수증 id
 
 /* ── 서버 모드 ─────────────────────────────────────────── */
-const S_FILTERS = [["all", "전체"], ["matched", "매칭 완료"], ["unmatched", "미매칭"]];
+const S_FILTERS = [["all", "전체"], ["matched", "매칭 완료"], ["unmatched", "미매칭"], ["cards", "💳 미정산 카드"]];
 
 /* 수동매칭 후보: 금액 ±3%, 전표 처리 전, 다른 영수증과 미연결 */
 function candidatesOf(r) {
@@ -66,6 +66,37 @@ function serverRender() {
     `<button class="chip ${filter === k ? "on brand" : ""}" data-k="${k}">${label}</button>`).join("");
   document.querySelectorAll("#filterChips .chip").forEach(c =>
     c.onclick = () => { filter = c.dataset.k; serverRender(); });
+
+  /* 💳 미정산 카드내역: 영수증이 아직 연결되지 않은 법인카드 승인 건 (기존 E-acc 법인카드 정산의 모바일 조회판) */
+  if (filter === "cards") {
+    const um = STXS.filter(t => t.status !== "vouchered" && !t.matchedReceiptId)
+      .sort((a, b) => (b.approvedAt || "").localeCompare(a.approvedAt || ""));
+    const total = um.reduce((s, t) => s + (t.amountKRW || 0), 0);
+    $("summary").innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="muted">영수증 미제출 승인내역 ${um.length}건</span>
+        <b class="num" style="font-size:16px">${D.krw(total)}</b>
+      </div>`;
+    $("list").innerHTML = um.length ? `
+      <div class="card" style="padding:4px 16px;margin-top:12px">
+        ${um.map(t => `
+        <div class="rcpt-row">
+          <div class="rcpt-thumb">💳</div>
+          <div class="rcpt-main">
+            <div class="m1">${t.merchant}</div>
+            <div class="m2"><span>${t.approvedAt ? D.dt(t.approvedAt) : ""}</span>${t.approvalNo ? `<span class="muted">승인 ${t.approvalNo}</span>` : ""}</div>
+          </div>
+          <div class="rcpt-amt">
+            <div class="a1 num">${D.krw(t.amountKRW || 0)}</div>
+            <div class="a2"><span class="badge warn">영수증 필요</span></div>
+          </div>
+        </div>`).join("")}
+      </div>
+      <a class="btn primary block" href="capture.html" style="margin-top:12px">📸 지금 영수증 촬영하기</a>
+      <p class="muted" style="margin-top:8px;text-align:center;line-height:1.5">촬영하면 위 승인내역과 자동 매칭됩니다</p>`
+      : '<div class="card" style="margin-top:12px"><p class="muted">미정산 승인내역이 없습니다 ✓ 전부 영수증이 연결되었어요</p></div>';
+    return;
+  }
 
   const rows = SROWS.filter(r =>
     filter === "all" ? true : filter === "matched" ? !!r.matchedTxId : !r.matchedTxId

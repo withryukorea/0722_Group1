@@ -11,6 +11,10 @@
 <div class="app">
   <header class="app-head"></header>
   <main class="app-body">
+    <div class="seg" id="segBar">
+      <button data-s="trips" class="on">일정·프리셋</button>
+      <button data-s="budget">예산조회</button>
+    </div>
     <div id="content"></div>
 
     <section class="card" style="background:#FFF9F4;border-color:#F4DCC4;margin-top:14px">
@@ -74,6 +78,43 @@ function serverRender(presets) {
     <p class="muted" style="margin-top:10px;line-height:1.5;text-align:center">프리셋 등록·변경은 <b>PC AXE-acc(관리자)</b>에서 진행합니다<br>모바일은 조회 전용입니다</p>`;
 }
 
+/* ── 예산조회 (기존 E-acc 예산조회의 모바일판 — /api/stats 실데이터) ── */
+function budgetRender(presets, stats) {
+  const limited = presets.filter(p => p.rules && p.rules.limitKRW);
+  const byAccount = (stats && stats.byAccount) || [];
+  const total = (stats && stats.totalKRW) || 0;
+  $("content").innerHTML = `
+    <div class="section-title">한도·예산 소진 현황 <span class="slot-note">상신 전표만 차감</span></div>
+    ${limited.map(p => {
+      const used = (p.usage && p.usage.usedKRW) || 0;
+      const over = used > p.rules.limitKRW;
+      const pct = Math.min(100, used / p.rules.limitKRW * 100);
+      return `
+      <div class="card">
+        <div class="gauge ${over ? "over" : ""}">
+          <div class="g-head"><span>${p.type === "TRIP" ? "✈" : "⚡"} ${p.name}</span>
+            <b class="num">${D.krw(used)} / ${D.krw(p.rules.limitKRW)}</b></div>
+          <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+          <div class="g-foot"><span>${Math.round(pct)}% 소진 (${p.rules.limitPeriod === "daily" ? "일" : p.rules.limitPeriod === "monthly" ? "월" : "기간"} 한도)</span>
+            <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "⚠ 초과 " + D.krw(used - p.rules.limitKRW) : "잔여 " + D.krw(p.rules.limitKRW - used)}</span></div>
+        </div>
+      </div>`;
+    }).join("") || '<div class="card"><p class="muted">한도가 설정된 프리셋이 없습니다</p></div>'}
+
+    <div class="section-title">계정과목별 지출 <span class="slot-note num">합계 ${D.krw(total)}</span></div>
+    <div class="card" style="padding:6px 16px">
+      ${byAccount.map(a => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:600">${a.name} <span class="muted">(${a.count}건)</span></span>
+          <b class="num" style="font-size:14px">${D.krw(a.totalKRW)}</b>
+        </div>
+        <div class="g-track" style="height:5px;margin-top:6px"><div class="g-fill" style="width:${total ? a.totalKRW / total * 100 : 0}%"></div></div>
+      </div>`).join("") || '<p class="muted" style="padding:10px 0">등록된 지출이 없습니다</p>'}
+    </div>
+    <p class="muted" style="margin-top:10px;text-align:center">상세 분석은 <b>PC AXE-acc › 간편정산 › 분석 대시보드</b>에서</p>`;
+}
+
 /* ── 폴백: 시제품#1 내장 데모 (조회 전용으로 축약) ── */
 function fallbackRender() {
   const STATUS = { active: ["진행중", "brand"], planned: ["예정", "info"], done: ["완료", "neutral"] };
@@ -121,11 +162,23 @@ function fallbackRender() {
     }).join("")}</section>`;
 }
 
-(async () => {
-  const presets = await eaccApi("/api/presets");
-  if (presets) serverRender(presets);
-  else fallbackRender();
-})();
+let seg = "trips";
+let P = null, S = null;
+async function boot() {
+  P = await eaccApi("/api/presets");
+  if (P) S = await eaccApi("/api/stats");
+  renderSeg();
+}
+function renderSeg() {
+  document.querySelectorAll("#segBar button").forEach(b =>
+    b.classList.toggle("on", b.dataset.s === seg));
+  if (!P) { fallbackRender(); return; }
+  if (seg === "trips") serverRender(P);
+  else budgetRender(P, S);
+}
+document.querySelectorAll("#segBar button").forEach(b =>
+  b.onclick = () => { seg = b.dataset.s; renderSeg(); });
+boot();
 </script>
 </body>
 </html>

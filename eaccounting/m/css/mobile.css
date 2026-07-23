@@ -217,7 +217,7 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
   width: 100%; max-width: 430px; z-index: 30;
   background: rgba(255,255,255,.96); backdrop-filter: blur(8px);
   border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   padding: 6px 8px calc(10px + env(safe-area-inset-bottom));
 }
 .tabbar a {

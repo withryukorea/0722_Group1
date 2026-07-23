@@ -77,6 +77,7 @@ function recomputeUsage(target) {
   }
   // ② 현금성 전표 라인 (영수증 없는 라인만 — 영수증 라인은 ①에서 이미 집계됨 → 이중계상 방지)
   for (const v of target.vouchers) {
+    if (v.status === "rejected") continue; // [v2] 반려 전표는 usage에서 제외 (재상신 시 재집계)
     for (const l of v.lines || []) {
       if (l.receiptId || !l.presetId) continue;
       const day = l.serviceDate || (v.submittedAt ? String(v.submittedAt).slice(0, 10) : null);

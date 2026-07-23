@@ -67,4 +67,34 @@ router.post("/", (req, res) => {
   res.status(201).json(voucher);
 });
 
+// PATCH /api/vouchers/:id — [v2] 결재 처리 (모바일·PC 문서함 공용)
+// body: { action: "approve" | "reject", comment? }
+router.patch("/:id", (req, res) => {
+  const v = db.vouchers.find((x) => x.id === req.params.id);
+  if (!v) return res.status(404).json({ error: "VOUCHER_NOT_FOUND", id: req.params.id });
+  const { action, comment } = req.body || {};
+  if (action !== "approve" && action !== "reject") {
+    return res.status(400).json({ error: "INVALID_ACTION", hint: 'action은 "approve" 또는 "reject" 여야 합니다' });
+  }
+  if (v.status !== "submitted") {
+    return res.status(409).json({ error: "INVALID_STATUS", status: v.status, hint: "결재 대기(submitted) 전표만 처리할 수 있습니다" });
+  }
+
+  if (action === "approve") {
+    v.status = "approved";
+    v.approvedAt = new Date().toISOString();
+  } else {
+    v.status = "rejected";
+    v.rejectedAt = new Date().toISOString();
+    v.rejectComment = comment || null;
+    // 반려된 전표의 거래는 다시 정산 가능 상태로 되돌린다 (수정 후 재상신 경로)
+    for (const line of v.lines || []) {
+      const tx = db.transactions.find((t) => t.id === line.txId);
+      if (tx && tx.status === "vouchered") tx.status = tx.matchedReceiptId ? "matched" : "unmatched";
+    }
+  }
+  recomputeUsage(db);
+  res.json(v);
+});
+
 module.exports = router;

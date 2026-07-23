@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AXE-acc 모바일 — 문서함</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/mobile.css">
+</head>
+<body class="mobile">
+<div class="app">
+  <header class="app-head"></header>
+  <main class="app-body">
+
+    <div class="seg" id="segBar">
+      <button data-s="inbox" class="on">결재할 문서</button>
+      <button data-s="mine">내 전표</button>
+    </div>
+
+    <section id="content"></section>
+
+  </main>
+  <nav class="tabbar"></nav>
+</div>
+
+<script src="../js/layout.js"></script>
+<script src="../js/quick-data.js"></script>
+<script src="js/m-chrome.js"></script>
+<script>
+const D = SKD;
+SKM.chrome("docs", "이동 중에도 전표를 확인하고 결재·반려하세요 (PC 문서함과 같은 DB)");
+const $ = (id) => document.getElementById(id);
+
+let seg = "inbox";
+let VS = null;          // 서버 전표 목록 (null = 미로딩/미연결)
+let expanded = null;    // 상세가 열린 전표 id
+
+const STATUS_BADGE = {
+  submitted: '<span class="badge warn">결재 대기</span>',
+  approved: '<span class="badge ok">결재 완료</span>',
+  rejected: '<span class="badge danger">반려</span>'
+};
+
+async function load() {
+  VS = await eaccApi("/api/vouchers");
+  render();
+}
+
+function voucherCard(v, withActions) {
+  const open = expanded === v.id;
+  const when = (v.submittedAt || "").slice(0, 16).replace("T", " ");
+  return `
+  <div class="card" style="cursor:pointer" data-open="${v.id}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <div style="min-width:0">
+        <b style="font-size:14px">${v.title}</b>
+        <div class="muted" style="margin-top:2px">${v.id} · ${when}</div>
+      </div>
+      <div style="text-align:right;flex:0 0 auto">
+        <div class="num" style="font-weight:800">${D.krw(v.totalKRW || 0)}</div>
+        <div style="margin-top:3px">${STATUS_BADGE[v.status] || v.status}</div>
+      </div>
+    </div>
+    ${open ? `
+    <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px" onclick="event.stopPropagation()">
+      ${(v.lines || []).map(l => `
+        <div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:5px 0">
+          <span><b>${l.accountName || l.accountCode || "라인"}</b> <span class="muted">${l.description || ""}</span></span>
+          <b class="num" style="flex:0 0 auto">${D.krw(l.amountKRW || 0)}</b>
+        </div>`).join("")}
+      <div class="muted" style="margin-top:6px">전결라인: ${(v.approvalLine || []).join(" → ") || "—"}</div>
+      ${(v.lines || []).some(l => l.receiptId) ? `<div class="muted" style="margin-top:3px">📎 증빙 영수증 ${(v.lines || []).filter(l => l.receiptId).length}건 첨부</div>` : ""}
+      ${v.status === "rejected" && v.rejectComment ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:8px">반려 사유: ${v.rejectComment}</div>` : ""}
+      ${withActions && v.status === "submitted" ? `
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn block act-reject" data-id="${v.id}" style="color:var(--danger)">↺ 반려</button>
+        <button class="btn primary block act-approve" data-id="${v.id}">✔ 결재</button>
+      </div>` : ""}
+      ${v.status === "rejected" && !withActions ? `<a class="btn block" href="../quick-settlement.html" target="_blank" style="margin-top:10px">PC에서 수정 후 재상신 ›</a>` : ""}
+    </div>` : ""}
+  </div>`;
+}
+
+function render() {
+  document.querySelectorAll("#segBar button").forEach(b =>
+    b.classList.toggle("on", b.dataset.s === seg));
+
+  if (VS === null) {
+    $("content").innerHTML = `
+      <div class="card"><p class="muted" style="line-height:1.6">
+        <span class="badge neutral">서버 미연결</span> 문서함은 서버(:4000) 실데이터 기능입니다.<br>
+        <code style="font-size:12px">cd server → npm start</code> 후 다시 열어주세요.</p></div>`;
+    return;
+  }
+
+  const rows = seg === "inbox"
+    ? VS.filter(v => v.status === "submitted")
+    : VS.slice();
+  rows.sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || ""));
+
+  const head = seg === "inbox"
+    ? `<div class="section-title">결재 대기 ${rows.length}건 <span class="muted">결재선: ${D.USER.name} 데모</span></div>`
+    : `<div class="section-title">내 전표 ${rows.length}건 <span class="muted">기안자 ${D.USER.name}</span></div>`;
+
+  $("content").innerHTML = head + (rows.map(v => voucherCard(v, seg === "inbox")).join("")
+    || `<div class="card"><p class="muted">${seg === "inbox" ? "결재할 문서가 없습니다 ✓" : "상신한 전표가 없습니다 — PC 간편정산에서 전표를 만들어보세요"}</p></div>`);
+
+  document.querySelectorAll("[data-open]").forEach(el =>
+    el.onclick = () => { expanded = expanded === el.dataset.open ? null : el.dataset.open; render(); });
+  document.querySelectorAll(".act-approve").forEach(b =>
+    b.onclick = (e) => { e.stopPropagation(); decide(b.dataset.id, "approve"); });
+  document.querySelectorAll(".act-reject").forEach(b =>
+    b.onclick = (e) => { e.stopPropagation(); decide(b.dataset.id, "reject"); });
+}
+
+async function decide(id, action) {
+  let comment = null;
+  if (action === "reject") {
+    comment = prompt("반려 사유를 입력하세요 (선택)") || null;
+  }
+  const res = await eaccApiTry(`/api/vouchers/${id}`, { method: "PATCH", body: { action, comment } });
+  if (res.ok) {
+    expanded = null;
+    await load();
+  } else {
+    alert("처리 실패: " + ((res.data && (res.data.hint || res.data.error)) || "서버 오류"));
+  }
+}
+
+document.querySelectorAll("#segBar button").forEach(b =>
+  b.onclick = () => { seg = b.dataset.s; expanded = null; render(); });
+
+load();
+</script>
+</body>
+</html>

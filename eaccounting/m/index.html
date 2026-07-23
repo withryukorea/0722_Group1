@@ -24,6 +24,9 @@
     <a class="btn primary block" href="capture.html" style="margin-top:12px">📸 영수증 촬영하기</a>
     <p class="muted" style="margin-top:6px;text-align:center;line-height:1.5">촬영하면 PC AXE-acc와 같은 저장소에 바로 저장됩니다<br>정산·전표 생성은 PC에서 진행하세요</p>
 
+    <!-- 결재 대기 알림 (서버 연결 시) -->
+    <div id="docsAlert"></div>
+
     <!-- 최근 영수증 -->
     <div class="section-title">최근 영수증 <a class="muted" href="receipts.html">전체보기 ›</a></div>
     <section class="card" id="recent" style="padding:4px 16px"></section>
@@ -52,6 +55,17 @@ const $ = (id) => document.getElementById(id);
 (async () => {
   const receipts = await eaccApi("/api/receipts");
   if (receipts) {
+    /* 결재 대기 전표 알림 — 탭하면 문서함으로 */
+    eaccApi("/api/vouchers").then(vs => {
+      const pending = (vs || []).filter(v => v.status === "submitted").length;
+      if (pending) $("docsAlert").innerHTML = `
+        <a class="card" href="docs.html" style="display:flex;align-items:center;gap:12px;margin-top:12px;border-left:4px solid var(--sk-orange)">
+          <span style="font-size:22px">📑</span>
+          <span style="flex:1;font-size:13.5px"><b>결재할 전표 ${pending}건</b><br>
+            <span class="muted">문서함에서 바로 결재·반려할 수 있어요</span></span>
+          <span style="color:var(--sk-red);font-weight:800">›</span>
+        </a>`;
+    });
     const month = receipts.filter(r => ((r.ocr || {}).paidAt || r.createdAt || "").startsWith("2026-07"));
     const total = month.reduce((s, r) => s + (r.amountKRW || 0), 0);
     $("heroTotal").textContent = D.krw(total);
