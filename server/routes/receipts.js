@@ -286,9 +286,11 @@ router.get("/:id", (req, res) => {
 
 // GET /api/receipts/:id/image — 업로드 원본이 있으면 그 파일, 없으면(WoZ) OCR 값으로 그린 영수증 이미지(SVG)
 // → 이어카운팅 문서함/전표 화면에서 '증빙 열람'이 항상 동작하게 하는 장치
+// no-store: 증빙 미리보기는 캐시에 남기지 않는다 (reference/RECEIPT_PROCESSING_BACKEND_REFERENCE 체크리스트 5)
 router.get("/:id/image", (req, res) => {
   const r = db.receipts.find((x) => x.id === req.params.id);
   if (!r) return res.status(404).json({ error: "receipt not found" });
+  res.set("Cache-Control", "no-store");
   if (r.uploadedFile) return res.sendFile(path.join(UPLOAD_DIR, r.uploadedFile));
 
   const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
