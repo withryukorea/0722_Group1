@@ -323,6 +323,16 @@ h1 em { color: var(--coral); font-style: normal; }
 .preset-card p { margin: 0; display: flex; justify-content: space-between; color: var(--muted); font-size: 9px; }
 .preset-card p strong { color: var(--ink); }
 
+/* 정산단위 관리 카드 + 영수증 담기·빼기 픽커 */
+.preset-card.manage .card-actions { margin-top: 12px; }
+.preset-card.manage .card-actions .button { min-height: 42px; font-size: 12px; }
+.picker-list { display: grid; gap: 8px; margin-top: 8px; }
+.picker-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; cursor: pointer; }
+.picker-row input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--coral); }
+.picker-row div { min-width: 0; }
+.picker-row b { display: block; font-size: 12px; }
+.picker-row small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+
 .crop-frame { min-height: 390px; padding: 20px; display: flex; flex-direction: column; justify-content: center; border-radius: 23px; background: #e9ecf1; box-shadow: inset 0 0 0 1px #dde1e8; }
 .crop-frame .receipt-image, .crop-frame .receipt-paper { width: min(88%, 285px); height: 330px; margin: auto; object-fit: contain; }
 .crop-frame > span { margin-top: 13px; color: var(--muted); font-size: 9px; text-align: center; }

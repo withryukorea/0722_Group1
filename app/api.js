@@ -118,6 +118,27 @@ export async function listReceipts() {
   );
 }
 
+// 정산단위(프리셋) 신규 생성 — 이름만 받고 서버가 나머지 기본값을 채운다.
+export async function createPreset({ name }) {
+  return runWrite(() => request('/api/presets', {
+    method: 'POST',
+    body: { name, type: 'RECURRING', rules: { allowedAccountCodes: ['WELFARE_ETC'] } },
+  }));
+}
+
+// 영수증 여러 건을 한 정산단위에 담거나(presetId) 세트에서 빼기(presetId=null).
+export async function assignReceipts(ids, presetId) {
+  return runWrite(() => request('/api/receipts/bulk', {
+    method: 'PATCH',
+    body: { ids, presetId },
+  }));
+}
+
+// 정산단위 삭제 — 딸린 영수증은 서버에서 소속만 해제된다(상신된 건은 409).
+export async function deletePreset(id) {
+  return runWrite(() => request(`/api/presets/${encodeURIComponent(id)}`, { method: 'DELETE' }));
+}
+
 export async function uploadReceipt(file) {
   const form = new FormData();
   form.append('image', file, file.name);

@@ -6,6 +6,9 @@ import {
   listReceipts,
   listPresets,
   uploadReceipt,
+  createPreset,
+  assignReceipts,
+  deletePreset,
 } from './api.js';
 
 const root = document.querySelector('#screen-root');
@@ -36,7 +39,7 @@ const HEADER_COPY = {
   capture: '촬영 · 자동 크롭 · OCR · 정산단위 추천',
   receipts: '촬영한 영수증과 카드 매칭 현황',
   transactions: '법인카드 승인내역과 증빙 연결',
-  setup: '배정된 출장·정산단위 확인',
+  setup: '정산단위 만들기 · 영수증 담기·빼기',
 };
 
 const CATEGORY_META = {
@@ -186,16 +189,58 @@ function screenTripSetup() {
   state.route = 'setup';
   renderNav('setup');
   const tripPresets = state.presets.filter((preset) => preset.type === 'TRIP');
+  const userPresets = state.presets.filter((preset) => preset.type !== 'TRIP');
+  const receiptCount = (id) => validReceipts().filter((r) => r.presetId === id).length;
   root.innerHTML = `
     <section class="schedule-screen">
-      <div class="page-heading-mobile schedule-heading"><div><span class="eyebrow">정산단위 선택</span><h1>배정된 출장을 확인하세요</h1><p>출장 생성·수정과 기준 관리는 E-Accounting에서 진행합니다.</p></div>${modeBadge()}</div>
+      <div class="page-heading-mobile schedule-heading"><div><span class="eyebrow">정산단위 관리</span><h1>정산단위를 만들고 영수증을 담으세요</h1><p>세트로 묶은 영수증은 PC E-Accounting 정산·전표에서 그대로 이어집니다.</p></div>${modeBadge()}</div>
+      <button class="button primary full" type="button" data-action="new-preset">+ 새 정산단위 만들기</button>
       ${tripPresets.length
-        ? `<div class="section-label"><b>사용 가능한 출장 정산단위</b><span>${tripPresets.length}건</span></div><div class="schedule-list">${tripPresets.map((preset, index) => scheduleTripCard(preset, index)).join('')}</div>`
-        : '<div class="schedule-empty"><b>배정된 출장 정산단위가 없습니다.</b><span>일반 경비 영수증은 바로 촬영할 수 있습니다.</span></div>'}
-      <article class="schedule-tip"><b>모바일에서는 확인만 합니다</b><ul><li>영수증 촬영과 OCR 내용 확인</li><li>배정된 정산단위와 비목 선택</li><li>저장 후 카드 매칭·전표작성·상신은 E-Accounting에서 계속</li></ul></article>
-      <a class="button primary full" href="${escapeHtml(APP_CONFIG.eAccountingUrl)}">E-Accounting에서 정산단위 관리 <span>→</span></a>
+        ? `<div class="section-label"><b>출장 정산단위</b><span>${tripPresets.length}건</span></div><div class="schedule-list">${tripPresets.map((preset, index) => scheduleTripCard(preset, index)).join('')}</div>`
+        : ''}
+      <div class="section-label"><b>일반 정산단위</b><span>${userPresets.length}개</span></div>
+      ${userPresets.length
+        ? `<div class="preset-list">${userPresets.map((preset) => settleUnitCard(preset, receiptCount(preset.id))).join('')}</div>`
+        : '<div class="schedule-empty"><b>아직 만든 정산단위가 없습니다.</b><span>위의 “새 정산단위 만들기”로 세트를 추가하세요.</span></div>'}
       <button class="button secondary full" type="button" data-route="capture">일반 영수증 촬영</button>
     </section>`;
+}
+
+function settleUnitCard(preset, count) {
+  const used = Number(preset.usage?.usedKRW || 0);
+  const limit = Number(preset.rules?.limitKRW || 0);
+  const rate = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const codes = (preset.rules?.allowedAccountCodes || []).map((code) => accountName(code)).join(', ');
+  return `<article class="preset-card manage">
+    <div><b>🧩 ${escapeHtml(preset.name)}</b><span class="preset-type">${preset.source === 'admin' ? '월 한도' : '내 세트'}</span></div>
+    <small>${escapeHtml(codes || '자동 분류')} · 영수증 ${count}건</small>
+    ${limit
+      ? `<div class="preset-progress"><i style="width:${rate}%"></i></div><p><strong>사용 ${won(used)}</strong><span>잔여 ${won(Math.max(0, limit - used))}</span></p>`
+      : `<p><strong>사용 ${won(used)}</strong><span>한도 없음</span></p>`}
+    <div class="button-row card-actions">
+      <button class="button secondary" type="button" data-action="manage-preset" data-preset-id="${escapeHtml(preset.id)}">영수증 담기·빼기</button>
+      <button class="button ghost" type="button" data-action="delete-preset" data-preset-id="${escapeHtml(preset.id)}">삭제</button>
+    </div>
+  </article>`;
+}
+
+function screenPresetPicker(presetId) {
+  const preset = state.presets.find((p) => p.id === presetId);
+  if (!preset) { screenTripSetup(); return; }
+  renderNav('setup', true);
+  const receipts = validReceipts();
+  const rows = receipts.map((r) => {
+    const ocr = r.ocr || {};
+    const inThis = r.presetId === preset.id;
+    const other = r.presetId && r.presetId !== preset.id ? state.presets.find((p) => p.id === r.presetId) : null;
+    const where = inThis ? '이 세트에 담김' : (other ? `다른 세트 · ${escapeHtml(other.name)}` : '미배정');
+    return `<label class="picker-row"><input type="checkbox" name="rcpt" value="${escapeHtml(r.id)}" ${inThis ? 'checked' : ''}><div><b>${escapeHtml(ocr.merchant || '영수증')}</b><small>${dateTime(ocr.paidAt)} · ${won(receiptAmountKRW(r))} · ${where}</small></div></label>`;
+  }).join('');
+  root.innerHTML = `<section class="list-screen">
+    <div class="page-heading-mobile"><span class="eyebrow">🧩 ${escapeHtml(preset.name)}</span><h1>영수증 담기 · 빼기</h1><p>체크하면 이 정산단위로 담기고, 해제하면 빠집니다. 영수증 1건은 1개 정산단위에만 속합니다.</p></div>
+    <form id="picker-form" class="picker-list">${receipts.length ? rows : '<div class="empty-state small">촬영한 영수증이 없습니다.</div>'}</form>
+    <div class="button-row"><button class="button primary" type="button" data-action="picker-save" data-preset-id="${escapeHtml(preset.id)}">저장</button><button class="button secondary" type="button" data-action="picker-cancel">취소</button></div>
+  </section>`;
 }
 
 function scheduleTripCard(preset, index) {
@@ -385,6 +430,44 @@ function notify(message) {
   notify.timer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
+// 쓰기(생성/담기/삭제) 실패 메시지: 연결 문제면 안내를 우선한다.
+function writeErrorMessage(error, fallback) {
+  if (!error || !error.status) return '서버 연결을 확인해주세요. 정산단위 변경은 서버 연결이 필요합니다.';
+  return fallback;
+}
+
+// 뮤테이션 후 최신 상태 재조회(영수증 소속·프리셋 usage 동시 반영).
+async function reloadPresetsAndReceipts() {
+  const [receipts, presets] = await Promise.all([listReceipts(), listPresets()]);
+  state.receipts = receipts.data;
+  state.presets = presets.data;
+  setMode(presets.mode === 'live' ? 'live' : 'demo');
+  if (state.tripPreset) state.tripPreset = state.presets.find((p) => p.id === state.tripPreset.id) || null;
+}
+
+// 픽커 체크 상태를 담기/빼기 배치로 환산해 저장한다.
+async function savePickerSelection(presetId) {
+  const form = document.querySelector('#picker-form');
+  if (!form) return;
+  const checked = new Set([...form.querySelectorAll('input[name="rcpt"]:checked')].map((input) => input.value));
+  const candidates = validReceipts();
+  const toAdd = candidates.filter((r) => checked.has(r.id) && r.presetId !== presetId).map((r) => r.id);
+  const toRemove = candidates.filter((r) => !checked.has(r.id) && r.presetId === presetId).map((r) => r.id);
+  if (!toAdd.length && !toRemove.length) { screenTripSetup(); return; }
+  const button = document.querySelector('[data-action="picker-save"]');
+  if (button) { button.disabled = true; button.textContent = '저장 중…'; }
+  try {
+    if (toAdd.length) await assignReceipts(toAdd, presetId);
+    if (toRemove.length) await assignReceipts(toRemove, null);
+    await reloadPresetsAndReceipts();
+    notify(`담기 ${toAdd.length}건 · 빼기 ${toRemove.length}건을 저장했습니다.`);
+    screenTripSetup();
+  } catch (error) {
+    if (button) { button.disabled = false; button.textContent = '저장'; }
+    notify(writeErrorMessage(error, '변경 내용을 저장하지 못했습니다.'));
+  }
+}
+
 function updateReceiptFromForm() {
   const form = document.querySelector('#ocr-form');
   if (!form?.reportValidity()) return false;
@@ -477,6 +560,46 @@ root.addEventListener('click', async (event) => {
     navigate('dashboard');
     return;
   }
+  if (action === 'new-preset') {
+    const name = (prompt('새 정산단위 이름을 입력하세요') || '').trim();
+    if (!name) return;
+    try {
+      await createPreset({ name });
+      await reloadPresetsAndReceipts();
+      notify(`정산단위 “${name}”을 만들었습니다.`);
+      screenTripSetup();
+    } catch (error) {
+      notify(writeErrorMessage(error, '정산단위를 만들지 못했습니다.'));
+    }
+    return;
+  }
+  if (action === 'manage-preset') {
+    const presetId = event.target.closest('[data-preset-id]')?.dataset.presetId;
+    screenPresetPicker(presetId);
+    return;
+  }
+  if (action === 'delete-preset') {
+    const presetId = event.target.closest('[data-preset-id]')?.dataset.presetId;
+    const preset = state.presets.find((item) => item.id === presetId);
+    if (!preset) return;
+    if (!confirm(`“${preset.name}” 정산단위를 삭제할까요? 담긴 영수증은 소속만 해제됩니다.`)) return;
+    try {
+      await deletePreset(presetId);
+      await reloadPresetsAndReceipts();
+      notify(`“${preset.name}”을 삭제했습니다.`);
+      screenTripSetup();
+    } catch (error) {
+      if (error.status === 409) notify('이미 전표로 상신된 영수증이 있어 삭제할 수 없습니다.');
+      else notify(writeErrorMessage(error, '정산단위를 삭제하지 못했습니다.'));
+    }
+    return;
+  }
+  if (action === 'picker-save') {
+    const presetId = event.target.closest('[data-preset-id]')?.dataset.presetId;
+    await savePickerSelection(presetId);
+    return;
+  }
+  if (action === 'picker-cancel') { screenTripSetup(); return; }
   if (action === 'camera') cameraInput.click();
   if (action === 'gallery') galleryInput.click();
   if (action === 'sample') await useSample();

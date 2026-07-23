@@ -63,6 +63,8 @@ window.SKD = (function () {
   const CARD_TX = [];
   const TRIPS = [];
   const BUDGETS = [];
+  const PRESETS = [];        // 원본 프리셋(정산단위) 배열 — TRIP 포함 전체
+  const PRESETS_BY_ID = {};  // id → preset (in-place 갱신)
 
   /* ================= 헬퍼 (순수함수 — 원본 data.js 이관) ================= */
   const fmt = (n) => Math.round(n).toLocaleString("ko-KR");
@@ -210,6 +212,7 @@ window.SKD = (function () {
       source: category === "WELFARE_AI" ? "pdf" : "photo",
       img,
       status,
+      presetId: rc.presetId || null, // 정산단위(세트) 소속 — 담기/빼기 대상
       matchedTxId: rc.matchedTxId || null,
       approvalNo: null, // 2차 패스에서 매칭 tx의 승인번호 연결
       cardLast4: ocr.cardLast4 || null,
@@ -318,6 +321,8 @@ window.SKD = (function () {
   }
 
   function fill(arr, items) { arr.length = 0; items.forEach(x => arr.push(x)); }
+  function fillObj(obj, entries) { for (const k in obj) delete obj[k]; Object.assign(obj, entries); }
+  function presetName(id) { const p = PRESETS_BY_ID[id]; return p ? p.name : (id || ""); }
 
   /* ================= load(): 라이브 로드(폴백) ================= */
   let MODE = "loading";
@@ -338,6 +343,8 @@ window.SKD = (function () {
         const trips = (ps || []).filter(p => p.type === "TRIP").map(mapTrip);
         const receipts = (rc || []).map(r => mapReceipt(r, presetsById, trips));
         const cards = (tx || []).map(mapTx);
+        fill(PRESETS, ps || []);
+        fillObj(PRESETS_BY_ID, presetsById);
         // 2차 패스: receipt.matchedTxId ↔ card 연결 + 승인번호 이식
         receipts.forEach(r => {
           if (r.matchedTxId) {
@@ -356,12 +363,17 @@ window.SKD = (function () {
         fill(RECEIPTS, demoReceipts());
         fill(CARD_TX, demoCardTx());
         fill(BUDGETS, demoBudgets());
+        fill(PRESETS, []);        // 오프라인 데모: 서버 프리셋 없음(사용자 정산단위 기능 비활성)
+        fillObj(PRESETS_BY_ID, {});
         MODE = "demo";
       }
       return { mode: MODE, error: _err };
     })();
     return _promise;
   }
+
+  /* 뮤테이션(담기/빼기/생성/삭제) 후 최신 상태 재조회 — 메모이즈된 promise 무효화 */
+  function reload() { _promise = null; return load(); }
 
   /* 상단바에 라이브/데모 배지 표시 (SKP.chrome 이후 호출) */
   function mountBadge() {
@@ -401,10 +413,10 @@ window.SKD = (function () {
 
   return {
     TODAY, USER, GROUPS, GROUP_ORDER, CATEGORIES, RULES, AI_PRESETS, AI_POLICY,
-    TRIPS, RECEIPTS, CARD_TX, BUDGETS,
+    TRIPS, RECEIPTS, CARD_TX, BUDGETS, PRESETS, PRESETS_BY_ID,
     fmt, krw, money, dateShort, dt, tripDays, tripCap, tripSpent, tripAll,
     groupOf, subOf, groupTotals, activeTrip, valid, imgUrl, attachTip,
-    matchBasis, candidatesFor, vatInfo,
-    load, mountBadge, sampleReceipt, get MODE() { return MODE; }
+    matchBasis, candidatesFor, vatInfo, presetName,
+    load, reload, mountBadge, sampleReceipt, get MODE() { return MODE; }
   };
 })();
