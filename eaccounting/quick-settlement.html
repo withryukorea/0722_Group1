@@ -128,8 +128,9 @@ async function serverPreview() {
 
     ${draft.lines.map(l => `
       <div class="voucher-line">
-        <span><b>${l.accountName}</b> <span class="muted">${l.description}</span><br>
-          <span class="muted" style="font-size:11px">공급가액 ${D.krw(l.supplyKRW)} + 부가세 ${D.krw(l.vatKRW)}${l.presetId ? ' · <span class="badge brand" style="font-size:10px">⚡ 프리셋</span>' : ""}</span></span>
+        <span><b>${l.accountDisplay || l.accountName}</b> <span class="muted">${(l.description || "").replaceAll("[이름]", D.USER.name)}</span><br>
+          <span class="muted" style="font-size:11px">공급가액 ${D.krw(l.supplyKRW)} + 부가세 ${D.krw(l.vatKRW)}
+          ${l.costCenter ? ` · 예산부서 <b>[${l.costCenter}]</b>` : ""}${l.presetId ? ' · <span class="badge brand" style="font-size:10px">⚡ 정산단위</span>' : ""}</span></span>
         <b class="num">${D.krw(l.amountKRW)}</b>
       </div>`).join("")}
     <div class="voucher-line" style="border-top:2px solid var(--ink);font-size:15px">
@@ -139,10 +140,16 @@ async function serverPreview() {
     ${(draft.warnings || []).map(w => `<div class="preset-why" style="background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn);margin:10px 0">
       ⚠ <b>${w.type === "PRESET_LIMIT_EXCEEDED" ? "프리셋 한도 경고" : w.type}</b> — ${w.message} (경고만, 상신은 가능)</div>`).join("")}
 
-    <div style="margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--ink-2)">전결라인 (규정 자동 지정)</div>
+    <div style="margin:14px 0 6px;font-size:12px;font-weight:700;color:var(--ink-2)">전결라인 (정산단위 양식 자동 전개)</div>
     <div class="approval">
-      <span class="ap me">${D.USER.name}(기안)</span>
-      ${draft.approvalLine.map(p => `<span class="arr">→</span><span class="ap">${p}</span>`).join("")}
+      ${(() => {
+        const d = draft.approvalLineDetail;
+        if (d) return `<span class="ap me">${d.draft}(기안)</span>`
+          + (d.reviewers || []).map(rv => `<span class="arr">→</span><span class="ap">${rv} <span class="badge brand" style="font-size:9px;padding:2px 6px;vertical-align:1px">정산단위</span></span>`).join("")
+          + `<span class="arr">→</span><span class="ap">${d.approve}(승인)</span>`;
+        return `<span class="ap me">${D.USER.name}(기안)</span>`
+          + draft.approvalLine.map(p => `<span class="arr">→</span><span class="ap">${p}</span>`).join("");
+      })()}
     </div>
 
     <button class="btn primary block" style="margin-top:16px" id="btnSubmit">검토 완료 · 상신하기</button>
@@ -150,7 +157,8 @@ async function serverPreview() {
 
   $("btnSubmit").onclick = async () => {
     const v = await eaccApi("/api/vouchers", { body: {
-      title: draft.title, lines: draft.lines, totalKRW: draft.totalKRW, approvalLine: draft.approvalLine
+      title: draft.title, lines: draft.lines, totalKRW: draft.totalKRW,
+      approvalLine: draft.approvalLine, approvalLineDetail: draft.approvalLineDetail || null
     }});
     if (v && v.id) {
       $("voucher").innerHTML = `

@@ -68,7 +68,11 @@ function voucherCard(v, withActions) {
           <span><b>${l.accountName || l.accountCode || "라인"}</b> <span class="muted">${l.description || ""}</span></span>
           <b class="num" style="flex:0 0 auto">${D.krw(l.amountKRW || 0)}</b>
         </div>`).join("")}
-      <div class="muted" style="margin-top:6px">전결라인: ${(v.approvalLine || []).join(" → ") || "—"}</div>
+      <div class="muted" style="margin-top:6px">전결라인: ${(() => {
+        const d = v.approvalLineDetail;
+        if (d) return [`${d.draft}(기안)`, ...(d.reviewers || []).map(x => x + " ⚡"), `${d.approve}(승인)`].join(" → ") + ' <span style="font-size:10px">(⚡=정산단위 검토자)</span>';
+        return (v.approvalLine || []).join(" → ") || "—";
+      })()}</div>
       ${(v.lines || []).some(l => l.receiptId) ? `<div class="muted" style="margin-top:3px">📎 증빙 영수증 ${(v.lines || []).filter(l => l.receiptId).length}건 첨부</div>` : ""}
       ${v.status === "rejected" && v.rejectComment ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:8px">반려 사유: ${v.rejectComment}</div>` : ""}
       ${withActions && v.status === "submitted" ? `

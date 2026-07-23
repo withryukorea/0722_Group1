@@ -101,6 +101,26 @@ let MODE = "fallback";     // "server" | "fallback"
 let ROWS = [];             // 통합 행 모델
 let TXS = [];              // 서버 카드 승인내역 (드로어 표시용)
 let PRESETS = [];
+let ACCOUNTS = [];         // 계정과목 (실계정코드 표시용)
+
+/* 프리셋 → 정산 정보 요약 (계정·예산부서·적요·전결라인 — CASE 2 정산 정보 프리셋) */
+function presetInfoHtml(p, merchant, applied) {
+  if (!p) return "";
+  const code = (p.rules.allowedAccountCodes || [])[0];
+  const acc = ACCOUNTS.find(a => a.code === code);
+  const accDisp = acc ? `[${acc.realCode || acc.code}] ${acc.realName || acc.name}` : (code || "자동분류");
+  const memo = (p.rules.descriptionTemplate || "{merchant}")
+    .replaceAll("{merchant}", merchant || "").replaceAll("[이름]", D.USER.name);
+  const line = [`${D.USER.name}(기안)`,
+    ...((p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.reviewers) || []),
+    ...(p.rules.approvalLineTemplate ? [p.rules.approvalLineTemplate.approve === "$SUPERIOR" ? "팀장(승인)" : p.rules.approvalLineTemplate.approve] : (p.rules.approvalLine || []))
+  ].join(" → ");
+  return `<div class="preset-why" style="margin-top:10px;${applied ? "background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55" : ""}">
+    ⚡ <b>정산 정보 ${applied ? "자동 적용됨" : "미리보기 (프리셋 적용 시 확정)"}</b> — ${p.name}<br>
+    계정과목 <b>${accDisp}</b> · 예산부서 <b>[${p.rules.costCenter || "기안팀"}]</b><br>
+    적요 <b>${memo}</b><br>
+    전결라인 ${line}</div>`;
+}
 
 /* 서버 Receipt → 통합 행 */
 function adaptServer(r, scoreInfo) {
@@ -142,6 +162,7 @@ async function load(runMatch) {
     MODE = "server";
     PRESETS = (await eaccApi("/api/presets")) || [];
     TXS = (await eaccApi("/api/transactions")) || [];
+    if (!ACCOUNTS.length) ACCOUNTS = (await eaccApi("/api/accounts")) || [];
     let scores = {};
     const unmatched = list.filter(r => !r.matchedTxId).map(r => r.id);
     if (runMatch && unmatched.length) {
@@ -311,6 +332,7 @@ function openDrawer(id) {
         <dt>프리셋</dt><dd>${r.presetId ? `<span class="badge brand">⚡ ${presetName(r.presetId)}</span>`
           : r.suggestedPresetId ? `추천: <b>${presetName(r.suggestedPresetId)}</b>` : '<span class="muted">해당 없음</span>'}</dd>
       </dl>
+      ${presetInfoHtml(PRESETS.find(p => p.id === (r.presetId || r.suggestedPresetId)), r.merchant, !!r.presetId)}
       ${(r.checks || []).map(c => `<div class="preset-why" style="margin-top:8px;${c.status === "warn" ? "background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn)" : ""}">
         ${c.status === "warn" ? "⚠️" : "ℹ️"} ${c.message}</div>`).join("")}
       ${r.suggestedPresetId && !r.presetId ? `<button class="btn primary block" style="margin-top:14px" id="applyPreset">⚡ 추천 프리셋 적용 (${presetName(r.suggestedPresetId)})</button>` : ""}

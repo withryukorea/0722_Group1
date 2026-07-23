@@ -97,12 +97,33 @@ const show = (stage) => {
 };
 
 /* 서버 프리셋 캐시 (미연결이면 null → 폴백 모드) */
-let PRESETS = null;
+let PRESETS = null, ACCOUNTS = [];
 (async () => {
   PRESETS = await eaccApi("/api/presets");
-  if (!PRESETS) $("camNote").innerHTML = '<span class="badge neutral">서버 미연결</span> 내장 데모로 동작합니다 — 촬영·샘플 모두 시뮬레이션';
+  if (PRESETS) ACCOUNTS = (await eaccApi("/api/accounts")) || [];
+  else $("camNote").innerHTML = '<span class="badge neutral">서버 미연결</span> 내장 데모로 동작합니다 — 촬영·샘플 모두 시뮬레이션';
 })();
 const presetOf = (id) => (PRESETS || []).find(p => p.id === id) || null;
+
+/* 프리셋 → 정산 정보 요약 (계정·예산부서·적요·전결라인 — 저장 시 이대로 확정) */
+function presetInfoHtml(p) {
+  if (!p) return "";
+  const code = (p.rules.allowedAccountCodes || [])[0];
+  const acc = ACCOUNTS.find(a => a.code === code);
+  const accDisp = acc ? `[${acc.realCode || acc.code}] ${acc.realName || acc.name}` : (code || "자동분류");
+  const memo = (p.rules.descriptionTemplate || "{merchant}")
+    .replaceAll("{merchant}", (current.ocr || {}).merchant || "").replaceAll("[이름]", D.USER.name);
+  const line = [`${D.USER.name}(기안)`,
+    ...((p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.reviewers) || []),
+    (p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.approve === "$SUPERIOR") ? "팀장(승인)"
+      : ((p.rules.approvalLine || []).slice(-1)[0] || "팀장(승인)")
+  ].join(" → ");
+  return `<div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;margin-top:10px">
+    ⚡ <b>정산 정보 자동 적용</b> — 저장 시 이대로 확정됩니다<br>
+    계정과목 <b>${accDisp}</b> · 예산부서 <b>[${p.rules.costCenter || "기안팀"}]</b><br>
+    적요 <b>${memo}</b><br>
+    전결라인 ${line}</div>`;
+}
 
 /* 서버 WoZ 데모 샘플 (fixtures/receipts-ocr 7종 중 모바일 데모 5종) */
 const SAMPLES = [
@@ -188,7 +209,8 @@ function renderPresetChips() {
   $("whyBox").innerHTML = (current.suggestedPresetId
     ? `<b>자동 추천</b> · 「${(presetOf(current.suggestedPresetId) || {}).name}」 프리셋 조건(기간/키워드)과 일치합니다. <b>자동 적용하지 않습니다</b> — 저장 시 선택한 프리셋로 확정됩니다.`
     : `<b>프리셋 미해당</b> · 일반 결제로 저장됩니다. 계정과목은 정산 단계에서 자동 분류됩니다.`)
-    + (checks ? `<br>${checks}` : "");
+    + (checks ? `<br>${checks}` : "")
+    + presetInfoHtml(presetOf(pickedPreset));
   renderPresetCap();
 }
 
