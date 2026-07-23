@@ -263,7 +263,7 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
   background: #14161B; border-radius: 18px; overflow: hidden; position: relative;
   aspect-ratio: 3 / 4.1; display: flex; align-items: center; justify-content: center;
 }
-.cam-stage img.shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #14161B; }
+.cam-stage img.shot { position: absolute; inset: 26px 30px; width: calc(100% - 60px); height: calc(100% - 52px); object-fit: contain; background: #14161B; }
 .cam-guide {
   position: absolute; inset: 26px 30px; border-radius: 12px; pointer-events: none;
   box-shadow: 0 0 0 999px rgba(10,12,16,.45);
