@@ -7,6 +7,17 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/common.css">
 <link rel="stylesheet" href="css/quick.css">
+<style>
+/* 분석 대시보드 — 한 행의 카드들을 같은 높이로 맞춰 칸 크기를 통일 (시인성) */
+.qk .grid.c2, .qk .grid.c2e, .qk .grid.kpi4 { align-items: stretch; }
+/* .card + .card 의 margin-top(12px)이 그리드 두 번째 카드에도 붙어 높이가 어긋나던 것 리셋 */
+.qk .grid.c2 > .card + .card,
+.qk .grid.c2e > .card + .card,
+.qk .grid.kpi4 > .card + .card { margin-top: 0; }
+/* 차트 행: 카드를 세로 플렉스로 만들어 도넛 본문이 남는 높이의 가운데에 오게 (빈칸이 아래로 쏠리지 않음) */
+.qk .grid.c2 > .card { display: flex; flex-direction: column; }
+.qk .grid.c2 > .card > .donut-wrap { flex: 1 1 auto; }
+</style>
 </head>
 <body>
 
