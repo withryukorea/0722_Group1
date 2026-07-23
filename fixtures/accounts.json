@@ -71,6 +71,18 @@
     ]
   },
   {
+    "code": "EDU_DIY100",
+    "name": "교육-DIY100",
+    "realCode": "723105",
+    "realName": "교육훈련비-DIY100",
+    "examples": [
+      "교육",
+      "강의",
+      "클래스",
+      "AI Frontier"
+    ]
+  },
+  {
     "code": "WELFARE_ETC",
     "name": "복지-기타",
     "realCode": "735901",
