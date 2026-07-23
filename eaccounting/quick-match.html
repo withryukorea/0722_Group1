@@ -186,7 +186,11 @@ function filtered() {
     if (from && d < from) return false;
     if (to && d > to) return false;
     return true;
-  }).sort((a, b) => (b.paidAt || "").localeCompare(a.paidAt || ""));
+  }).sort((a, b) => {
+    // 업로드 최신순 — 방금 올린 영수증이 맨 위로 (createdAt=업로드시각, 없으면 결제일시 폴백)
+    const up = r => (r.server && r.server.createdAt) || r.paidAt || "";
+    return up(b).localeCompare(up(a)) || String(b.id).localeCompare(String(a.id));
+  });
 }
 
 function scorePill(r) {
