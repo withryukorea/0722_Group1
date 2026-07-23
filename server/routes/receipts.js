@@ -252,6 +252,47 @@ router.post("/:id/crop", upload.single("cropped"), async (req, res) => {
   res.json(r);
 });
 
+// DELETE /api/receipts/bulk — 자동매칭 화면에서 선택한 영수증 일괄 삭제
+// 전표가 참조하는 증빙은 삭제하지 않으며, 삭제된 영수증과 연결됐던 카드거래는 미매칭으로 되돌린다.
+// 실제 파일 객체는 상태 저장 성공 전에 지우면 롤백 시 증빙이 깨질 수 있어 여기서는 참조만 제거한다.
+router.delete("/bulk", (req, res) => {
+  const ids = [...new Set(Array.isArray(req.body && req.body.ids) ? req.body.ids : [])]
+    .filter((id) => typeof id === "string" && id);
+  if (!ids.length) {
+    return res.status(400).json({ error: "EMPTY_IDS", message: "삭제할 영수증을 선택해주세요." });
+  }
+
+  const existing = ids.filter((id) => db.receipts.some((r) => r.id === id));
+  const missing = ids.filter((id) => !existing.includes(id));
+  const referenced = new Set(
+    db.vouchers.flatMap((voucher) => (voucher.lines || []).map((line) => line.receiptId).filter(Boolean))
+  );
+  const protectedIds = existing.filter((id) => referenced.has(id));
+  if (protectedIds.length) {
+    return res.status(409).json({
+      error: "RECEIPT_IN_VOUCHER",
+      message: "이미 전표에 포함된 영수증은 삭제할 수 없습니다.",
+      protectedIds,
+      saved: false,
+    });
+  }
+
+  const deleting = new Set(existing);
+  for (const tx of db.transactions) {
+    if (!deleting.has(tx.matchedReceiptId)) continue;
+    tx.matchedReceiptId = null;
+    if (tx.status !== "vouchered") tx.status = "unmatched";
+  }
+  db.receipts = db.receipts.filter((receipt) => !deleting.has(receipt.id));
+  recomputeUsage(db);
+
+  res.json({
+    deleted: existing.length,
+    deletedIds: existing,
+    missing,
+  });
+});
+
 // PATCH /api/receipts/bulk — 여러 영수증을 한 번에 정산단위(Preset)에 담기/빼기 (세트 편집·가감)
 // body: { ids: string[], presetId: string|null }  presetId=null 이면 소속 해제
 // ※ 반드시 "/:id" 라우트보다 먼저 등록해야 한다 (안 그러면 /bulk 가 :id="bulk" 로 잡힘)

@@ -38,6 +38,7 @@
 | POST | `/api/receipts` (multipart) | 실 이미지 → Vision OCR(성공만 저장, `ocrMode:"real"`), 데모 `{key}` → WoZ(`ocrMode:"woz"`). 실패 시 저장 안 함 |
 | GET | `/api/receipts/ocr-status` | 비밀값 없이 실 OCR 설정 여부·모델 조회 |
 | GET | `/api/persistence-status` | Supabase 설정·준비·revision·최근 저장 시각 조회(키 비노출) |
+| DELETE | `/api/receipts/bulk` | body `{ids[]}` — 선택 영수증 삭제, 연결 카드내역 미매칭 복원. 전표 참조 영수증은 409 |
 | PATCH | `/api/receipts/:id` | 사용자가 `presetId`·`accountCode`·`vat.confirmed` 확정 |
 | POST | `/api/match` | body: `{receiptIds[]}` → 거래 매칭 결과 `[{receiptId, txId, score}]` |
 | POST | `/api/vouchers/preview` | 매칭된 건들로 전표 초안 생성 (정산단위 규칙 반영) |

@@ -51,11 +51,11 @@
       <!-- 요약 스트립 -->
       <div class="grid kpi4" id="strip" style="margin-bottom:14px"></div>
 
-      <!-- 선택 → 정산 연결 바 -->
+      <!-- 선택 영수증 관리 바 -->
       <div class="toolbar" id="bulkBar" style="display:none;border-color:#F3B8C4;background:#FFF8F9">
         <b style="font-size:13px"><span id="bulkCount">0</span>건 선택됨</b>
         <span class="sep"></span>
-        <button class="btn sm primary" id="bulkGo">🧾 선택 건으로 정산·전표 생성 ›</button>
+        <button class="btn sm primary" id="bulkDelete">🗑 선택건 삭제</button>
         <button class="btn sm ghost" id="bulkClear">선택 해제</button>
         <span class="muted" id="bulkMsg"></span>
       </div>
@@ -282,14 +282,43 @@ function render() {
   syncBulk();
 }
 
-/* ---- 선택 → 정산·전표 생성으로 ---- */
+/* ---- 선택 영수증 삭제 ---- */
 const selected = new Set();
 function syncBulk() {
   $("bulkBar").style.display = selected.size ? "" : "none";
   $("bulkCount").textContent = selected.size;
 }
-$("bulkGo").onclick = () => {
-  location.href = "quick-settlement.html?ids=" + encodeURIComponent([...selected].join(","));
+$("bulkDelete").onclick = async () => {
+  const ids = [...selected];
+  if (!ids.length) return;
+  if (MODE !== "server") {
+    $("bulkMsg").textContent = "서버 연결 후 삭제할 수 있습니다.";
+    return;
+  }
+  if (!confirm(`선택한 영수증 ${ids.length}건을 삭제하시겠습니까?\n삭제한 영수증은 자동매칭 목록에서 제거됩니다.`)) return;
+
+  const button = $("bulkDelete");
+  button.disabled = true;
+  button.textContent = "삭제 중…";
+  $("bulkMsg").textContent = "";
+  const result = await eaccApiTry("/api/receipts/bulk", {
+    method: "DELETE",
+    body: { ids }
+  });
+  if (result.ok) {
+    const deleted = (result.data && result.data.deleted) || 0;
+    selected.clear();
+    await load(false);
+    alert(`${deleted}건을 삭제했습니다.`);
+  } else {
+    const data = result.data || {};
+    const protectedCount = Array.isArray(data.protectedIds) ? data.protectedIds.length : 0;
+    $("bulkMsg").textContent = protectedCount
+      ? `전표에 포함된 ${protectedCount}건은 삭제할 수 없습니다.`
+      : `삭제 실패${data.message ? ` — ${data.message}` : ""}`;
+    button.disabled = false;
+    button.textContent = "🗑 선택건 삭제";
+  }
 };
 $("bulkClear").onclick = () => { selected.clear(); render(); };
 
