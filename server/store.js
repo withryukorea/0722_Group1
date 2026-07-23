@@ -1,6 +1,7 @@
-// 인메모리 데이터 저장소 (P1)
-// fixtures/ 의 JSON을 읽어 메모리에 올리고, 서버가 도는 동안 여기서 상태를 관리한다.
-// DB 없음 — 서버를 재시작하면 fixtures 초기값으로 되돌아간다 (해커톤엔 이게 편하다).
+// 런타임 상태 저장소 (P1)
+// fixtures/ 의 JSON을 메모리에 올려 기존 동기식 라우트 계약을 유지한다.
+// Supabase가 설정된 배포에서는 시작 시 app_state를 복원하고 성공한 쓰기를 영구 저장한다.
+// Supabase가 없는 로컬 개발만 서버 재시작 시 fixtures 초기값으로 돌아간다.
 
 const fs = require("fs");
 const path = require("path");
@@ -144,4 +145,29 @@ function reset() {
   recomputeUsage(db);
 }
 
-module.exports = { db, nextVoucherId, nextReceiptId, nextPresetId, reset, recomputeUsage };
+// Supabase app_state 스냅샷을 같은 db 객체에 복원한다.
+// 라우트가 db 참조를 모듈 로딩 시 잡고 있으므로 객체 자체를 교체하지 않고 필드만 갱신한다.
+function replaceState(saved) {
+  if (!saved || typeof saved !== "object") throw new Error("invalid app_state snapshot");
+  const arrayKeys = ["transactions", "approvalRules", "presets", "accounts", "vouchers", "receipts"];
+  for (const key of arrayKeys) {
+    if (Array.isArray(saved[key])) db[key] = clone(saved[key]);
+  }
+  for (const key of ["fx", "travelPolicy"]) {
+    if (saved[key] && typeof saved[key] === "object") db[key] = clone(saved[key]);
+  }
+
+  const maxNumber = (items, prefix) => items.reduce((max, item) => {
+    const match = String(item.id || "").match(new RegExp(`^${prefix}(\\d+)$`));
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+  db._voucherSeq = Number(saved._voucherSeq) || maxNumber(db.vouchers, "vch_") + 1 || 1;
+  db._receiptSeq = Number(saved._receiptSeq) || Math.max(seedSeqStart, maxNumber(db.receipts, "rcpt_") - 99);
+  db._presetSeq = Number(saved._presetSeq) || maxNumber(db.presets, "ps_") + 1 || 1;
+
+  linkSeedMatches(db);
+  normalizePresets(db);
+  recomputeUsage(db);
+}
+
+module.exports = { db, nextVoucherId, nextReceiptId, nextPresetId, reset, recomputeUsage, replaceState };

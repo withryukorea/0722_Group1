@@ -10,6 +10,26 @@ npm install
 npm start
 ```
 
+## 영구 저장 모드 (Supabase)
+
+기본 로컬 실행은 기존 인메모리 모드다. Render에서 아래 환경변수가 모두 있으면 서버 시작 시
+`public.app_state(id=main)`을 불러오고, 성공한 모든 쓰기 API를 응답 전에 JSONB 스냅샷으로 저장한다.
+실 영수증 원본·크롭 이미지는 비공개 `receipt-images` Storage 버킷에 저장하고 API가 프록시한다.
+
+```text
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+SUPABASE_BUCKET=receipt-images
+SUPABASE_STATE_ID=main
+```
+
+초기 스키마는 `supabase/migrations/202607230001_app_state.sql`을 SQL Editor에서 실행한다.
+Secret key는 RLS를 우회하는 서버 전용 키이므로 프론트엔드나 Git에 넣지 않는다.
+
+- `GET /api/persistence-status`: `{configured,ready,mode,revision,lastSavedAt,error}` 확인
+- Supabase가 설정됐는데 테이블·키가 잘못된 경우 서버는 메모리 모드로 조용히 시작하지 않고 부팅을 실패시킨다.
+- Supabase가 미설정된 로컬 개발만 `mode:"memory"`로 동작한다.
+
 - 관리자 화면: http://localhost:4000/
 - API 베이스: http://localhost:4000/api
 
@@ -29,6 +49,7 @@ npm start
 | GET | `/api/accounts` | 계정과목 코드표 | ✅ P1 |
 | GET | `/api/travel-policy` | 국내·해외 출장비 지급 기준 | ✅ 기준표 연동 |
 | POST | `/api/reset` | 데모 초기화 | ✅ P1 |
+| GET | `/api/persistence-status` | DB 연결·최근 저장 상태(비밀값 제외) | ✅ Supabase |
 | POST | `/api/receipts` | 실 이미지→Vision OCR / 명시적 `{key}`→WoZ 데모 | ✅ P3 (실 이미지 실패 시 미저장) |
 | POST | `/api/match` | 영수증↔거래 매칭 | ✅ P4 |
 | POST | `/api/vouchers/preview` | 전표 초안 생성 | ✅ P4 |
