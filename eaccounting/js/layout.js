@@ -120,9 +120,9 @@ function renderChrome(opts) {
     gnb.outerHTML = `
     <header class="gnb">
       <a class="logo" href="index.html">
-        <span class="sk">SK</span>
-        <span class="sub">ㅇㅇ컴퍼니<br>E&amp;S</span>
-        <span class="sys">AXE-acc · e-Accounting</span>
+        <span class="sk">SKI</span>
+        <span class="sub">E&amp;S</span>
+        <span class="sys">AX e-Accounting</span>
       </a>
       <nav>${topMenu.map(m => {
         const sb = EACC.sidebars[m];

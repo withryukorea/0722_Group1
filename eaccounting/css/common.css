@@ -39,7 +39,7 @@ button { font-family: inherit; cursor: pointer; }
 .gnb .logo { display: flex; align-items: center; gap: 10px; min-width: 260px; }
 .gnb .logo .sk { font-size: 26px; font-weight: 800; font-style: italic; letter-spacing: -1px; }
 .gnb .logo .sk .wing { color: #ff6a2b; font-style: normal; font-size: 14px; vertical-align: top; }
-.gnb .logo .sub { font-size: 9px; line-height: 1.25; color: #cdd2e0; }
+.gnb .logo .sub { font-size: 18px; font-weight: 700; line-height: 1.25; color: #cdd2e0; }
 .gnb .logo .sys { font-size: 17px; font-weight: 600; margin-left: 4px; white-space: nowrap; }
 .gnb nav { display: flex; align-items: center; }
 .gnb nav .sep { width: 1px; height: 14px; background: rgba(255,255,255,.25); }
