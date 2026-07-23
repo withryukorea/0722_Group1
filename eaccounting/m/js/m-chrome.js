@@ -42,7 +42,7 @@ window.SKM = (function () {
     const D = window.SKD;
     document.querySelector(".app-head").innerHTML = `
       <div class="row1">
-        <span class="sk-logo brand" style="color:#fff">${WING}<span>AXE-acc <em style="color:#FFE2C7">모바일</em></span></span>
+        <span class="sk-logo brand" style="color:#fff">${WING}<span>AX e-ACC <em style="color:#FFE2C7">모바일</em></span></span>
         <div class="who">${D.USER.name} · ${D.USER.team}<br>${D.TODAY.replace(/-/g, ".")} 기준</div>
       </div>
       ${sub ? `<div class="sub">${sub}</div>` : ""}`;
