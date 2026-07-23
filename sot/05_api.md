@@ -169,7 +169,7 @@ PATCH { "ocr": { "amount": 8800, "currency": "JPY" } }
   "costCenter": "AQ131",
   "approvalLine": ["최아무개 매니저", "김아무개 팀장"],           // 호환 유지
   "approvalLineDetail": {                                        // 결재선 표에 그대로 전개
-    "draft": "홍길동 매니저",                                     // $DRAFTER 해석
+    "draft": "정성훈 매니저",                                     // $DRAFTER 해석
     "reviewers": ["최아무개 매니저"],
     "approve": "김아무개 팀장"                                    // $SUPERIOR 해석 (조직도 기준 차상위)
   },
@@ -179,7 +179,7 @@ PATCH { "ocr": { "amount": 8800, "currency": "JPY" } }
     "accountRealCode": "726350", "accountDisplay": "[726350]수수료-기타",   // 이어카운팅 입력칸 형식
     "costCenter": "AQ131", "serviceDate": "2026-07-19",
     "amountKRW": 167435, "supplyKRW": 167435, "vatKRW": 0,
-    "description": "[AI구독료] ANTHROPIC* CLAUDE SUB_홍길동"
+    "description": "[AI구독료] ANTHROPIC* CLAUDE SUB_정성훈"
   }],
   "warnings": []
 }

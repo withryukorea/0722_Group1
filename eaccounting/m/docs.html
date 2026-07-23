@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AXE-acc 모바일 — 문서함</title>
+<title>AXE_Acc M — 결재문서함</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/mobile.css">
 </head>
@@ -12,9 +12,18 @@
   <header class="app-head"></header>
   <main class="app-body">
 
-    <div class="seg" id="segBar">
+    <!-- 문서함 3탭 (ref 04: 결재할 문서 / 결재문서 / 기안문서) -->
+    <div class="mtabs" id="segBar">
       <button data-s="inbox" class="on">결재할 문서</button>
-      <button data-s="mine">내 전표</button>
+      <button data-s="done">결재문서</button>
+      <button data-s="mine">기안문서</button>
+    </div>
+    <div class="field" id="stateWrap" style="display:none">
+      <select id="stateFilter">
+        <option value="all">전체</option>
+        <option value="approved">결재완료</option>
+        <option value="rejected">반려</option>
+      </select>
     </div>
 
     <section id="content"></section>
@@ -35,11 +44,27 @@ let seg = "inbox";
 let VS = null;          // 서버 전표 목록 (null = 미로딩/미연결)
 let expanded = null;    // 상세가 열린 전표 id
 
+/* ref 04: 결재완료·확정전표 뱃지 체계 */
 const STATUS_BADGE = {
   submitted: '<span class="badge warn">결재 대기</span>',
-  approved: '<span class="badge ok">결재 완료</span>',
+  approved: '<span class="badge pink">결재완료</span> <span class="badge navy">확정전표</span>',
   rejected: '<span class="badge danger">반려</span>'
 };
+
+/* ref 04: 결재선 날짜+이름 체인 — 2026.07.16 홍길동 › 2026.07.16 김한별 */
+function apprChain(v) {
+  const dot = (s) => (s || "").slice(0, 10).replace(/-/g, ".");
+  const d1 = dot(v.submittedAt);
+  const d2 = dot(v.approvedAt || v.rejectedAt);
+  const det = v.approvalLineDetail;
+  const names = det ? [det.draft, ...(det.reviewers || []), det.approve] : (v.approvalLine || []).slice();
+  if (!names.length) return "";
+  const last = names.length - 1;
+  return `<div class="appr-chain">${names.map((n, i) => {
+    const dt = i === 0 ? d1 : (i === last && d2 ? d2 : "");
+    return `${dt ? `<span class="num">${dt}</span> ` : ""}${n}`;
+  }).join('<span class="sep">›</span>')}</div>`;
+}
 
 async function load() {
   VS = await eaccApi("/api/vouchers");
@@ -53,14 +78,15 @@ function voucherCard(v, withActions) {
   <div class="card" style="cursor:pointer" data-open="${v.id}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
       <div style="min-width:0">
+        <div style="margin-bottom:5px">${STATUS_BADGE[v.status] || v.status}</div>
         <b style="font-size:14px">${v.title}</b>
-        <div class="muted" style="margin-top:2px">${v.id} · ${when}</div>
+        <div class="muted" style="margin-top:2px">[전표번호 ${v.id}] · ${when}</div>
       </div>
       <div style="text-align:right;flex:0 0 auto">
         <div class="num" style="font-weight:800">${D.krw(v.totalKRW || 0)}</div>
-        <div style="margin-top:3px">${STATUS_BADGE[v.status] || v.status}</div>
       </div>
     </div>
+    ${apprChain(v)}
     ${open ? `
     <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px" onclick="event.stopPropagation()">
       ${(v.lines || []).map(l => `
@@ -68,7 +94,11 @@ function voucherCard(v, withActions) {
           <span><b>${l.accountName || l.accountCode || "라인"}</b> <span class="muted">${l.description || ""}</span></span>
           <b class="num" style="flex:0 0 auto">${D.krw(l.amountKRW || 0)}</b>
         </div>`).join("")}
-      <div class="muted" style="margin-top:6px">전결라인: ${(v.approvalLine || []).join(" → ") || "—"}</div>
+      <div class="muted" style="margin-top:6px">전결라인: ${(() => {
+        const d = v.approvalLineDetail;
+        if (d) return [`${d.draft}(기안)`, ...(d.reviewers || []).map(x => x + " ⚡"), `${d.approve}(승인)`].join(" → ") + ' <span style="font-size:10px">(⚡=정산단위 검토자)</span>';
+        return (v.approvalLine || []).join(" → ") || "—";
+      })()}</div>
       ${(v.lines || []).some(l => l.receiptId) ? `<div class="muted" style="margin-top:3px">📎 증빙 영수증 ${(v.lines || []).filter(l => l.receiptId).length}건 첨부</div>` : ""}
       ${v.status === "rejected" && v.rejectComment ? `<div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:8px">반려 사유: ${v.rejectComment}</div>` : ""}
       ${withActions && v.status === "submitted" ? `

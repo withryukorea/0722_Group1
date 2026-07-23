@@ -378,7 +378,7 @@ table.tbl tr.dup td { opacity: .55; }
     <select id="bulkCat"><option value="">계정과목 선택</option></select>
     <select id="bulkDept">
       <option value="">예산부서 선택</option>
-      <option>전력사업기획팀</option><option>경영지원팀</option><option>연구개발팀</option>
+      <option>Upstream기술팀</option><option>경영지원팀</option><option>연구개발팀</option>
     </select>
     <button class="btn sm primary" id="bulkApply">일괄 적용</button>
     <button class="btn sm ghost" id="bulkClear">선택 해제</button>
@@ -409,7 +409,7 @@ table.tbl tr.dup td { opacity: .55; }
 window.SKD = (function () {
   const TODAY = "2026-07-22";
 
-  const USER = { name: "홍길동", team: "전력사업기획팀", office: "서울 종로 (SK서린빌딩)" };
+  const USER = { name: "정성훈", team: "Upstream기술팀", office: "서울 종로 (SK서린빌딩)" };
 
   /* 대분류(그룹) — 도넛 세그먼트 순서는 검증된 인접 순서(red·blue·orange·green) 고정 */
   const GROUPS = {
@@ -680,7 +680,7 @@ window.SKD = (function () {
 
   /* AI구독료 정책 템플릿 (자동 강제 세팅 금지 — 사람이 버튼을 눌러야 적용) */
   const AI_POLICY = {
-    budgetDept: "전력사업기획팀", account: "복지-AI구독 (DIY100)",
+    budgetDept: "Upstream기술팀", account: "복지-AI구독 (DIY100)",
     reviewer: "현업검토 · 이대리",
     memo: (tool, who) => `[AI구독료] ${tool}_${who}`
   };

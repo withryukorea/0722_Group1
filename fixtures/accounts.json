@@ -37,7 +37,7 @@
   },
   {
     "code": "SNACK",
-    "name": "간식비",
+    "name": "음료대",
     "realCode": "705918",
     "realName": "복리후생-음료대",
     "examples": [
@@ -49,7 +49,7 @@
   },
   {
     "code": "WELFARE_BOOK",
-    "name": "복지-도서",
+    "name": "DIY100-도서",
     "realCode": "710203",
     "realName": "도서-일반도서구입비",
     "examples": [
@@ -60,7 +60,7 @@
   },
   {
     "code": "WELFARE_AI",
-    "name": "복지-AI구독",
+    "name": "DIY100-AI구독",
     "realCode": "726350",
     "realName": "수수료-기타",
     "examples": [
@@ -68,6 +68,29 @@
       "OPENAI",
       "GITHUB",
       "CURSOR"
+    ]
+  },
+  {
+    "code": "EDU_DIY100",
+    "name": "DIY100-사외교육",
+    "realCode": "723105",
+    "realName": "교육훈련비-DIY100",
+    "examples": [
+      "교육",
+      "강의",
+      "클래스",
+      "AI Frontier"
+    ]
+  },
+  {
+    "code": "SGA_MEETING",
+    "name": "회의-경상회의비",
+    "realCode": "735901",
+    "realName": "회의비-경상회의비",
+    "examples": [
+      "회의",
+      "미팅",
+      "STARBUCKS"
     ]
   },
   {

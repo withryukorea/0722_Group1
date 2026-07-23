@@ -82,7 +82,7 @@ data_sample/
 | 출장 (두 조건 충족) | `TRAVEL_*` — 아래 규칙 1·2 적용 |
 | **외근** (조건 미충족) | `SNACK` 등 **일반 계정. 출장비 아님** |
 
-근무지는 **서울 종로**입니다 (영수증에 나온 회사 주소 SK서린빌딩·종로타워, [fixtures/transactions.json](../fixtures/transactions.json)의 소속 전력사업기획팀).
+근무지는 **서울 종로**입니다 (영수증에 나온 회사 주소 SK서린빌딩·종로타워, [fixtures/transactions.json](../fixtures/transactions.json)의 소속 Upstream기술팀).
 
 ### 규칙 1 — 출장 기간 안이면 출장비
 

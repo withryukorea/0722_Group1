@@ -104,7 +104,7 @@ AI구독료처럼 PDF 인보이스로 오는 건은 이어카운팅에서 직접
   "source": "admin",              // trip_request(품의 자동, PoC는 seed) | employee(국내출장 직접) | admin(관리자 배포)
   "target": {                     // 배포 대상 — 이 대상의 영수증 처리에만 후보로 노출
     "scope": "company",           // company(전사) | team | users
-    "teams": [],                  // scope=team일 때 (예: ["전력사업기획팀"])
+    "teams": [],                  // scope=team일 때 (예: ["Upstream기술팀"])
     "users": []                   // scope=users일 때 명단
   },
   "limitBasis": "perPerson",      // perPerson(1인당) | shared(공동) — 한도 집계 기준
