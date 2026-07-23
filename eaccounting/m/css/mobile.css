@@ -1,25 +1,35 @@
-﻿/* ============================================================
-   SK 猷⑹븻??怨듯넻 ?좏겙 ??"李띿쑝硫??? 紐⑤컮??PC 怨듭슜
-   SK CI: SK Red #EA002C 쨌 SK Orange #F47725 (?됰났?좉컻)
-   李⑦듃 移댄뀒怨좊━ ?붾젅?몃뒗 dataviz 寃利??듦낵蹂?(light/dark PASS):
-   #EA002C, #2563EB, #D96414, #0E9F6E, #8B5CF6
+/* ============================================================
+   AXE_Acc M — 모바일 공통 토큰 · PC AXE-acc(common.css)와 톤앤매너 통일
+   기준: 네이비 헤더 #262b40 · 핑크 포인트 #ee3d6d · 핑크 그라데이션
+   레이아웃·용어는 ref/screens/mobile-eacc/ (기존 사내 모바일 E-acc) 참고
+   차트 카테고리 팔레트는 dataviz 검증 통과본 유지 (light/dark PASS)
    ============================================================ */
 :root {
-  --sk-red: #EA002C;
-  --sk-red-dark: #C50025;
-  --sk-orange: #F47725;
-  --sk-orange-deep: #D96414;
-  --sk-grad: linear-gradient(135deg, #EA002C 0%, #F47725 100%);
+  /* PC common.css와 동일 토큰 */
+  --navy: #262b40;
+  --navy-2: #2b3152;
+  --navy-3: #4a5787;
+  --pink: #ee3d6d;
+  --pink-deep: #d6336c;
+  --pink-grad: linear-gradient(120deg, #f46e9c, #d955a4);
+  --pink-soft: #fdf3f7;
 
-  /* ?됲겕/?쒗뵾??*/
-  --ink: #1A1C22;
-  --ink-2: #4B5160;
-  --ink-3: #8A90A0;
-  --surface: #F5F6F8;
+  /* 구 변수 별칭 — 기존 화면 인라인 style 호환용 (값만 새 팔레트로) */
+  --sk-red: #ee3d6d;
+  --sk-red-dark: #d6336c;
+  --sk-orange: #d955a4;
+  --sk-orange-deep: #c84f9e;
+  --sk-grad: linear-gradient(120deg, #f46e9c, #d955a4);
+
+  /* 잉크/서피스 */
+  --ink: #333a49;
+  --ink-2: #5b6474;
+  --ink-3: #7b8494;
+  --surface: #eef0f4;
   --card: #FFFFFF;
-  --line: #E6E8EE;
+  --line: #e6e9ef;
 
-  /* ?곹깭 (?곹깭?됱? ?쒕━利덉깋?쇰줈 ?ъ궗?⑺븯吏 ?딆쓬) */
+  /* 상태 (상태색은 카테고리색으로 재사용하지 않음) */
   --ok: #0E9F6E;
   --warn: #B45309;
   --danger: #D80028;
@@ -27,15 +37,15 @@
   --warn-bg: #FDF3E3;
   --danger-bg: #FDE8EC;
 
-  /* 移댄뀒怨좊━(怨꾩젙怨쇰ぉ) ???뷀떚??怨좎젙 留ㅽ븨, ?쒗솚 湲덉? */
-  --c-travel-meal: #EA002C;      /* 異쒖옣-?앸? */
-  --c-travel-transport: #2563EB; /* 異쒖옣-援먰넻 */
-  --c-welfare-ai: #D96414;       /* 蹂듭?-AI援щ룆 */
-  --c-snack: #0E9F6E;            /* 媛꾩떇鍮?*/
-  --c-etc: #8B5CF6;              /* ?먭?鍮꽷룰린? */
+  /* 카테고리(계정과목) → 엔티티 고정 매핑, 순환 금지 */
+  --c-travel-meal: #EA002C;      /* 출장-식대 */
+  --c-travel-transport: #2563EB; /* 출장-교통 */
+  --c-welfare-ai: #D96414;       /* 복지-AI구독 */
+  --c-snack: #0E9F6E;            /* 간식비 */
+  --c-etc: #8B5CF6;              /* 자기계발기타 */
 
   --radius: 14px;
-  --shadow: 0 1px 3px rgba(26,28,34,.06), 0 4px 14px rgba(26,28,34,.05);
+  --shadow: 0 1px 3px rgba(30,40,70,.06), 0 4px 14px rgba(30,40,70,.05);
   --font: "Pretendard", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
 }
 
@@ -52,13 +62,13 @@ button { font-family: inherit; cursor: pointer; }
 input, select { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
 
-/* ---- SK ??濡쒓퀬 (?됰났?좉컻 紐⑦떚?? ---- */
+/* ---- 브랜드 로고 ---- */
 .sk-logo { display: inline-flex; align-items: center; gap: 8px; }
 .sk-logo svg { display: block; }
 .sk-logo .brand { font-weight: 800; letter-spacing: -.02em; }
-.sk-logo .brand em { font-style: normal; color: var(--sk-red); }
+.sk-logo .brand em { font-style: normal; color: var(--pink); }
 
-/* ---- 移대뱶 ---- */
+/* ---- 카드 ---- */
 .card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -74,7 +84,7 @@ a { color: inherit; text-decoration: none; }
 }
 .card-title .more { font-size: 12px; color: var(--ink-3); font-weight: 500; }
 
-/* ---- 諛곗? ---- */
+/* ---- 배지 ---- */
 .badge {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 11px; font-weight: 700; line-height: 1;
@@ -85,59 +95,71 @@ a { color: inherit; text-decoration: none; }
 .badge.danger  { background: var(--danger-bg); color: var(--danger); }
 .badge.info    { background: #E8EFFD;          color: #1D4ED8; }
 .badge.neutral { background: #EEF0F4;          color: var(--ink-2); }
-.badge.brand   { background: var(--sk-grad);   color: #fff; }
+.badge.brand   { background: var(--pink-grad); color: #fff; }
+.badge.pink    { background: var(--pink-soft); color: var(--pink-deep); border: 1px solid #f2b9cd; }
+.badge.navy    { background: #e9ecf5;          color: var(--navy-3); border: 1px solid #d4daea; }
 
-/* 移댄뀒怨좊━ ?꾪듃 ?????띿뒪?몃줈 ?댁쨷 ?쒓린 */
+/* 카테고리 도트 — 색+텍스트로 이중 표기 */
 .cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
 .cat i { width: 8px; height: 8px; border-radius: 3px; flex: 0 0 auto; }
 
-/* ---- 寃뚯씠吏(?덉궛 ?뚯쭊) ---- */
+/* ---- 게이지(예산 소진) ---- */
 .gauge { margin-top: 6px; }
 .gauge .g-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; gap: 8px; }
 .gauge .g-head b { color: var(--ink); font-size: 13px; }
-.gauge .g-track { height: 8px; background: #ECEEF3; border-radius: 999px; overflow: hidden; position: relative; }
-.gauge .g-fill  { height: 100%; border-radius: 999px; background: var(--sk-grad); min-width: 4px; transition: width .6s ease; }
+.gauge .g-track { height: 8px; background: #e3e6ee; border-radius: 999px; overflow: hidden; position: relative; }
+.gauge .g-fill  { height: 100%; border-radius: 999px; background: var(--pink-grad); min-width: 4px; transition: width .6s ease; }
 .gauge.over .g-fill { background: var(--danger); }
 .gauge .g-foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin-top: 4px; }
 
-/* ---- 踰꾪듉 ---- */
+/* ---- 버튼 ---- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  border: 1px solid #c6ccd6; background: var(--card); color: var(--ink);
   font-size: 14px; font-weight: 700; border-radius: 12px; padding: 11px 16px;
 }
 .btn:active { transform: scale(.98); }
-.btn.primary { background: var(--sk-grad); border: none; color: #fff; box-shadow: 0 4px 12px rgba(234,0,44,.25); }
+.btn.primary { background: var(--pink); border: none; color: #fff; box-shadow: 0 4px 12px rgba(238,61,109,.25); }
 .btn.ghost { background: transparent; }
 .btn.sm { padding: 7px 12px; font-size: 12.5px; border-radius: 9px; }
 .btn.block { width: 100%; }
 .btn:disabled { opacity: .45; cursor: default; }
 
-/* ---- 移?(?꾪꽣/?꾨━?? ---- */
+/* ---- 칩 (필터/프리셋) ---- */
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
-  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  border: 1px solid #c6ccd6; background: var(--card); color: var(--ink-2);
   font-size: 12.5px; font-weight: 600; padding: 7px 12px; border-radius: 999px;
 }
-.chip.on { background: #1A1C22; border-color: #1A1C22; color: #fff; }
-.chip.on.brand { background: var(--sk-grad); border-color: transparent; }
+.chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.chip.on.brand { background: var(--pink); border-color: transparent; }
 
-/* ---- ??---- */
+/* ---- 폼 ---- */
 .field { margin-bottom: 12px; }
 .field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; }
 .field input, .field select {
-  width: 100%; border: 1px solid var(--line); border-radius: 10px;
+  width: 100%; border: 1px solid #cdd3dc; border-radius: 10px;
   padding: 10px 12px; font-size: 14px; background: var(--card); color: var(--ink);
 }
-.field input:focus, .field select:focus { outline: 2px solid rgba(234,0,44,.25); border-color: var(--sk-red); }
+.field input:focus, .field select:focus { outline: 2px solid rgba(238,61,109,.25); border-color: var(--pink); }
 .field .hint { font-size: 11.5px; color: var(--ink-3); margin-top: 4px; }
 
-/* ---- 怨듭슜 由ъ뒪????---- */
+/* ---- 검색바 (ref 03: 법인카드 사용내역 상단) ---- */
+.searchbar {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid #cdd3dc; border-radius: 10px;
+  padding: 0 12px; height: 42px; margin-bottom: 10px;
+}
+.searchbar input { flex: 1; border: none; outline: none; font-size: 14px; background: transparent; color: var(--ink); min-width: 0; }
+.searchbar input::placeholder { color: #9aa2b1; }
+.searchbar .mag { color: var(--ink-3); font-size: 15px; flex: 0 0 auto; }
+
+/* ---- 공용 리스트 행 (영수증/카드내역) ---- */
 .rcpt-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
 .rcpt-row:last-child { border-bottom: none; }
 .rcpt-thumb {
   width: 42px; height: 42px; border-radius: 10px; flex: 0 0 auto;
-  background: #EEF0F4; display: flex; align-items: center; justify-content: center;
+  background: #eef0f4; display: flex; align-items: center; justify-content: center;
   font-size: 18px; overflow: hidden; border: 1px solid var(--line);
 }
 .rcpt-thumb img { width: 100%; height: 100%; object-fit: cover; }
@@ -148,10 +170,10 @@ a { color: inherit; text-decoration: none; }
 .rcpt-amt .a1 { font-size: 14px; font-weight: 800; }
 .rcpt-amt .a2 { font-size: 11px; color: var(--ink-3); }
 
-/* ---- ?댄똻 (李⑦듃 ?몃쾭) ---- */
+/* ---- 툴팁 (차트 호버) ---- */
 .viz-tip {
   position: fixed; z-index: 90; pointer-events: none; display: none;
-  background: #1A1C22; color: #fff; font-size: 12px; line-height: 1.45;
+  background: var(--navy); color: #fff; font-size: 12px; line-height: 1.45;
   padding: 8px 10px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25);
   max-width: 240px;
 }
@@ -160,11 +182,12 @@ a { color: inherit; text-decoration: none; }
 
 .muted { color: var(--ink-3); font-size: 12px; }
 .num { font-variant-numeric: tabular-nums; }
+
 /* ============================================================
-   紐⑤컮?????щ＼ ??李띿쑝硫???(SK 猷⑹븻??
-   ???붾㈃ 湲곗?, ?곗뒪?ы넲?먯꽌 蹂대㈃ 430px ?꾨젅?꾩쑝濡?以묒븰 ?뺣젹
+   앱 크롬 — AXE_Acc M
+   실 화면 기준, 데스크톱에서 보면 430px 프레임으로 중앙 정렬
    ============================================================ */
-body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 */
+body.mobile { background: #FFFFFF; }
 .app {
   max-width: 430px; min-height: 100dvh; margin: 0 auto;
   background: var(--surface);
@@ -172,19 +195,18 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
   position: relative;
 }
 
-/* ---- ?곗뒪?ы넲?먯꽌???대????꾨젅?꾩쑝濡??쒖떆 (諛섏쓳?? ---- */
+/* ---- 데스크톱에서는 폰 프레임 미리보기 (반응형) ---- */
 @media (min-width: 501px) {
   body.mobile { padding: 28px 0; }
   .app {
     width: 390px; max-width: 390px;
     height: min(844px, calc(100vh - 56px)); min-height: 0;
     border-radius: 34px; border: 1px solid var(--line);
-    box-shadow: 0 24px 60px rgba(26,28,34,.18), 0 0 0 8px #1A1C22, 0 0 0 9px #3A3D46;
+    box-shadow: 0 24px 60px rgba(30,40,70,.18), 0 0 0 8px #262b40, 0 0 0 9px #3e455f;
     overflow-y: auto; overflow-x: hidden;
     scrollbar-width: none;
   }
   .app::-webkit-scrollbar { display: none; }
-  /* ?꾨젅???덉뿉?쒕뒗 ??컮媛 ?꾨젅???섎떒??怨좎젙 (?ㅼ뿉 ?ㅻ뒗 湲곕낯 洹쒖튃蹂대떎 ?곗꽑?섎룄濡???됲꽣 媛뺥솕) */
   body.mobile .app .tabbar {
     position: sticky; bottom: 0; left: auto; transform: none;
     width: 100%; max-width: none; margin-top: auto;
@@ -192,26 +214,74 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
     padding-bottom: 12px;
   }
   body.mobile .app .app-body { padding-bottom: 20px; }
+  body.mobile .app .drawer-back { position: absolute; }
 }
 
-/* ---- ?곷떒 ?ㅻ뜑 ---- */
+/* ---- 상단 헤더 (ref 01: 네이비 바 · ☰ + 중앙 타이틀 + 홈) ---- */
 .app-head {
-  background: var(--sk-grad);
+  background: var(--navy);
   color: #fff;
-  padding: 14px 18px 16px;
+  padding: 10px 12px;
   position: sticky; top: 0; z-index: 20;
 }
-.app-head .row1 { display: flex; align-items: center; justify-content: space-between; }
-.app-head .brand { font-size: 17px; font-weight: 800; letter-spacing: -.02em; display: flex; align-items: center; gap: 7px; }
+.app-head .row1 { display: flex; align-items: center; gap: 4px; }
+.app-head .h-icon {
+  width: 40px; height: 40px; flex: 0 0 auto; border: none; background: none; color: #dfe3f0;
+  display: flex; align-items: center; justify-content: center; border-radius: 10px;
+}
+.app-head .h-icon:active { background: rgba(255,255,255,.1); }
+.app-head .h-icon svg { width: 22px; height: 22px; }
+.app-head .h-title {
+  flex: 1; text-align: center; font-size: 16.5px; font-weight: 700; letter-spacing: .01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.app-head .h-title em { font-style: normal; color: #f79ab7; font-weight: 800; }
+.app-head .sub { font-size: 11.5px; color: #b9c0d6; text-align: center; padding: 1px 6px 4px; }
+/* 구 헤더 호환 (일부 화면이 .brand/.who를 참조해도 깨지지 않게) */
+.app-head .brand { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 7px; }
 .app-head .who { font-size: 11.5px; opacity: .85; text-align: right; line-height: 1.3; }
-.app-head .sub { font-size: 12px; opacity: .9; margin-top: 2px; }
 
-/* ---- 蹂몃Ц ---- */
+/* ---- 햄버거 드로어 (ref 02: 메뉴) ---- */
+.drawer-back {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(20,24,40,.45);
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.drawer-back.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 78%; max-width: 320px;
+  background: #fff; display: flex; flex-direction: column;
+  box-shadow: 12px 0 34px rgba(20,24,40,.25);
+  transform: translateX(-102%); transition: transform .22s ease;
+  overflow-y: auto;
+}
+.drawer-back.open .drawer { transform: translateX(0); }
+.drawer .d-head { padding: 26px 22px 16px; border-bottom: 1px solid var(--line); }
+.drawer .d-name { font-size: 19px; font-weight: 800; }
+.drawer .d-comp { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+.drawer .d-menu { padding: 10px 8px; flex: 1; }
+.drawer .d-menu a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 14px; border-radius: 10px;
+  font-size: 15px; font-weight: 600; color: var(--ink);
+}
+.drawer .d-menu a svg { width: 20px; height: 20px; color: var(--ink-3); flex: 0 0 auto; }
+.drawer .d-menu a.on { color: var(--pink); background: var(--pink-soft); }
+.drawer .d-menu a.on svg { color: var(--pink); }
+.drawer .d-menu a.sub { padding-left: 40px; font-size: 13.5px; font-weight: 500; color: var(--ink-2); }
+.drawer .d-foot { padding: 16px 22px 26px; }
+.drawer .d-foot .btn-sysq {
+  background: #3f4660; color: #fff; border: none; border-radius: 6px;
+  font-size: 13px; font-weight: 700; padding: 9px 18px;
+}
+.drawer .d-foot .tel { display: block; font-size: 12px; color: var(--ink-3); margin-top: 8px; }
+
+/* ---- 본문 ---- */
 .app-body { flex: 1; padding: 14px 14px 96px; }
 .section-title { font-size: 13px; font-weight: 800; color: var(--ink-2); margin: 18px 2px 8px; display: flex; justify-content: space-between; align-items: center; }
 .section-title:first-child { margin-top: 2px; }
 
-/* ---- ?섎떒 ??컮 ---- */
+/* ---- 하단 탭바 ---- */
 .tabbar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 430px; z-index: 30;
@@ -225,30 +295,70 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
   font-size: 10.5px; font-weight: 700; color: var(--ink-3); padding: 5px 0;
 }
 .tabbar a svg { width: 22px; height: 22px; }
-.tabbar a.on { color: var(--sk-red); }
+.tabbar a.on { color: var(--pink); }
 .tabbar a .cam-fab {
   width: 44px; height: 44px; border-radius: 50%; margin-top: -22px;
-  background: var(--sk-grad); display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 6px 16px rgba(234,0,44,.35); border: 3px solid #fff;
+  background: var(--pink-grad); display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 16px rgba(238,61,109,.35); border: 3px solid #fff;
 }
 .tabbar a .cam-fab svg { width: 20px; height: 20px; }
 
-/* ---- ????쒕낫???꾩슜 ---- */
+/* ============================================================
+   홈 (ref 01) — 인사말 + 소속 밴드 + 업무 바로가기
+   ============================================================ */
+.greet {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 18px 16px; display: flex; align-items: center; gap: 12px;
+}
+.greet .g-txt { flex: 1; font-size: 16.5px; line-height: 1.45; letter-spacing: -.01em; }
+.greet .g-txt .nm { font-size: 18px; font-weight: 800; }
+.greet .g-txt .sys { font-weight: 800; color: var(--pink); }
+.greet .g-illust {
+  flex: 0 0 auto; width: 74px; height: 74px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #fde8f0, #f9d3e2);
+  display: flex; align-items: center; justify-content: center; font-size: 34px;
+}
+.dept-band {
+  margin-top: 10px; background: var(--pink); color: #fff;
+  border-radius: 12px; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-evenly; gap: 6px;
+  font-size: 13px; font-weight: 700;
+  box-shadow: 0 4px 12px rgba(238,61,109,.22);
+}
+.dept-band i { width: 1px; height: 14px; background: rgba(255,255,255,.45); border-left: 1px dashed rgba(255,255,255,.7); }
+
+/* 업무 바로가기 2×2 카드 (건수 배지) */
+.short-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.short-card {
+  background: var(--card); border: 1px solid #cdd3dc; border-radius: 12px;
+  padding: 14px 14px 12px; display: flex; flex-direction: column; min-height: 118px;
+}
+.short-card:active { border-color: var(--pink); }
+.short-card b { font-size: 15px; letter-spacing: -.01em; }
+.short-card p { font-size: 11.5px; color: var(--ink-2); line-height: 1.45; margin-top: 4px; flex: 1; }
+.short-card .s-foot { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 8px; }
+.short-card .s-foot .cnt { font-size: 19px; font-weight: 800; color: var(--pink); line-height: 1; }
+.short-card .s-foot .cnt small { font-size: 12px; font-weight: 700; color: var(--ink); margin-left: 2px; }
+.short-card .s-foot .go { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.short-card .s-foot .s-ico { font-size: 22px; }
+
+/* ---- 홈 대시보드 히어로 (사용 총액) — 네이비 계열 ---- */
 .hero {
-  background: linear-gradient(160deg, #EA002C 0%, #F0512B 55%, #F47725 100%);
+  background: linear-gradient(150deg, #262b40 0%, #2b3152 58%, #3a4470 100%);
   border-radius: 18px; color: #fff; padding: 18px 16px 16px;
-  box-shadow: 0 8px 24px rgba(234,0,44,.28);
+  box-shadow: 0 8px 24px rgba(38,43,64,.30);
   position: relative; overflow: hidden;
 }
 .hero::after {
   content: ""; position: absolute; right: -30px; top: -40px; width: 160px; height: 160px;
-  background: rgba(255,255,255,.10); border-radius: 50%;
+  background: rgba(244,110,156,.14); border-radius: 50%;
 }
 .hero .h-label { font-size: 12px; opacity: .9; font-weight: 600; }
 .hero .h-amount { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 4px; }
 .hero .h-sub { font-size: 12px; opacity: .92; }
-.hero .g-track { background: rgba(255,255,255,.28); }
-.hero .g-fill { background: #fff; }
+.hero .g-track { background: rgba(255,255,255,.22); }
+.hero .g-fill { background: linear-gradient(90deg, #f46e9c, #ee3d6d); }
 .hero .gauge .g-head, .hero .gauge .g-foot { color: rgba(255,255,255,.9); }
 .hero .gauge .g-head b { color: #fff; }
 
@@ -258,17 +368,35 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
 .kpi2 .k-val { font-size: 18px; font-weight: 800; margin-top: 2px; }
 .kpi2 .k-sub { font-size: 11px; color: var(--ink-3); margin-top: 1px; }
 
-/* ---- 珥ъ쁺 ?붾㈃ ---- */
+/* ============================================================
+   문서함 3탭 (ref 04: 결재할 문서 / 결재문서 / 기안문서)
+   ============================================================ */
+.mtabs {
+  display: flex; background: var(--card); border-bottom: 2px solid var(--line);
+  border-radius: 12px 12px 0 0; margin-bottom: 12px; position: relative;
+}
+.mtabs button {
+  flex: 1; border: none; background: none; padding: 13px 0 11px;
+  font-size: 14px; font-weight: 700; color: var(--ink-3);
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+}
+.mtabs button.on { color: var(--pink); border-bottom-color: var(--pink); }
+
+/* 결재선 체인 (날짜+이름 › 날짜+이름) */
+.appr-chain { font-size: 12px; color: var(--ink-2); line-height: 1.7; margin-top: 8px; }
+.appr-chain .sep { color: #b3bac8; margin: 0 3px; }
+
+/* ---- 촬영 화면 ---- */
 .cam-stage {
-  background: #14161B; border-radius: 18px; overflow: hidden; position: relative;
+  background: #171a26; border-radius: 18px; overflow: hidden; position: relative;
   aspect-ratio: 3 / 4.1; display: flex; align-items: center; justify-content: center;
 }
-.cam-stage img.shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #14161B; }
+.cam-stage img.shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #171a26; }
 .cam-guide {
   position: absolute; inset: 26px 30px; border-radius: 12px; pointer-events: none;
-  box-shadow: 0 0 0 999px rgba(10,12,16,.45);
+  box-shadow: 0 0 0 999px rgba(14,16,28,.45);
 }
-.cam-guide i { position: absolute; width: 26px; height: 26px; border: 3px solid #F47725; }
+.cam-guide i { position: absolute; width: 26px; height: 26px; border: 3px solid #f46e9c; }
 .cam-guide i:nth-child(1) { left: -2px; top: -2px; border-right: 0; border-bottom: 0; border-radius: 8px 0 0 0; }
 .cam-guide i:nth-child(2) { right: -2px; top: -2px; border-left: 0; border-bottom: 0; border-radius: 0 8px 0 0; }
 .cam-guide i:nth-child(3) { left: -2px; bottom: -2px; border-right: 0; border-top: 0; border-radius: 0 0 0 8px; }
@@ -279,14 +407,14 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
 }
 .scanline {
   position: absolute; left: 8%; right: 8%; height: 3px; border-radius: 3px;
-  background: linear-gradient(90deg, transparent, #F47725, transparent);
+  background: linear-gradient(90deg, transparent, #f46e9c, transparent);
   animation: scan 1.5s ease-in-out infinite; display: none;
 }
 @keyframes scan { 0% { top: 12%; } 50% { top: 84%; } 100% { top: 12%; } }
 .cam-controls { display: flex; align-items: center; justify-content: space-around; padding: 16px 10px 4px; }
 .shutter {
   width: 66px; height: 66px; border-radius: 50%; border: 4px solid #fff;
-  background: var(--sk-grad); box-shadow: 0 0 0 3px rgba(234,0,44,.35), 0 6px 18px rgba(234,0,44,.35);
+  background: var(--pink-grad); box-shadow: 0 0 0 3px rgba(238,61,109,.35), 0 6px 18px rgba(238,61,109,.35);
 }
 .cam-side { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: var(--ink-2); background: none; border: none; }
 .cam-side .ic {
@@ -294,27 +422,27 @@ body.mobile { background: #FFFFFF; } /* ?щ갚? ?꾪솕吏泥섎읆 ?곗깋 
   border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 20px;
 }
 
-/* OCR 寃곌낵 ?꾨뱶 */
+/* OCR 결과 필드 */
 .ocr-grid { display: grid; grid-template-columns: 88px 1fr; row-gap: 9px; font-size: 13.5px; }
 .ocr-grid dt { color: var(--ink-3); font-weight: 600; font-size: 12.5px; }
 .ocr-grid dd { font-weight: 700; }
 .preset-why {
-  margin-top: 10px; background: #FFF6EF; border: 1px solid #F8D9BC;
-  border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #8A4A12; line-height: 1.55;
+  margin-top: 10px; background: var(--pink-soft); border: 1px solid #f2b9cd;
+  border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #a61e4d; line-height: 1.55;
 }
 
-/* ---- ?쇱젙 愿由?---- */
-.trip-card { border-left: 4px solid var(--sk-red); }
-.trip-card.foreign { border-left-color: var(--sk-orange-deep); }
+/* ---- 일정 관리 ---- */
+.trip-card { border-left: 4px solid var(--pink); }
+.trip-card.foreign { border-left-color: var(--navy-3); }
 .trip-card .t-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .trip-card .t-title { font-size: 15px; font-weight: 800; }
 .trip-card .t-route { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
 .trip-card .t-meta { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
 .slot-note { font-size: 11.5px; color: var(--ink-3); font-weight: 600; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; background: #ECEEF3; border-radius: 11px; padding: 3px; margin-bottom: 12px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: #e3e6ee; border-radius: 11px; padding: 3px; margin-bottom: 12px; }
 .seg button { border: none; background: none; padding: 9px 0; font-size: 13px; font-weight: 700; color: var(--ink-3); border-radius: 9px; }
-.seg button.on { background: #fff; color: var(--sk-red); box-shadow: 0 1px 4px rgba(26,28,34,.12); }
+.seg button.on { background: #fff; color: var(--pink); box-shadow: 0 1px 4px rgba(30,40,70,.12); }
 .form2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 
-/* 由ъ뒪???꾪꽣 ?곷떒 怨좎젙 */
-.filter-wrap { position: sticky; top: 64px; z-index: 10; background: var(--surface); padding: 8px 0 10px; }
+/* 리스트 필터 상단 고정 (헤더 높이 아래) */
+.filter-wrap { position: sticky; top: 70px; z-index: 10; background: var(--surface); padding: 8px 0 10px; }

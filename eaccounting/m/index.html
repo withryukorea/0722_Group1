@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AXE-acc 모바일 — 홈</title>
+<title>AXE_Acc M — 홈</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/mobile.css">
 </head>
@@ -12,20 +12,44 @@
   <header class="app-head"></header>
   <main class="app-body">
 
+    <!-- 인사말 + 소속 밴드 (ref 01-홈) -->
+    <section class="greet">
+      <div class="g-txt"><span class="nm" id="gName"></span> 님,<br><span class="sys">AXE_Acc M</span>에 오신 것을 환영합니다!!</div>
+      <div class="g-illust">💳</div>
+    </section>
+    <div class="dept-band" id="deptBand"></div>
+
+    <!-- 업무 바로가기 2×2 · 건수 배지 (ref 01-홈) -->
+    <div class="section-title">업무 바로가기</div>
+    <div class="short-grid">
+      <a class="short-card" href="receipts.html?f=cards">
+        <b>법인카드</b><p>법인카드 사용내역을 정산합니다.</p>
+        <div class="s-foot"><span class="cnt" id="cntCard"><span class="go">바로가기</span></span><span class="s-ico">💳</span></div>
+      </a>
+      <a class="short-card" href="docs.html">
+        <b>결재문서함</b><p>결재할 문서 및 완료 문서를 확인합니다.</p>
+        <div class="s-foot"><span class="cnt" id="cntDocs"><span class="go">바로가기</span></span><span class="s-ico">📑</span></div>
+      </a>
+      <a class="short-card" href="capture.html">
+        <b>영수증 촬영</b><p>자동 크롭·OCR 후 PC와 같은 저장소에 등록됩니다.</p>
+        <div class="s-foot"><span class="go">바로가기</span><span class="s-ico">📸</span></div>
+      </a>
+      <a class="short-card" href="schedule.html">
+        <b>출장 일정</b><p>출장 일정·한도와 예산 소진 현황을 확인합니다.</p>
+        <div class="s-foot"><span class="cnt" id="cntTrip"><span class="go">바로가기</span></span><span class="s-ico">🧳</span></div>
+      </a>
+    </div>
+
+    <!-- 결재 대기 알림 (서버 연결 시) -->
+    <div id="docsAlert"></div>
+
     <!-- 이번 달 사용 총액 -->
-    <section class="hero">
+    <section class="hero" style="margin-top:14px">
       <div class="h-label" id="heroLabel">2026년 7월 등록 지출</div>
       <div class="h-amount num" id="heroTotal"></div>
       <div class="h-sub" id="heroSub"></div>
       <div class="gauge" id="heroTrip"></div>
     </section>
-
-    <!-- 촬영 바로가기 -->
-    <a class="btn primary block" href="capture.html" style="margin-top:12px">📸 영수증 촬영하기</a>
-    <p class="muted" style="margin-top:6px;text-align:center;line-height:1.5">촬영하면 PC AXE-acc와 같은 저장소에 바로 저장됩니다<br>정산·전표 생성은 PC에서 진행하세요</p>
-
-    <!-- 결재 대기 알림 (서버 연결 시) -->
-    <div id="docsAlert"></div>
 
     <!-- 최근 영수증 -->
     <div class="section-title">최근 영수증 <a class="muted" href="receipts.html">전체보기 ›</a></div>
@@ -48,16 +72,26 @@
 <script src="js/m-chrome.js"></script>
 <script>
 const D = SKD;
-SKM.chrome("home", "영수증 사진 한 장으로 정산 끝 — AXE-acc 모바일 (PC와 같은 저장소)");
+SKM.chrome("home", "영수증 사진 한 장으로 정산 끝 · PC AXE-acc와 같은 저장소");
 const $ = (id) => document.getElementById(id);
+
+/* ---- 인사말 + 소속 밴드 (ref 01) ---- */
+$("gName").textContent = D.USER.name;
+$("deptBand").innerHTML = `<span>${D.USER.team}</span><i></i><span class="num">A1030</span><i></i><span>${D.USER.name} 팀원</span>`;
+const cnt = (id, n) => { $(id).innerHTML = `${n}<small>건</small>`; };
 
 /* ---- 요약·최근: 서버 실데이터 우선 ---- */
 (async () => {
   const receipts = await eaccApi("/api/receipts");
   if (receipts) {
-    /* 결재 대기 전표 알림 — 탭하면 문서함으로 */
+    /* 업무 바로가기 건수 배지 — 법인카드(영수증 미제출 승인내역) */
+    eaccApi("/api/transactions").then(ts => {
+      if (ts) cnt("cntCard", ts.filter(t => t.status !== "vouchered" && !t.matchedReceiptId).length);
+    });
+    /* 결재 대기 전표 알림 — 탭하면 문서함으로 (건수 배지 겸용) */
     eaccApi("/api/vouchers").then(vs => {
       const pending = (vs || []).filter(v => v.status === "submitted").length;
+      cnt("cntDocs", pending);
       if (pending) $("docsAlert").innerHTML = `
         <a class="card" href="docs.html" style="display:flex;align-items:center;gap:12px;margin-top:12px;border-left:4px solid var(--sk-orange)">
           <span style="font-size:22px">📑</span>
@@ -94,7 +128,15 @@ const $ = (id) => document.getElementById(id);
           </div>
         </div>`;
       }).join("") || '<p class="muted" style="padding:12px 0">아직 영수증이 없습니다 — 촬영해 보세요</p>';
+
+    /* 출장 게이지 — PC 정산 단위/일정 설정의 TRIP 정산단위 실데이터로 동기화 */
+    const trips = (await eaccApi("/api/presets?type=TRIP&active=true")) || [];
+    cnt("cntTrip", trips.length);
+    renderTripGauges(trips);
   } else {
+    /* 폴백 배지: 내장 데모 기준 */
+    cnt("cntCard", D.valid().filter(r => r.status === "review").length);
+    cnt("cntTrip", D.TRIPS.filter(t => t.status !== "done").length);
     /* 폴백: 시제품#1 내장 데모 */
     const july = D.valid().filter(r => r.paidAt.startsWith("2026-07"));
     const julyTotal = july.reduce((s, r) => s + r.amountKRW, 0);
@@ -128,6 +170,8 @@ const $ = (id) => document.getElementById(id);
           </div>
         </div>`;
       }).join("");
+
+    renderTripGaugesDemo();
   }
 })();
 
@@ -151,13 +195,42 @@ $("groupCards").innerHTML = D.GROUP_ORDER.map(g => {
     </div>`;
 }).join("").replace(/border-bottom:1px solid var\(--line\)(?![\s\S]*border-bottom)/, "border-bottom:none");
 
-$("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t => {
-  const cap = D.tripCap(t), spent = D.tripSpent(t);
-  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
-  const label = t.type === "domestic"
-    ? `식대 기준 ${D.krw(t.mealCapPerDayKRW)}/일 × ${D.tripDays(t)}일`
-    : `일일 Cap ${D.krw(t.dailyCapKRW)} × ${D.tripDays(t)}일`;
-  return `
+/* 출장 게이지: 서버 연결 시 TRIP 정산단위 실데이터, 미연결 시 내장 데모 폴백 */
+function renderTripGauges(trips) {
+  $("tripGauges").innerHTML = trips.map(p => {
+    const used = (p.usage && p.usage.usedKRW) || 0;
+    const limit = (p.rules && p.rules.limitKRW) || 0;
+    const pct = limit ? Math.min(100, used / limit * 100) : 0;
+    const over = limit && used > limit;
+    const [sLabel, sClass] = !p.period ? ["상시", "neutral"]
+      : p.period.start > D.TODAY ? ["예정", "info"]
+      : p.period.end < D.TODAY ? ["완료", "neutral"] : ["진행중", "brand"];
+    const perLabel = p.rules.limitPeriod === "daily" ? "일당" : p.rules.limitPeriod === "monthly" ? "월" : "총";
+    const foreign = p.meta && p.meta.country && p.meta.country !== "KR";
+    const periodTxt = p.period ? `${D.dateShort(p.period.start)}–${D.dateShort(p.period.end)}` : "";
+    return `
+    <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+      <div class="g-head">
+        <span>${foreign ? "✈" : "🚄"} ${p.name}
+          <span class="badge ${sClass}" style="margin-left:4px">${sLabel}</span></span>
+        <b class="num">${limit ? `${D.krw(used)} / ${D.krw(limit)}` : D.krw(used)}</b>
+      </div>
+      <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+      <div class="g-foot"><span>${periodTxt}${p.meta && p.meta.destination ? ` · ${p.meta.destination}` : ""}${limit ? ` · ${perLabel} 한도` : ""}</span>
+        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">
+          ${over ? "기준 초과 " + D.krw(used - limit) : sLabel === "예정" ? "일정 대기" : limit ? "기준 이내 · 잔여 " + D.krw(limit - used) : "한도 없음"}</span></div>
+    </div>`;
+  }).join("") + `<p class="muted" style="line-height:1.5">PC AXE-acc › 간편정산 › <b>정산 단위/일정 설정</b>에서 등록·수정한 출장이 실시간 반영됩니다</p>`;
+}
+
+function renderTripGaugesDemo() {
+  $("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t => {
+    const cap = D.tripCap(t), spent = D.tripSpent(t);
+    const pct = Math.min(100, spent / cap * 100), over = spent > cap;
+    const label = t.type === "domestic"
+      ? `식대 기준 ${D.krw(t.mealCapPerDayKRW)}/일 × ${D.tripDays(t)}일`
+      : `일일 Cap ${D.krw(t.dailyCapKRW)} × ${D.tripDays(t)}일`;
+    return `
     <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
       <div class="g-head">
         <span>${t.type === "domestic" ? "🚄" : "✈"} ${t.title}
@@ -170,7 +243,8 @@ $("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t =>
         <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">
           ${over ? "기준 초과 " + D.krw(spent - cap) : "기준 이내 · 잔여 " + D.krw(cap - spent)}</span></div>
     </div>`;
-}).join("") + `<p class="muted" style="line-height:1.5">국내 출장 식대는 일수 합산 기준으로 판정합니다. 예: 3일 출장 = 35,000원 × 3일 = 105,000원 이내</p>`;
+  }).join("") + `<p class="muted" style="line-height:1.5">국내 출장 식대는 일수 합산 기준으로 판정합니다. 예: 3일 출장 = 35,000원 × 3일 = 105,000원 이내</p>`;
+}
 </script>
 </body>
 </html>

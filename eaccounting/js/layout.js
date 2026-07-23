@@ -10,7 +10,7 @@
    ============================================================ */
 
 const EACC = {
-  user: { name: '홍길동', dept: '전력사업기획팀' },
+  user: { name: '정성훈', empNo: 'A0674', dept: 'Upstream기술팀', office: 'Upstream사업실' },
 
   // 상단 메뉴 → 파일명 매핑 (다른 툴이 만드는 화면과 합칠 때 여기만 고치면 됨)
   topLinks: {
@@ -32,7 +32,7 @@ const EACC = {
         { label: '자동매칭', icon: '🔗', href: 'quick-match.html' },
         { label: '정산·전표 생성', icon: '🧾', href: 'quick-settlement.html' },
         { label: '분석 대시보드', icon: '📊', href: 'quick-dashboard.html' },
-        { label: '정산단위 설정', icon: '🎛️', href: 'quick-presets.html' },
+        { label: '정산 단위/일정 설정', icon: '🎛️', href: 'quick-presets.html' },
         { label: '모바일에서 촬영', icon: '📱', href: 'quick-mobile.html' },
       ],
     },

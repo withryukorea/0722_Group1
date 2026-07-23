@@ -4,8 +4,8 @@
   // 서버 /api/vouchers/preview(정산단위/자동분류) 또는 상신된 전표 라인에서 그대로 받아 표시한다. (#1)
   const VAT_ACCOUNT = '[416101]부가가치세-매입';
   const CARD_ACCOUNT = '[410902]미지급비용-신용카드';
-  const DEPT_NAME = { AQ131: '전력사업기획팀', AQ132: '전력수급2팀', AQ133: '전력사업운영실' };
-  const DEPT_OF = { '김현준 기술위원': '전력사업기획팀', '박아무개 실장': '전력사업기획실', '최아무개 매니저': '경영기획실', '김예섬 팀장': '전력사업기획팀' };
+  const DEPT_NAME = { AQ131: 'Upstream기술팀', AQ132: '전력수급2팀', AQ133: '전력사업운영실' };
+  const DEPT_OF = { '김현준 기술위원': 'Upstream기술팀', '박아무개 실장': 'Upstream사업실', '최아무개 매니저': '경영기획실', '김예섬 팀장': 'Upstream기술팀' };
   const params = new URLSearchParams(location.search);
   const requestedVoucherId = params.get('voucherId');
   const requestedIds = (params.get('txIds') || '').split(',').filter(Boolean);
@@ -28,13 +28,13 @@
   };
 
   const fallbackTransactions = [
-    { id: 'tx_001', usedDate: '2026-07-21', approvedAt: '2026-07-21T12:24:31+09:00', merchant: '폴바셋광화문예금보험공사점', industry: '커피숍', amount: 20500, amountKRW: 20500, owner: '홍길동', dept: '전력사업기획팀' },
-    { id: 'tx_002', usedDate: '2026-07-20', approvedAt: '2026-07-20T21:41:32+09:00', merchant: '둘둘치킨종로1가점', industry: '일반주점', amount: 64000, amountKRW: 64000, owner: '홍길동', dept: '전력사업기획팀' },
-    { id: 'tx_003', usedDate: '2026-07-19', approvedAt: '2026-07-19T08:33:24+09:00', merchant: 'ANTHROPIC* CLAUDE SUB', industry: '컴퓨터소프트웨어매장', amount: 167435, amountKRW: 167435, owner: '홍길동', dept: '전력사업기획팀' },
-    { id: 'tx_004', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:44+09:00', merchant: '카카오_택시9', industry: '택시', amount: 34500, amountKRW: 34500, owner: '홍길동', dept: '전력사업기획팀' },
-    { id: 'tx_005', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:42+09:00', merchant: '카카오_택시9', industry: '택시', amount: 5000, amountKRW: 5000, owner: '홍길동', dept: '전력사업기획팀' },
-    { id: 'tx_006', usedDate: '2026-07-16', approvedAt: '2026-07-16T15:57:35+09:00', merchant: '오피스디포코리아', industry: '기타사무용품', amount: 58650, amountKRW: 58650, owner: '홍길동', dept: '전력사업기획팀' },
-    { id: 'tx_007', usedDate: '2026-07-10', approvedAt: '2026-07-10T09:02:39+09:00', merchant: 'OPENAI *CHATGPT SUBSCR', industry: '컴퓨터소프트웨어매장', amount: 162612, amountKRW: 162612, owner: '홍길동', dept: '전력사업기획팀' },
+    { id: 'tx_001', usedDate: '2026-07-21', approvedAt: '2026-07-21T12:24:31+09:00', merchant: '폴바셋광화문예금보험공사점', industry: '커피숍', amount: 20500, amountKRW: 20500, owner: '정성훈', dept: 'Upstream기술팀' },
+    { id: 'tx_002', usedDate: '2026-07-20', approvedAt: '2026-07-20T21:41:32+09:00', merchant: '둘둘치킨종로1가점', industry: '일반주점', amount: 64000, amountKRW: 64000, owner: '정성훈', dept: 'Upstream기술팀' },
+    { id: 'tx_003', usedDate: '2026-07-19', approvedAt: '2026-07-19T08:33:24+09:00', merchant: 'ANTHROPIC* CLAUDE SUB', industry: '컴퓨터소프트웨어매장', amount: 167435, amountKRW: 167435, owner: '정성훈', dept: 'Upstream기술팀' },
+    { id: 'tx_004', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:44+09:00', merchant: '카카오_택시9', industry: '택시', amount: 34500, amountKRW: 34500, owner: '정성훈', dept: 'Upstream기술팀' },
+    { id: 'tx_005', usedDate: '2026-07-16', approvedAt: '2026-07-16T02:58:42+09:00', merchant: '카카오_택시9', industry: '택시', amount: 5000, amountKRW: 5000, owner: '정성훈', dept: 'Upstream기술팀' },
+    { id: 'tx_006', usedDate: '2026-07-16', approvedAt: '2026-07-16T15:57:35+09:00', merchant: '오피스디포코리아', industry: '기타사무용품', amount: 58650, amountKRW: 58650, owner: '정성훈', dept: 'Upstream기술팀' },
+    { id: 'tx_007', usedDate: '2026-07-10', approvedAt: '2026-07-10T09:02:39+09:00', merchant: 'OPENAI *CHATGPT SUBSCR', industry: '컴퓨터소프트웨어매장', amount: 162612, amountKRW: 162612, owner: '정성훈', dept: 'Upstream기술팀' },
   ];
 
   document.querySelector('#btn-draft').addEventListener('click', submitVoucher);
@@ -115,7 +115,7 @@
       industry: (tx && tx.industry) || '',
       approvedAt: (tx && tx.approvedAt) || '',
       usedDate: (tx && tx.usedDate) || '',
-      owner: (tx && tx.owner) || '홍길동',
+      owner: (tx && tx.owner) || '정성훈',
       taxKind: meta.taxKind || '일반과세자',
       address: meta.address || '',
       foreign: meta.foreign || '',
@@ -168,7 +168,7 @@
   }
 
   function budgetLabel(costCenter) {
-    if (!costCenter) return '전력사업기획팀';
+    if (!costCenter) return 'Upstream기술팀';
     const code = String(costCenter).replace(/[[\]]/g, '');
     return DEPT_NAME[code] ? `[${code}]${DEPT_NAME[code]}` : `[${code}]`;
   }
@@ -209,7 +209,7 @@
       const cell = empties[i];
       cell.classList.remove('approval-empty');
       cell.classList.add('approval-person');
-      cell.innerHTML = `<span>${escapeHtml(DEPT_OF[name] || '전력사업기획팀')}</span><strong>${escapeHtml(name)}</strong>`;
+      cell.innerHTML = `<span>${escapeHtml(DEPT_OF[name] || 'Upstream기술팀')}</span><strong>${escapeHtml(name)}</strong>`;
     });
   }
 

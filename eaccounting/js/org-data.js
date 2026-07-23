@@ -47,10 +47,10 @@ const ORG_TREE = {
 
 /* 팀별 구성원 — 기안자 소속팀은 고정, 나머지 팀은 결정적(해시 기반) 생성 */
 const ORG_MEMBERS_FIXED = {
-  '전력사업기획팀': [
+  'Upstream기술팀': [
     { name: '김현준', role: '기술위원', grade: 'Manager' },
     { name: '박한별',   role: '팀원', grade: 'Manager' },
-    { name: '홍길동',   role: '팀원', grade: 'Manager', me: true },   // 기안자(나)
+    { name: '정성훈',   role: '팀원', grade: 'Manager', me: true },   // 기안자(나) · 사번 A0674
     { name: '김두리',   role: '팀원', grade: 'Manager' },
     { name: '남세움',   role: '팀원', grade: 'Manager' },
   ],

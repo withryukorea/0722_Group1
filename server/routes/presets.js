@@ -16,9 +16,11 @@ function fxRateOf(cur) {
  * 내 팀의 팀장 → 소속 실의 실장 → 본부장 순 (eaccounting/js/org-data.js 조직트리와 동일 인물) */
 const PROFILE = {
   userId: "u_me",
-  name: "홍길동",
+  empNo: "A0674",
+  name: "정성훈",
   rank: "매니저",
-  team: "전력사업기획팀",
+  team: "Upstream기술팀",
+  office: "Upstream사업실",
   costCenter: "AQ131",
   superiors: ["김현준 기술위원", "박아무개 실장"], // 차상위 → 차차상위
 };

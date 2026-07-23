@@ -59,7 +59,7 @@
     "type": "RECURRING",
     "source": "admin",
     "assignees": ["u_me"],
-    "target": { "scope": "team", "teams": ["전력사업기획팀"], "users": [] },
+    "target": { "scope": "team", "teams": ["Upstream기술팀"], "users": [] },
     "limitBasis": "shared",
     "period": null,
     "active": true,
@@ -105,6 +105,35 @@
       "approvalLine": ["김현준 기술위원"],
       "descriptionTemplate": "도쿄출장 {merchant}",
       "matchKeywords": ["JPY", "도쿄", "TOKYO"],
+      "requireItemized": false
+    },
+    "usage": { "usedKRW": 0, "byDay": {}, "byAccountCode": {} }
+  },
+  {
+    "id": "ps_daejeon_trip",
+    "name": "대전 연구원 방문",
+    "type": "TRIP",
+    "source": "employee",
+    "assignees": ["u_me"],
+    "target": { "scope": "users", "teams": [], "users": ["u_me"] },
+    "limitBasis": "shared",
+    "period": { "start": "2026-07-28", "end": "2026-07-29" },
+    "active": true,
+    "meta": { "destination": "대전", "country": "KR", "members": 1, "rank": "TEAM_MEMBER" },
+    "rules": {
+      "allowedAccountCodes": ["TRAVEL_MEAL", "TRAVEL_TRANSPORT", "TRAVEL_LODGING"],
+      "realAccountCode": "706101",
+      "costCenter": "AQ131",
+      "limitKRW": 155000,
+      "limitPeriod": "daily",
+      "approvalLineTemplate": {
+        "draft": "$DRAFTER",
+        "reviewers": [],
+        "approve": "$SUPERIOR"
+      },
+      "approvalLine": ["김현준 기술위원"],
+      "descriptionTemplate": "대전출장 {merchant}",
+      "matchKeywords": ["대전"],
       "requireItemized": false
     },
     "usage": { "usedKRW": 0, "byDay": {}, "byAccountCode": {} }

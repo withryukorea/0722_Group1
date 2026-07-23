@@ -68,7 +68,7 @@
         </section>
 
         <section class="card">
-          <div class="card-title">출장비 기준 대비 사용 <span class="more">데모 데이터 기준</span></div>
+          <div class="card-title">출장비 기준 대비 사용 <span class="more" id="srcTag3"></span></div>
           <div id="tripGauges"></div>
         </section>
       </div>
@@ -127,7 +127,7 @@ function renderDonut(segments, grand) {
 
   $("donutList").innerHTML = live.map(s => {
     const subs = Object.entries(s.subs).sort((a, b) => b[1] - a[1])
-      .map(([k, v]) => `${k} ${D.fmt(v / 1000)}k`).join(" · ");
+      .map(([k, v]) => `${k} ${D.fmt(v / 1000)}천원`).join(" · ");
     return `
       <div class="row"><span class="cat"><i style="background:${s.hex}"></i></span>
         <span class="nm">${s.name}</span>
@@ -239,6 +239,9 @@ function renderBars(months, defs) {
           <td class="num">${D.krw(r.amountKRW || 0)}</td></tr>`;
       }).join("")}</tbody>`
       : '<tbody><tr><td class="muted" style="padding:16px">아직 등록된 영수증이 없습니다</td></tr></tbody>';
+
+    /* 출장 게이지 — 정산 단위/일정 설정의 TRIP 정산단위 실데이터로 동기화 */
+    renderTripGauges((await eaccApi("/api/presets?type=TRIP&active=true")) || []);
   } else {
     /* ── 폴백: 시제품#1 내장 데모 ── */
     const all = D.valid();
@@ -313,20 +316,52 @@ function renderBars(months, defs) {
           <td class="muted">${D.dt(r.paidAt)}</td>
           <td class="num">${D.krw(r.amountKRW)}</td></tr>`;
       }).join("")}</tbody>`;
+
+    renderTripGaugesDemo();
   }
 })();
 
-/* ---- 가이드라인 + 출장 게이지 (데모 기준 유지) ---- */
+/* ---- 가이드라인 (정적 콘텐츠) ---- */
 $("rules").innerHTML = D.RULES.map((r, i) => `
   <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);${i === D.RULES.length - 1 ? "border-bottom:none" : ""}">
     <span style="flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:var(--sk-grad);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">${i + 1}</span>
     <div style="font-size:13px"><b>${r.t}</b><div class="muted" style="margin-top:2px;line-height:1.5">${r.d}</div></div>
   </div>`).join("");
 
-$("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t => {
-  const cap = D.tripCap(t), spent = D.tripSpent(t);
-  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
-  return `
+/* ---- 출장 게이지: 서버 연결 시 TRIP 정산단위 실데이터, 미연결 시 내장 데모 폴백 ---- */
+function renderTripGauges(trips) {
+  $("srcTag3").textContent = "서버 실데이터 · 정산 단위/일정 설정 연동";
+  $("tripGauges").innerHTML = trips.map(p => {
+    const used = (p.usage && p.usage.usedKRW) || 0;
+    const limit = (p.rules && p.rules.limitKRW) || 0;
+    const pct = limit ? Math.min(100, used / limit * 100) : 0;
+    const over = limit && used > limit;
+    const [sLabel, sClass] = !p.period ? ["상시", "neutral"]
+      : p.period.start > D.TODAY ? ["예정", "info"]
+      : p.period.end < D.TODAY ? ["완료", "neutral"] : ["진행중", "brand"];
+    const perLabel = p.rules.limitPeriod === "daily" ? "일당" : p.rules.limitPeriod === "monthly" ? "월" : "총";
+    const foreign = p.meta && p.meta.country && p.meta.country !== "KR";
+    const periodTxt = p.period ? `${D.dateShort(p.period.start)}–${D.dateShort(p.period.end)}` : "";
+    return `
+  <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+    <div class="g-head">
+      <span>${foreign ? "✈" : "🚄"} <b>${p.name}</b>
+        <span class="badge ${sClass}" style="margin-left:4px">${sLabel}</span></span>
+      <b class="num">${limit ? `${D.krw(used)} / ${D.krw(limit)}` : D.krw(used)}</b>
+    </div>
+    <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+    <div class="g-foot"><span>${periodTxt}${p.meta && p.meta.destination ? ` · ${p.meta.destination}` : ""}${limit ? ` · ${perLabel} 한도` : ""}</span>
+      <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "기준 초과 " + D.krw(used - limit) : sLabel === "예정" ? "일정 대기" : "기준 이내 ✓"}</span></div>
+  </div>`;
+  }).join("") || '<p class="muted">등록된 출장 정산단위가 없습니다 — <a href="quick-presets.html">정산 단위/일정 설정</a>에서 등록하세요</p>';
+}
+
+function renderTripGaugesDemo() {
+  $("srcTag3").textContent = "내장 데모 데이터 기준";
+  $("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t => {
+    const cap = D.tripCap(t), spent = D.tripSpent(t);
+    const pct = Math.min(100, spent / cap * 100), over = spent > cap;
+    return `
   <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
     <div class="g-head">
       <span>${t.type === "domestic" ? "🚄" : "✈"} <b>${t.title}</b></span>
@@ -336,7 +371,8 @@ $("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t =>
     <div class="g-foot"><span>${t.capNote}</span>
       <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "기준 초과" : "기준 이내 ✓"}</span></div>
   </div>`;
-}).join("");
+  }).join("");
+}
 </script>
 </body>
 </html>

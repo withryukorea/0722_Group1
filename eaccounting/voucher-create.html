@@ -51,11 +51,11 @@
           <th style="width:19%;">승인</th>
         </tr>
         <tr>
-          <td>전력사업기획팀<br><b>홍길동 매니저</b></td>
+          <td>Upstream기술팀<br><b>정성훈 매니저</b></td>
           <td style="width:19%;" id="review-1"></td>
           <td style="width:19%;"></td>
           <td style="width:19%;"></td>
-          <td>전력사업기획팀<br><b>김현준 기술위원</b></td>
+          <td>Upstream기술팀<br><b>김현준 기술위원</b></td>
         </tr>
       </table>
     </section>
@@ -78,7 +78,7 @@
           <td class="lbl">전기일자 <span style="color:var(--red)">*</span></td>
           <td><input type="date" id="post-date" style="height:32px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;"></td>
           <td class="lbl">작성자</td>
-          <td>홍길동 - 전력사업기획팀</td>
+          <td>정성훈 - Upstream기술팀</td>
         </tr>
       </table>
 
@@ -286,7 +286,7 @@ function renderCardDetail() {
   const addr = r.merchant.startsWith('폴바셋') ? '서울 중구 청계천로30 1층 (다동 예금보험공사)' : '-';
   const taxer = r.vat > 0 ? '일반과세자' : '면세사업자';
   document.getElementById('card-detail').innerHTML = `
-    <tr><td class="lbl">카드소지자</td><td style="width:34%;">홍길동 Manager - [전력사업기획팀]</td>
+    <tr><td class="lbl">카드소지자</td><td style="width:34%;">정성훈 Manager - [Upstream기술팀]</td>
         <td class="lbl">카드번호</td><td>${r.cardNo}</td></tr>
     <tr><td class="lbl">이용일자</td><td>${r.payAt} (${weekday(r.useDate)})</td>
         <td class="lbl">가맹점</td><td>${r.merchant}/${r.biz}/${taxer}</td></tr>
@@ -453,7 +453,7 @@ function initInfo() {
   document.getElementById('evid-date').value = `${y}-${m}-${d}`;
   document.getElementById('post-date').value = `${y}-${m}-${d}`;
   const total = lines.reduce((s, l) => s + l.amount, 0);
-  if (total > 300000 && !window._apvLine) document.getElementById('review-1').innerHTML = '전력사업기획실<br><b>박아무개 실장</b>';
+  if (total > 300000 && !window._apvLine) document.getElementById('review-1').innerHTML = 'Upstream사업실<br><b>박아무개 실장</b>';
 }
 
 /* ── 유형 선택 팝업 ── */
@@ -514,7 +514,7 @@ window.addEventListener('scroll', () => {
    나머지는 사용자가 확인/수정한다. 사용자가 이미 입력한 칸은 덮어쓰지 않는다. */
 let previewData = null;                  // 마지막 preview 응답 (상신 시 receiptId/presetId/결재선의 근거)
 const previewByTx = new Map();           // txId → preview 라인
-const DEPT_OF = { '김현준 기술위원': '전력사업기획팀', '박아무개 실장': '전력사업기획실', '최아무개 매니저': '경영기획실' };
+const DEPT_OF = { '김현준 기술위원': 'Upstream기술팀', '박아무개 실장': 'Upstream사업실', '최아무개 매니저': '경영기획실' };
 
 async function loadPreview() {
   if (!draft.apiMode) return false;
@@ -625,12 +625,12 @@ function applyAiPolicy() {
     const l = lines[i];
     l.acct = '[726350]수수료-기타';
     l.budgetDept = fmtDept('AQ131');
-    l.memo = `[AI구독료] ${l.merchant}_홍길동`;
+    l.memo = `[AI구독료] ${l.merchant}_정성훈`;
   });
   // 고정 검토자 추가 (결재선 변경 팝업과 같은 체계 사용 → 결재선지정 표에 즉시 반영)
   window._apvLine = [
     { type: '검토', name: '최아무개 매니저', dept: '경영기획실' },
-    { type: '승인', name: '김현준 기술위원', dept: '전력사업기획팀' },
+    { type: '승인', name: '김현준 기술위원', dept: 'Upstream기술팀' },
   ];
   apvApplyToTable(window._apvLine);
   renderLines(); renderBudget();

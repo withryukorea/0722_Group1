@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AXE-acc - 간편정산 · 정산단위 설정</title>
+<title>AXE-acc - 간편정산 · 정산 단위/일정 설정</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="css/common.css">
 <link rel="stylesheet" href="css/quick.css">
@@ -44,7 +44,7 @@
   <main class="content">
     <div id="breadcrumb" class="breadcrumb"></div>
     <div class="page-heading">
-      <h2 class="page-title">정산단위 설정 <span class="fav off">★</span></h2>
+      <h2 class="page-title">정산 단위/일정 설정 <span class="fav off">★</span></h2>
     </div>
 
     <div class="qk">
@@ -151,7 +151,7 @@
             </div>
             <div class="fr" style="margin-top:8px"><span class="k">검토자 추가</span>
               <input type="text" id="pReviewer" placeholder="이름 입력 후 Enter (예: 이진현 매니저)" style="flex:1"></div>
-            <p class="muted">직급이 전원 "매니저"이므로 [상위자]는 조직도·직책 기준으로 해석됩니다 — 예: 홍길동 기안 시 [상위자] → <b>김현준 기술위원</b>.</p>
+            <p class="muted">직급이 전원 "매니저"이므로 [상위자]는 조직도·직책 기준으로 해석됩니다 — 예: 정성훈 기안 시 [상위자] → <b>김현준 기술위원</b>.</p>
           </div>
         </div>
         <p class="muted" id="saveMsg" style="margin-top:10px"></p>
@@ -163,8 +163,8 @@
 <script src="js/layout.js"></script>
 <script src="js/quick-data.js"></script>
 <script>
-renderChrome({ top: '간편정산', active: '정산단위 설정',
-               breadcrumb: ['메뉴', '간편정산', '정산단위 설정'] });
+renderChrome({ top: '간편정산', active: '정산 단위/일정 설정',
+               breadcrumb: ['메뉴', '간편정산', '정산 단위/일정 설정'] });
 
 const D = SKD;
 const $ = (id) => document.getElementById(id);
@@ -183,7 +183,7 @@ const TYPE_BADGE = {
 async function load() {
   PRESETS = (await eaccApi("/api/presets")) || null;
   if (PRESETS === null) {
-    $("srcNote").innerHTML = '<span class="badge neutral">서버 미연결</span> 정산단위 설정은 서버(:4000) 실데이터 기능입니다 — <code>cd server → npm start</code>';
+    $("srcNote").innerHTML = '<span class="badge neutral">서버 미연결</span> 정산 단위/일정 설정은 서버(:4000) 실데이터 기능입니다 — <code>cd server → npm start</code>';
     $("listTbl").innerHTML = "";
     return;
   }
@@ -307,8 +307,8 @@ function scopeChanged() {
   t.disabled = form.scope === "company";
   t.value = "";
   t.placeholder = form.scope === "company" ? "전사 구성원 전체 (신청자 자동 적용)"
-    : form.scope === "teams" ? "팀명 입력 (쉼표 구분 · 예: 전력사업기획팀)"
-    : "명단 입력 (쉼표 구분 · 예: 홍길동, 박한별)";
+    : form.scope === "teams" ? "팀명 입력 (쉼표 구분 · 예: Upstream기술팀)"
+    : "명단 입력 (쉼표 구분 · 예: 정성훈, 박한별)";
 }
 
 function openForm(p) {

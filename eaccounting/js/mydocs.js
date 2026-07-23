@@ -17,8 +17,8 @@
   const requestedView = new URLSearchParams(location.search).get('view') || 'approval-all';
   const viewKey = VIEW_ALIASES[requestedView] || (VIEW_CONFIG[requestedView] ? requestedView : 'approval-all');
   const config = VIEW_CONFIG[viewKey];
-  const currentUser = (typeof EACC !== 'undefined' && EACC.user && EACC.user.name) || '홍길동';
-  const currentDept = (typeof EACC !== 'undefined' && EACC.user && EACC.user.dept) || '전력사업기획팀';
+  const currentUser = (typeof EACC !== 'undefined' && EACC.user && EACC.user.name) || '정성훈';
+  const currentDept = (typeof EACC !== 'undefined' && EACC.user && EACC.user.dept) || 'Upstream기술팀';
   const companyName = 'SKㅇㅇ 주식회사';
   const $ = (selector) => document.querySelector(selector);
   const state = { all: [], view: [], loading: false };

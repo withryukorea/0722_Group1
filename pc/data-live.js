@@ -18,7 +18,7 @@ window.SKD = (function () {
   const API = window.PC_API;
   const TODAY = "2026-07-22";
 
-  const USER = { name: "홍길동", team: "전력사업기획팀", office: "서울 종로 (SK서린빌딩)" };
+  const USER = { name: "정성훈", team: "Upstream기술팀", office: "서울 종로 (SK서린빌딩)" };
 
   const GROUPS = {
     domestic: { name: "국내출장", hex: "#EA002C" },
@@ -54,7 +54,7 @@ window.SKD = (function () {
     { t: "환율", d: "USD 1,500원 고정 (데모). 원본 통화 보존, 환산액(amountKRW)으로 집계·한도 차감" }
   ];
   const AI_POLICY = {
-    budgetDept: "전력사업기획팀", account: "복지-AI구독 (DIY100)", reviewer: "현업검토 · 이대리",
+    budgetDept: "Upstream기술팀", account: "복지-AI구독 (DIY100)", reviewer: "현업검토 · 이대리",
     memo: (tool, who) => `[AI구독료] ${tool}_${who}`
   };
 

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git clone https://github.com/withryukorea/0722_Group1.git C:\\\\Users\\\\admin\\\\Documents\\\\claude_pjt\\\\bootcamp)",
+      "PowerShell(git -C C:\\\\Users\\\\admin\\\\Documents\\\\claude_pjt\\\\bootcamp checkout -b main --track origin/main)",
+      "PowerShell(git -C C:\\\\Users\\\\admin\\\\Documents\\\\claude_pjt\\\\bootcamp status --short)",
+      "PowerShell(git -C C:\\\\Users\\\\admin\\\\Documents\\\\claude_pjt\\\\bootcamp log --oneline -3)",
+      "PowerShell(git -C C:\\\\Users\\\\admin\\\\Documents\\\\claude_pjt\\\\bootcamp show origin/main:CONTRIBUTING.md)"
+    ]
+  }
+}
