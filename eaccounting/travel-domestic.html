@@ -47,9 +47,9 @@
           <th style="width:19%;">기안</th><th colspan="3">검토</th><th style="width:19%;">승인</th>
         </tr>
         <tr>
-          <td>전력사업기획팀<br><b>홍길동 팀원</b></td>
+          <td>Upstream기술팀<br><b>정성훈 팀원</b></td>
           <td style="width:19%;" id="review-1"></td><td style="width:19%;"></td><td style="width:19%;"></td>
-          <td>전력사업기획팀<br><b>김아무개 팀장</b></td>
+          <td>Upstream기술팀<br><b>김현준 기술위원</b></td>
         </tr>
       </table>
     </section>
@@ -62,7 +62,7 @@
           <td class="lbl-left">👤 출장자 <span class="req">*</span></td>
           <td>
             <div class="traveler-controls">
-              <input class="traveler-name" type="text" id="t-name" value="홍길동" aria-label="출장자 이름">
+              <input class="traveler-name" type="text" id="t-name" value="정성훈" aria-label="출장자 이름">
               <select class="traveler-rank" id="t-rank" onchange="renderSummary()" aria-label="출장자 직급">
                 <option value="CEO">CEO</option><option value="DIVISION_HEAD">부문장</option>
                 <option value="HQ_HEAD">본부장</option><option value="TEAM_LEAD">팀장</option>
@@ -218,8 +218,8 @@
           </div>
           <div class="row">
             <span class="lb">출장자</span>
-            <input type="text" value="홍길동" style="width:180px; height:34px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
-            <span style="color:#666;">[ 부서명 : 전력사업기획팀 ]</span>
+            <input type="text" value="정성훈" style="width:180px; height:34px; border:1px solid #cdd3dc; border-radius:4px; padding:0 8px;">
+            <span style="color:#666;">[ 부서명 : Upstream기술팀 ]</span>
           </div>
         </div>
         <button class="btn-search" style="height:60px;" onclick="searchTrips()">조회</button>
@@ -313,7 +313,7 @@ function calcNights() {
 /* ── 현금이용내역 ── */
 const TYPE_OPTS = ['일당', '숙박비', '교통비', '기타', '일당초과'];
 function addCashRow() {
-  cashLines.push({ type: '교통비', detail: '', amount: 0, budgetDept: '[AQ131]전력사업기획팀', memo: '', user: '홍길동', date: '' }); // #6 기안자 소속 기본값
+  cashLines.push({ type: '교통비', detail: '', amount: 0, budgetDept: '[AQ131]Upstream기술팀', memo: '', user: '정성훈', date: '' }); // #6 기안자 소속 기본값
   renderCashLines(); renderSummary();
 }
 function updCash(i, key, val) {
@@ -343,7 +343,7 @@ function renderCashLines() {
     </tr>`).join('')
     : `<tr><td colspan="11" style="color:var(--text-sub); height:52px;"></td></tr>`;
 }
-function bulkApplyCash() { cashLines.forEach(l => { l.budgetDept = l.budgetDept || '[AQ131]전력사업기획팀'; }); renderCashLines(); }
+function bulkApplyCash() { cashLines.forEach(l => { l.budgetDept = l.budgetDept || '[AQ131]Upstream기술팀'; }); renderCashLines(); }
 function deleteCashRows() {
   const del = [...document.querySelectorAll('.cash-chk:checked')].map(c => Number(c.value));
   if (!del.length) { alert('삭제할 행을 선택해 주세요.'); return; }
@@ -402,7 +402,7 @@ function renderSummary() {
     `<tr><td class="grp" colspan="2">총계</td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td>
      <td class="r"></td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td><td class="cap">-</td></tr>`;
   renderDomesticPolicy(role, dailyLimit, lodgeLimit);
-  if (!window._apvLine) document.getElementById('review-1').innerHTML = total > 300000 ? '전력사업기획실<br><b>박아무개 실장</b>' : '';
+  if (!window._apvLine) document.getElementById('review-1').innerHTML = total > 300000 ? 'Upstream사업실<br><b>박아무개 실장</b>' : '';
 }
 
 async function syncTravelPolicy() {
@@ -442,7 +442,7 @@ async function submitVoucher() {
     body: {
       title: `국내출장비 정산 (${city})`,
       lines: cashLines.map(l => ({ amountKRW: l.amount, description: `[현금/${l.type}] ${l.detail || '실비'}` })),
-      approvalLine: apvLineNames() || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 실장']),
+      approvalLine: apvLineNames() || (total <= 300000 ? ['김현준 기술위원'] : ['김현준 기술위원', '박아무개 실장']),
     },
   });
   if (r.ok) {

@@ -151,7 +151,7 @@
             </div>
             <div class="fr" style="margin-top:8px"><span class="k">검토자 추가</span>
               <input type="text" id="pReviewer" placeholder="이름 입력 후 Enter (예: 이진현 매니저)" style="flex:1"></div>
-            <p class="muted">직급이 전원 "매니저"이므로 [상위자]는 조직도·직책 기준으로 해석됩니다 — 예: 홍길동 기안 시 [상위자] → <b>김아무개 팀장</b>.</p>
+            <p class="muted">직급이 전원 "매니저"이므로 [상위자]는 조직도·직책 기준으로 해석됩니다 — 예: 정성훈 기안 시 [상위자] → <b>김현준 기술위원</b>.</p>
           </div>
         </div>
         <p class="muted" id="saveMsg" style="margin-top:10px"></p>
@@ -307,8 +307,8 @@ function scopeChanged() {
   t.disabled = form.scope === "company";
   t.value = "";
   t.placeholder = form.scope === "company" ? "전사 구성원 전체 (신청자 자동 적용)"
-    : form.scope === "teams" ? "팀명 입력 (쉼표 구분 · 예: 전력사업기획팀)"
-    : "명단 입력 (쉼표 구분 · 예: 홍길동, 이몽룡)";
+    : form.scope === "teams" ? "팀명 입력 (쉼표 구분 · 예: Upstream기술팀)"
+    : "명단 입력 (쉼표 구분 · 예: 정성훈, 이몽룡)";
 }
 
 function openForm(p) {

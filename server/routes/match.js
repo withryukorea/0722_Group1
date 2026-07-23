@@ -179,7 +179,7 @@ function approvalLineFor(lines, totalKRW) {
     .filter((r) => r.category === domCat)
     .sort((a, b) => a.maxKRW - b.maxKRW);
   const rule = rules.find((r) => totalKRW <= r.maxKRW) || rules[rules.length - 1];
-  return rule ? rule.approvers : ["김아무개 팀장"];
+  return rule ? rule.approvers : ["김현준 기술위원"];
 }
 
 /* 부가세 분리 — 면세(교통)·해외/구독 건은 부가세 없음, 그 외 공급가액 = ceil(금액/1.1) */

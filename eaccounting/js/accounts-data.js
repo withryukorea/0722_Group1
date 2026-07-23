@@ -32,7 +32,7 @@ const ACCOUNTS = [
 
 /* 예산부서 목록 — 화면 표기: [코드]부서명 */
 const BUDGET_DEPTS = [
-  { code: 'AQ131', name: '전력사업기획팀' },
+  { code: 'AQ131', name: 'Upstream기술팀' },
   { code: 'AQ132', name: '전력수급2팀' },
   { code: 'AQ133', name: '전력사업운영실' },
   // 정산 개선 요구 #2 — 법인카드 정산 예산부서 선택지 (신규 마스터 데이터)
