@@ -173,8 +173,10 @@ CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accou
 
 ## Storage
 
-- DB 없음 — 인메모리(`server/store.js`) + fixtures JSON 초기값. 서버 재시작 시 fixtures로 리셋 (의도된 동작).
-- 이미지 저장: `server/uploads/` (원본/크롭 분리 경로), `.gitignore` 처리됨.
+- 런타임은 인메모리 `server/store.js` 계약을 유지하고 fixtures JSON을 최초값으로 사용한다. Supabase 미설정 로컬 개발만 서버 재시작 시 fixtures로 리셋된다.
+- 이미지 저장: 배포에서는 Supabase 비공개 `receipt-images` Storage(원본/크롭 분리), API 프록시로 열람. Supabase 미설정 로컬 개발만 `server/uploads/` 사용.
+- 런타임 상태: `public.app_state(id=main)` JSONB가 영수증·카드내역·정산단위·전표의 단일 영구 스냅샷이다. 기존 `store.js` 객체 계약은 유지하며 성공한 쓰기 응답 전에 revision을 올려 저장한다.
+- 서버 시작: 저장된 `app_state.data`가 있으면 fixtures보다 우선 복원하고, 비어 있으면 fixtures를 최초 시드로 한 번 저장한다. 배포 재시작은 시드를 덮어쓰지 않는다.
 
 ## Known Gaps
 

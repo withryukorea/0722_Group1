@@ -37,6 +37,7 @@
 | PATCH | `/api/transactions/:id` | 상태/매칭 갱신 (기존 유지) |
 | POST | `/api/receipts` (multipart) | 실 이미지 → Vision OCR(성공만 저장, `ocrMode:"real"`), 데모 `{key}` → WoZ(`ocrMode:"woz"`). 실패 시 저장 안 함 |
 | GET | `/api/receipts/ocr-status` | 비밀값 없이 실 OCR 설정 여부·모델 조회 |
+| GET | `/api/persistence-status` | Supabase 설정·준비·revision·최근 저장 시각 조회(키 비노출) |
 | PATCH | `/api/receipts/:id` | 사용자가 `presetId`·`accountCode`·`vat.confirmed` 확정 |
 | POST | `/api/match` | body: `{receiptIds[]}` → 거래 매칭 결과 `[{receiptId, txId, score}]` |
 | POST | `/api/vouchers/preview` | 매칭된 건들로 전표 초안 생성 (정산단위 규칙 반영) |
@@ -137,6 +138,8 @@
 - `GET /api/receipts/ocr-status` — 비밀값 없이 `{configured, model, demoKeyFallback:true, actualUploadFallback:false}` 반환.
 
 응답 공통에 `ocrMode`, `source`("mobile"|"pc"), `crop:{status:"auto"|"manual"|"original", updatedAt}` 포함.
+
+실 이미지가 Supabase 모드에서 저장되면 `imageUrl`/`croppedUrl`은 `/api/receipts/:id/image?variant=...` 프록시를 가리킨다. 원본 객체 경로는 `receipt.storage`에 보존하며 버킷은 비공개다. Storage 또는 `app_state` 저장이 실패하면 성공 응답을 내지 않고 `503` + `saved:false`를 반환한다.
 
 > 배포: `render.yaml`은 `LETSUR_API_KEY`를 `sync:false`로 선언한다. 실제 값은 Render Environment에 비공개로 설정한다. 실제 사진 업로드는 `ocrMode:"real"`만 성공으로 취급하고, 실패 시 WoZ 데이터나 기존 시드로 자동 전환하지 않는다.
 

@@ -20,3 +20,11 @@ services:
         value: gpt-4o
       - key: OCR_TIMEOUT_MS
         value: 30000
+      - key: SUPABASE_URL
+        sync: false       # Supabase 프로젝트의 Project URL
+      - key: SUPABASE_SECRET_KEY
+        sync: false       # Supabase 서버 전용 sb_secret 키
+      - key: SUPABASE_BUCKET
+        value: receipt-images
+      - key: SUPABASE_STATE_ID
+        value: main

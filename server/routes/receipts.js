@@ -13,6 +13,7 @@ const multer = require("multer");
 const { db, nextReceiptId, recomputeUsage } = require("../store");
 const { suggestPreset } = require("./presets");
 const { recognizeReceipt } = require("../ocr");
+const persistence = require("../persistence");
 
 const router = express.Router();
 
@@ -142,14 +143,43 @@ router.post("/", upload.fields([{ name: "image", maxCount: 1 }, { name: "cropped
   }
 
   const id = nextReceiptId();
+  let storedFiles = null;
+  if (original && persistence.isCloudEnabled()) {
+    try {
+      const storedOriginal = await persistence.uploadReceiptFile(id, "original", original);
+      const storedCropped = cropped
+        ? await persistence.uploadReceiptFile(id, "cropped", cropped)
+        : storedOriginal;
+      storedFiles = {
+        originalPath: storedOriginal.path,
+        originalContentType: storedOriginal.contentType,
+        croppedPath: storedCropped.path,
+        croppedContentType: storedCropped.contentType,
+      };
+      removeUpload(original);
+      if (cropped) removeUpload(cropped);
+    } catch (error) {
+      removeUpload(original);
+      removeUpload(cropped);
+      return res.status(503).json({
+        error: "STORAGE_UPLOAD_FAILED",
+        message: "영수증 이미지를 영구 저장하지 못했습니다.",
+        detail: error.message || String(error),
+        ocrMode: "failed",
+        saved: false,
+      });
+    }
+  }
   const serviceDate = (req.body && req.body.serviceDate) || ocr.serviceDate || (ocr.paidAt || "").slice(0, 10) || null;
   const wozImg = !original && woz ? wozImageUrl(woz) : null; // 업로드 없이 데모키로 만든 건은 실물 샘플 사진을 증빙으로
   const receipt = {
     id,
     ocrMode,                                 // real(실 OCR 인식) | woz(데모 샘플)
     source: (req.body && req.body.source) === "pc" ? "pc" : "mobile", // mobile(촬영) | pc(이어카운팅 업로드)
-    imageUrl: original ? `/uploads/${original.filename}` : wozImg || `/api/receipts/${id}/image`,
-    croppedUrl: cropped ? `/uploads/${cropped.filename}`
+    imageUrl: storedFiles ? `/api/receipts/${id}/image?variant=original`
+      : original ? `/uploads/${original.filename}` : wozImg || `/api/receipts/${id}/image`,
+    croppedUrl: storedFiles ? `/api/receipts/${id}/image?variant=cropped`
+      : cropped ? `/uploads/${cropped.filename}`
       : original ? `/uploads/${original.filename}` : wozImg || `/api/receipts/${id}/image`,
     crop: { status: cropped ? "auto" : "original", updatedAt: new Date().toISOString() }, // auto|manual|original
     ocr,
@@ -163,8 +193,9 @@ router.post("/", upload.fields([{ name: "image", maxCount: 1 }, { name: "cropped
     matchedTxId: null,
     tripId: (req.body && req.body.tripId) || null,
     wozKey: woz ? woz.key : null,
-    uploadedFile: original ? original.filename : null,
-    croppedFile: cropped ? cropped.filename : null,
+    uploadedFile: original && !storedFiles ? original.filename : null,
+    croppedFile: cropped && !storedFiles ? cropped.filename : null,
+    storage: storedFiles,
     createdAt: new Date().toISOString(),
   };
   db.receipts.push(receipt);
@@ -183,15 +214,36 @@ router.get("/ocr-status", (req, res) => {
 
 // POST /api/receipts/:id/crop — 재크롭(파일 교체) 또는 크롭 실패 시 원본 사용 확정 (sot/02 유입 흐름 4단계)
 // multipart(cropped) → 크롭본 교체 / JSON { useOriginal: true } → 원본으로 폴백
-router.post("/:id/crop", upload.single("cropped"), (req, res) => {
+router.post("/:id/crop", upload.single("cropped"), async (req, res) => {
   const r = db.receipts.find((x) => x.id === req.params.id);
   if (!r) return res.status(404).json({ error: "receipt not found" });
   if (req.file) {
-    r.croppedFile = req.file.filename;
-    r.croppedUrl = `/uploads/${req.file.filename}`;
+    if (persistence.isCloudEnabled()) {
+      try {
+        const stored = await persistence.uploadReceiptFile(r.id, "cropped", req.file);
+        r.storage = {
+          ...(r.storage || {}),
+          croppedPath: stored.path,
+          croppedContentType: stored.contentType,
+        };
+        r.croppedFile = null;
+        r.croppedUrl = `/api/receipts/${r.id}/image?variant=cropped`;
+        removeUpload(req.file);
+      } catch (error) {
+        removeUpload(req.file);
+        return res.status(503).json({ error: "STORAGE_UPLOAD_FAILED", message: "크롭 이미지를 영구 저장하지 못했습니다.", saved: false });
+      }
+    } else {
+      r.croppedFile = req.file.filename;
+      r.croppedUrl = `/uploads/${req.file.filename}`;
+    }
     r.crop = { status: "manual", updatedAt: new Date().toISOString() };
   } else if (req.body && req.body.useOriginal) {
     r.croppedFile = null;
+    if (r.storage && r.storage.originalPath) {
+      r.storage.croppedPath = r.storage.originalPath;
+      r.storage.croppedContentType = r.storage.originalContentType;
+    }
     r.croppedUrl = r.imageUrl;
     r.crop = { status: "original", updatedAt: new Date().toISOString() };
   } else {
@@ -295,11 +347,26 @@ router.get("/:id", (req, res) => {
 // GET /api/receipts/:id/image — 업로드 원본이 있으면 그 파일, 없으면(WoZ) OCR 값으로 그린 영수증 이미지(SVG)
 // → 이어카운팅 문서함/전표 화면에서 '증빙 열람'이 항상 동작하게 하는 장치
 // no-store: 증빙 미리보기는 캐시에 남기지 않는다 (reference/RECEIPT_PROCESSING_BACKEND_REFERENCE 체크리스트 5)
-router.get("/:id/image", (req, res) => {
+router.get("/:id/image", async (req, res, next) => {
   const r = db.receipts.find((x) => x.id === req.params.id);
   if (!r) return res.status(404).json({ error: "receipt not found" });
   res.set("Cache-Control", "no-store");
-  if (r.uploadedFile) return res.sendFile(path.join(UPLOAD_DIR, r.uploadedFile));
+  if (r.storage && r.storage.originalPath) {
+    try {
+      const variant = req.query.variant === "cropped" ? "cropped" : "original";
+      const objectPath = variant === "cropped"
+        ? r.storage.croppedPath || r.storage.originalPath
+        : r.storage.originalPath;
+      const file = await persistence.downloadReceiptFile(objectPath);
+      res.type(file.contentType);
+      return res.send(file.buffer);
+    } catch (error) {
+      return next(error);
+    }
+  }
+  if (r.uploadedFile && fs.existsSync(path.join(UPLOAD_DIR, r.uploadedFile))) {
+    return res.sendFile(path.join(UPLOAD_DIR, r.uploadedFile));
+  }
 
   const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
   const o = r.ocr || {};
