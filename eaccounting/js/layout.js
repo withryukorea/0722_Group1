@@ -30,9 +30,8 @@ const EACC = {
       items: [
         { label: '영수증 업로드', icon: '📸', href: 'quick-upload.html' },
         { label: '자동매칭', icon: '🔗', href: 'quick-match.html' },
-        { label: '정산·전표 생성', icon: '🧾', href: 'quick-settlement.html' },
         { label: '분석 대시보드', icon: '📊', href: 'quick-dashboard.html' },
-        { label: '모바일에서 촬영', icon: '📱', href: 'quick-mobile.html' },
+        // '정산·전표 생성'(quick-settlement)·'모바일에서 촬영'(quick-mobile)은 메뉴에서 숨김 (요청) — 페이지 자체는 유지
       ],
     },
     '법인카드': {
