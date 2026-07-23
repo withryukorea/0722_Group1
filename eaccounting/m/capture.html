@@ -104,13 +104,15 @@ let PRESETS = null;
 })();
 const presetOf = (id) => (PRESETS || []).find(p => p.id === id) || null;
 
-/* 서버 WoZ 데모 샘플 (fixtures/receipts-ocr 7종 중 모바일 데모 5종) */
+/* 서버 WoZ 데모 샘플 (fixtures/receipts-ocr 9종 중 모바일 데모 7종) */
 const SAMPLES = [
   { key: "coffee",    label: "☕ 폴바셋 커피" },
   { key: "chicken",   label: "🍗 치킨 (회식)" },
   { key: "taxi1",     label: "🚕 카카오택시" },
   { key: "anthropic", label: "🤖 Anthropic 구독" },
-  { key: "openai",    label: "📄 OpenAI (PDF)" }
+  { key: "openai",    label: "📄 OpenAI (PDF)" },
+  { key: "ktx-return",label: "🚄 KTX 울산→서울" },
+  { key: "gukbap",    label: "🍲 백세촌국밥" }
 ];
 
 let current = null;       // 서버 Receipt 또는 폴백 SKD 행

@@ -101,7 +101,9 @@ const DEMOS = [
   { key: "taxi1",       label: "🚕 카카오택시" },
   { key: "taxi2",       label: "🚕 카카오택시 (복귀)" },
   { key: "officedepot", label: "🗂 오피스디포 (사무용품)" },
-  { key: "openai",      label: "📄 OpenAI 구독 (PDF)" }
+  { key: "openai",      label: "📄 OpenAI 구독 (PDF)" },
+  { key: "ktx-return",  label: "🚄 KTX 울산→서울 (출장 귀환)" },
+  { key: "gukbap",      label: "🍲 백세촌국밥 (출장 식대)" }
 ];
 $("demoChips").innerHTML = DEMOS.map(d => `<button class="chip" data-key="${d.key}">${d.label}</button>`).join("");
 document.querySelectorAll("#demoChips .chip").forEach(c =>
@@ -111,7 +113,7 @@ document.querySelectorAll("#demoChips .chip").forEach(c =>
 let PRESETS = [];
 (async () => {
   const ps = await eaccApi("/api/presets");
-  if (ps) { PRESETS = ps; $("demoSrc").textContent = "서버 연결됨 · fixtures/receipts-ocr 7종"; }
+  if (ps) { PRESETS = ps; $("demoSrc").textContent = `서버 연결됨 · fixtures/receipts-ocr ${DEMOS.length}종`; }
   else $("demoSrc").textContent = "서버 미연결 — 내장 데모로 동작";
 })();
 const presetName = (id) => (PRESETS.find(p => p.id === id) || {}).name || id;

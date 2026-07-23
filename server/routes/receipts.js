@@ -1,7 +1,7 @@
 // [P3] 영수증 업로드 → OCR → Receipt JSON 반환
 // ─────────────────────────────────────────────────────────────
 // 실제 OCR API 없이도 데모가 100% 재현되도록 WoZ 폴백을 사용한다:
-//   fixtures/receipts-ocr/ 의 사전매핑 결과(데모 영수증 7종, 카드거래 tx_001~007과 1:1)
+//   fixtures/receipts-ocr/ 의 사전매핑 결과(데모 영수증 9종 — tx_001~007 7종 + data_sample 실물 2종 tx_305/tx_307)
 // 앱은 폴백이든 실제 OCR이든 동일한 Receipt JSON을 받는다 (docs/04 §4).
 const express = require("express");
 const fs = require("fs");
@@ -26,6 +26,18 @@ const upload = multer({ dest: UPLOAD_DIR, limits: { fileSize: 15 * 1024 * 1024 }
 const WOZ_DIR = path.join(__dirname, "..", "..", "fixtures", "receipts-ocr");
 const WOZ_INDEX = JSON.parse(fs.readFileSync(path.join(WOZ_DIR, "index.json"), "utf-8")).receipts;
 const wozData = (file) => JSON.parse(fs.readFileSync(path.join(WOZ_DIR, file), "utf-8"));
+
+/* WoZ 항목의 imageUrl이 실제 존재하는 정적 파일(실물 샘플 사진 등)을 가리키면 그 사진을 증빙으로 쓴다.
+ * 파일이 없으면 null → 기존 SVG 증빙(/api/receipts/:id/image) 폴백 그대로라 기존 7종 동작은 불변. */
+const WOZ_IMG_ROOTS = { "/data_sample/": path.join(__dirname, "..", ".."), "/uploads/": path.join(__dirname, "..") };
+function wozImageUrl(woz) {
+  const url = woz && wozData(woz.file).imageUrl;
+  if (!url) return null;
+  for (const [prefix, root] of Object.entries(WOZ_IMG_ROOTS)) {
+    if (url.startsWith(prefix) && fs.existsSync(path.join(root, decodeURIComponent(url)))) return url;
+  }
+  return null;
+}
 
 /* WoZ 폴백 선택:
  *   ① body.key/query.key 로 지정하면 그대로
@@ -126,12 +138,13 @@ router.post("/", upload.fields([{ name: "image", maxCount: 1 }, { name: "cropped
   }
 
   const serviceDate = (req.body && req.body.serviceDate) || ocr.serviceDate || (ocr.paidAt || "").slice(0, 10) || null;
+  const wozImg = !original && woz ? wozImageUrl(woz) : null; // 업로드 없이 데모키로 만든 건은 실물 샘플 사진을 증빙으로
   const receipt = {
     id,
     source: (req.body && req.body.source) === "pc" ? "pc" : "mobile", // mobile(촬영) | pc(이어카운팅 업로드)
-    imageUrl: original ? `/uploads/${original.filename}` : `/api/receipts/${id}/image`,
+    imageUrl: original ? `/uploads/${original.filename}` : wozImg || `/api/receipts/${id}/image`,
     croppedUrl: cropped ? `/uploads/${cropped.filename}`
-      : original ? `/uploads/${original.filename}` : `/api/receipts/${id}/image`,
+      : original ? `/uploads/${original.filename}` : wozImg || `/api/receipts/${id}/image`,
     crop: { status: cropped ? "auto" : "original", updatedAt: new Date().toISOString() }, // auto|manual|original
     ocr,
     ...fxFields(ocr),                       // fxRate, amountKRW — 화면·한도차감은 amountKRW 사용
