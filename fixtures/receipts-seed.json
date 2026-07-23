@@ -290,5 +290,71 @@
     "wozKey": null,
     "uploadedFile": null,
     "createdAt": "2025-06-18T16:04:00+09:00"
+  },
+  {
+    "id": "rcpt_111",
+    "imageUrl": "/api/receipts/rcpt_111/image",
+    "croppedUrl": "/api/receipts/rcpt_111/image",
+    "ocr": {
+      "merchant": "OPENAI *CHATGPT",
+      "amount": 22,
+      "currency": "USD",
+      "paidAt": "2026-07-09T10:12:00+09:00",
+      "cardLast4": "9112",
+      "invoiceNo": "OPENAI-CGPT-20260709",
+      "items": [
+        {
+          "name": "ChatGPT Plus (monthly)",
+          "amount": 22
+        }
+      ],
+      "confidence": 0.9
+    },
+    "fxRate": 1500,
+    "amountKRW": 33000,
+    "serviceDate": "2026-07-09",
+    "vat": { "extracted": null, "confirmed": null },
+    "checks": [],
+    "suggestedPresetId": "ps_ai_sub",
+    "presetId": "ps_ai_sub",
+    "accountCode": "WELFARE_AI",
+    "matchedTxId": "tx_309",
+    "tripId": null,
+    "wozKey": null,
+    "uploadedFile": null,
+    "createdAt": "2026-07-09T10:14:00+09:00"
+  },
+  {
+    "id": "rcpt_112",
+    "imageUrl": "/api/receipts/rcpt_112/image",
+    "croppedUrl": "/api/receipts/rcpt_112/image",
+    "ocr": {
+      "merchant": "ANTHROPIC CLAUDE",
+      "amount": 110,
+      "currency": "USD",
+      "paidAt": "2026-07-05T09:30:00+09:00",
+      "cardLast4": "9112",
+      "invoiceNo": "ANTH-CLAUDE-20260705",
+      "items": [
+        {
+          "name": "Claude Pro (monthly)",
+          "amount": 110
+        }
+      ],
+      "confidence": 0.9
+    },
+    "fxRate": 1500,
+    "amountKRW": 165000,
+    "serviceDate": "2026-07-05",
+    "vat": { "extracted": null, "confirmed": null },
+    "checks": [],
+    "suggestedPresetId": "ps_ai_sub",
+    "presetId": "ps_ai_sub",
+    "accountCode": "WELFARE_AI",
+    "matchedTxId": "tx_310",
+    "tripId": null,
+    "wozKey": null,
+    "uploadedFile": null,
+    "createdAt": "2026-07-05T09:32:00+09:00"
   }
 ]
