@@ -35,6 +35,10 @@ const BUDGET_DEPTS = [
   { code: 'AQ131', name: '전력사업기획팀' },
   { code: 'AQ132', name: '전력수급2팀' },
   { code: 'AQ133', name: '전력사업운영실' },
+  // 정산 개선 요구 #2 — 법인카드 정산 예산부서 선택지 (신규 마스터 데이터)
+  { code: 'A341', name: '기업문화AX팀' },
+  { code: 'A861', name: '총무공통비용' },
+  { code: 'A860', name: '교육' },
 ];
 
 const acctByCode = code => ACCOUNTS.find(a => a.code === code);

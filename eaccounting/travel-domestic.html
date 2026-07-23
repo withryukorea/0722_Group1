@@ -313,7 +313,7 @@ function calcNights() {
 /* ── 현금이용내역 ── */
 const TYPE_OPTS = ['일당', '숙박비', '교통비', '기타', '일당초과'];
 function addCashRow() {
-  cashLines.push({ type: '교통비', detail: '', amount: 0, budgetDept: '', memo: '', user: '홍길동', date: '' });
+  cashLines.push({ type: '교통비', detail: '', amount: 0, budgetDept: '[AQ131]전력사업기획팀', memo: '', user: '홍길동', date: '' }); // #6 기안자 소속 기본값
   renderCashLines(); renderSummary();
 }
 function updCash(i, key, val) {
