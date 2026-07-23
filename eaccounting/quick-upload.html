@@ -22,7 +22,7 @@
     </div>
 
     <div class="qk">
-      <p class="muted" style="margin:0 0 14px">사진(JPG/PNG)·전자영수증(PDF)을 끌어다 놓으면 자동 크롭 → OCR/파싱 → 프리셋 분류까지 진행됩니다.
+      <p class="muted" style="margin:0 0 14px">영수증 사진(JPG/PNG/WebP)을 끌어다 놓으면 자동 크롭 → 실 OCR → 프리셋 분류까지 진행됩니다.
         모바일 E-acc(<a href="m/index.html" style="color:var(--sk-red);font-weight:700">/m/</a>)에서 촬영한 영수증과 같은 저장소를 사용합니다.</p>
 
       <div class="grid c2">
@@ -31,10 +31,10 @@
           <div class="dropzone" id="dz">
             <div class="dz-icon">🧾</div>
             <h3>여기로 파일을 끌어다 놓으세요</h3>
-            <p class="muted">또는 <label style="color:var(--sk-red);font-weight:700;cursor:pointer">파일 선택<input type="file" id="fileInput" multiple accept="image/*,.pdf" hidden></label> · 여러 장 동시 업로드 가능</p>
+            <p class="muted">또는 <label style="color:var(--sk-red);font-weight:700;cursor:pointer">파일 선택<input type="file" id="fileInput" multiple accept="image/*" hidden></label> · 여러 장 동시 업로드 가능</p>
             <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
               <span class="badge info">📷 사진 → Vision OCR 경로</span>
-              <span class="badge neutral">📄 PDF → 텍스트 파싱 경로</span>
+              <span class="badge neutral">실패 시 저장하지 않음</span>
             </div>
           </div>
 
@@ -42,6 +42,7 @@
           <section class="card" style="margin-top:14px">
             <div class="card-title">데모 샘플로 시험하기 <span class="more" id="demoSrc">서버 연결 확인 중…</span></div>
             <div class="chips" id="demoChips"></div>
+            <p class="muted" style="margin-top:8px">기존 데모는 샘플 버튼으로 선택할 때만 추가됩니다. 실제 사진 인식 실패가 데모 값으로 바뀌지는 않습니다.</p>
           </section>
 
           <!-- 처리 큐 -->
@@ -80,9 +81,9 @@ const $ = (id) => document.getElementById(id);
 
 /* 파이프라인 단계 안내 */
 const STEPS = [
-  ["업로드", "사진·PDF 접수 (모바일 E-acc와 동일 저장소)"],
+  ["업로드", "영수증 사진 접수 (모바일 E-acc와 동일 저장소)"],
   ["자동 크롭", "영수증 영역 감지 — 실패 시 원본 사용"],
-  ["OCR / 파싱", "사진은 Vision OCR, PDF는 텍스트 레이어 파싱"],
+  ["OCR / 파싱", "Letsur Vision OCR로 실제 이미지 인식"],
   ["프리셋 분류", "출장 일정·가맹점 프리셋으로 대분류/세부비목 자동 지정"],
   ["중복 검사", "invoiceNo 기준 — 인보이스/영수증 중복 자동 제외"],
   ["카드 매칭", "금액·일시·가맹점으로 법인카드 승인내역과 매칭"]
@@ -114,7 +115,7 @@ let PRESETS = [];
 (async () => {
   const ps = await eaccApi("/api/presets");
   if (ps) { PRESETS = ps; $("demoSrc").textContent = `서버 연결됨 · fixtures/receipts-ocr ${DEMOS.length}종`; }
-  else $("demoSrc").textContent = "서버 미연결 — 내장 데모로 동작";
+  else $("demoSrc").textContent = "서버 미연결 — 실제 업로드 불가";
 })();
 const presetName = (id) => (PRESETS.find(p => p.id === id) || {}).name || id;
 
@@ -126,7 +127,7 @@ function enqueue(opt) {
   const item = {
     id: "q" + Date.now() + Math.random().toString(36).slice(2, 5),
     name: opt.name || (opt.file ? opt.file.name : "영수증"),
-    phase: 0, serverReceipt: undefined,
+    phase: 0, serverReceipt: undefined, serverError: null, isDemo: Boolean(opt.demoKey),
     isPdf: opt.file ? opt.file.type === "application/pdf" || /\.pdf$/i.test(opt.file.name) : /PDF/.test(opt.name || ""),
     objUrl: opt.file && opt.file.type.startsWith("image/") ? URL.createObjectURL(opt.file) : null
   };
@@ -134,8 +135,13 @@ function enqueue(opt) {
   renderQueue();
 
   /* 서버 호출 (애니메이션과 병행) */
-  const post = opt.file ? postMultipart(opt.file) : eaccApi("/api/receipts", { body: { key: opt.demoKey } });
-  post.then(r => { item.serverReceipt = r || null; maybeFinish(item); });
+  const post = opt.file ? postMultipart(opt.file) : postDemo(opt.demoKey);
+  post.then(r => { item.serverReceipt = r; maybeFinish(item); })
+    .catch(error => {
+      item.serverReceipt = null;
+      item.serverError = error.message || "영수증을 인식하지 못했습니다.";
+      maybeFinish(item);
+    });
 
   const timer = setInterval(() => {
     item.phase++;
@@ -145,15 +151,28 @@ function enqueue(opt) {
 }
 
 async function postMultipart(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    throw new Error("실제 OCR은 JPG·PNG·WebP 등 이미지 영수증만 지원합니다.");
+  }
   const fd = new FormData(); fd.append("image", file);
-  const bases = location.protocol === "file:" ? ["http://localhost:4000"] : ["", "http://localhost:4000"];
+  fd.append("source", "pc");
+  const bases = location.protocol === "file:" ? ["http://localhost:4000"] : [""];
+  let lastError = null;
   for (const base of bases) {
     try {
       const res = await fetch(base + "/api/receipts", { method: "POST", body: fd });
-      if (res.ok) return await res.json();
-    } catch (e) { /* 다음 후보 */ }
+      const body = await res.json().catch(() => null);
+      if (res.ok && body && body.ocrMode === "real") return body;
+      lastError = new Error((body && body.message) || `영수증 인식 실패 (HTTP ${res.status})`);
+    } catch (error) { lastError = error; }
   }
-  return null;
+  throw lastError || new Error("영수증 인식 서버에 연결할 수 없습니다.");
+}
+
+async function postDemo(key) {
+  const result = await eaccApiTry("/api/receipts", { body: { key, source: "pc" } });
+  if (result.ok && result.data && result.data.ocrMode === "woz") return result.data;
+  throw new Error((result.data && result.data.message) || `데모 영수증 추가 실패 (HTTP ${result.status})`);
 }
 
 function maybeFinish(item) {
@@ -161,7 +180,7 @@ function maybeFinish(item) {
   item.done = true;
   renderQueue();
   if (item.serverReceipt) showServerResult(item);
-  else showFallbackResult(item);
+  else showErrorResult(item);
 }
 
 function renderQueue() {
@@ -172,8 +191,9 @@ function renderQueue() {
     <div style="padding:10px 0;border-bottom:1px solid var(--line)">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <b style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.isPdf ? "📄" : "📷"} ${it.name}</b>
-        ${it.done ? (dupCheck ? '<span class="badge danger">중복 의심 — 확인 필요</span>'
-                              : `<span class="badge ok">✓ 완료${it.serverReceipt ? " · " + it.serverReceipt.id : ""}</span>`)
+        ${it.done ? (it.serverError ? '<span class="badge danger">인식 실패 · 미저장</span>'
+                              : dupCheck ? '<span class="badge danger">중복 의심 — 확인 필요</span>'
+                              : `<span class="badge ok">✓ 완료 · ${it.serverReceipt.id}</span>`)
                   : `<span class="badge info">${PHASES[Math.min(it.phase, PHASES.length - 1)]} 중…</span>`}
       </div>
       <div class="pipeline" style="margin-top:6px">
@@ -197,28 +217,23 @@ function showServerResult(item) {
       <dt class="muted">금액</dt><dd class="num" style="font-weight:700">${amt}</dd>
       <dt class="muted">일시</dt><dd>${o.paidAt ? D.dt(o.paidAt) : "-"}</dd>
       <dt class="muted">이용일</dt><dd>${r.serviceDate || "-"}</dd>
+      <dt class="muted">처리 방식</dt><dd><span class="badge ${r.ocrMode === "woz" ? "neutral" : "ok"}">${r.ocrMode === "woz" ? "기존 데모" : "실제 OCR"}</span></dd>
       ${r.suggestedPresetId ? `<dt class="muted">프리셋 추천</dt><dd><span class="badge brand">⚡ ${presetName(r.suggestedPresetId)}</span></dd>` : ""}
       ${o.vat != null ? `<dt class="muted">부가세</dt><dd>${D.krw(o.vat)} <span class="badge neutral">영수증 표기</span></dd>` : ""}
     </dl>
     ${(r.checks || []).map(c => `<div class="preset-why" style="margin-top:8px;${c.status === "warn" ? "background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn)" : ""}">
       ${c.status === "warn" ? "⚠️" : "ℹ️"} ${c.message}</div>`).join("")}
-    <div class="preset-why" style="margin-top:10px">영수증 <b>${r.id}</b> 저장 완료 — 모바일·PC 어디서든 같은 저장소에서 조회됩니다.</div>
+    <div class="preset-why" style="margin-top:10px">영수증 <b>${r.id}</b> 새 행 추가 완료 — 모바일·이어카운팅이 같은 목록을 조회합니다.</div>
     <a class="btn primary block" style="margin-top:12px" href="quick-match.html">자동매칭에서 확인 ›</a>`;
 }
 
-/* 서버 미연결 폴백 — 시제품#1 내장 데모 */
-function showFallbackResult(item) {
-  const r = D.RECEIPTS.find(x => x.id === "r_paris");
-  const G = D.GROUPS[D.groupOf(r)];
+/* 실제 인식 실패는 데모 성공으로 바꾸지 않는다. */
+function showErrorResult(item) {
   $("lastResult").innerHTML = `
-    <dl style="display:grid;grid-template-columns:86px 1fr;row-gap:7px;font-size:13px;margin-top:4px">
-      <dt class="muted">가맹점</dt><dd style="font-weight:700">${r.merchant} (내장 데모)</dd>
-      <dt class="muted">금액</dt><dd class="num" style="font-weight:700">${D.money(r)}</dd>
-      <dt class="muted">일시</dt><dd>${D.dt(r.paidAt)}</dd>
-      <dt class="muted">분류</dt><dd><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span></dd>
-    </dl>
-    <div class="preset-why" style="margin-top:10px">서버(:4000) 미연결 — 내장 데모 데이터로 표시 중입니다. ${r.why}</div>
-    <a class="btn primary block" style="margin-top:12px" href="quick-match.html">자동매칭에서 확인 ›</a>`;
+    <div class="preset-why" style="background:var(--danger-bg);border-color:#F3B8C4;color:#9B1230;margin-top:4px">
+      <b>인식 실패 · 저장되지 않았습니다</b><br>${item.serverError || "영수증 사진을 다시 확인해 주세요."}
+    </div>
+    <button class="btn primary block" style="margin-top:12px" onclick="document.getElementById('fileInput').click()">다른 사진으로 다시 시도</button>`;
 }
 
 /* 드래그앤드롭 + 파일 선택 */
