@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AXE-acc - 간편정산 · 정산단위 설정</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/quick.css">
+<style>
+/* 정산단위 설정 전용 (demo/settlement-unit-admin.html 목업 구현) — .qk 내부에서만 사용 */
+.qk table.tbl td .g { width: 130px; }
+.qk .blk { border: 1px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; }
+.qk .blk-h { background: #EEF1F5; padding: 8px 12px; font-size: 12px; font-weight: 800; color: var(--ink-2); display: flex; align-items: center; gap: 7px; }
+.qk .blk-h .n { width: 18px; height: 18px; border-radius: 50%; background: var(--sk-grad); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+.qk .blk-b { padding: 12px; }
+.qk .fr { display: flex; align-items: center; gap: 8px; margin: 7px 0; flex-wrap: wrap; }
+.qk .fr .k { flex: 0 0 92px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.qk .fr input[type=text], .qk .fr input[type=number], .qk .fr input[type=date], .qk .fr select {
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 12.5px; background: #fff; color: var(--ink); }
+.qk .fr input[type=text] { flex: 1; min-width: 120px; }
+.qk .segc { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.qk .segc button { border: none; background: #fff; padding: 6px 12px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); border-left: 1px solid var(--line); cursor: pointer; }
+.qk .segc button:first-child { border-left: none; }
+.qk .segc button.on { background: var(--sk-grad); color: #fff; }
+.qk .var-btn { font-size: 10.5px; border: 1px dashed #9db8ee; background: #E8EFFD; color: #1D4ED8; border-radius: 6px; padding: 3px 8px; cursor: pointer; font-weight: 700; }
+.qk .detail-panel { border: 1px solid #F2C2D2; background: #FDF3F7; border-radius: 0 0 10px 10px; padding: 10px 14px; font-size: 12px; display: flex; gap: 24px; flex-wrap: wrap; }
+.qk .detail-panel b { color: #C2255C; }
+.qk .detail-panel .col { flex: 1; min-width: 200px; }
+.qk .detail-panel .row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #ECD4DD; gap: 10px; }
+.qk .lineitem { display: inline-flex; align-items: center; gap: 6px; background: #F4F6FB; border: 1px solid #DDE3EF; border-radius: 7px; padding: 5px 10px; margin: 3px 4px 3px 0; color: #2F4A8A; font-size: 12px; }
+.qk .lineitem.var { border-style: dashed; border-color: #1D4ED8; background: #E8EFFD; }
+.qk .lineitem .ty { font-size: 9.5px; background: #fff; border-radius: 4px; padding: 1px 6px; color: var(--ink-3); }
+.qk .lineitem .rm { cursor: pointer; color: #99A3B8; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<div id="gnb"></div>
+
+<div class="layout">
+  <aside id="snb" class="snb"></aside>
+
+  <main class="content">
+    <div id="breadcrumb" class="breadcrumb"></div>
+    <div class="page-heading">
+      <h2 class="page-title">정산단위 설정 <span class="fav off">★</span></h2>
+    </div>
+
+    <div class="qk">
+      <p class="muted" style="margin:0 0 14px" id="srcNote">정산 규정을 <b>배포 가능한 객체(정산단위)</b>로 만듭니다 — 저장이 곧 배포.
+        대상 구성원의 영수증에 자동 추천되고, 계정과목·예산부서·적요·전결라인이 자동 적용됩니다.</p>
+
+      <!-- ══ 1. 관리 목록 (대시보드형) ══ -->
+      <section class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)">
+          <b style="font-size:13.5px">정산단위 관리</b>
+          <div style="display:flex;gap:8px">
+            <button class="btn sm" id="btnReload">⟳ 새로고침</button>
+            <button class="btn sm primary" id="btnNew">＋ 새 정산단위</button>
+          </div>
+        </div>
+        <table class="tbl" id="listTbl"></table>
+      </section>
+
+      <!-- ══ 2. 생성 폼 (4블록) ══ -->
+      <section class="card" id="formCard" style="display:none;border-top:3px solid var(--sk-red)">
+        <div class="card-title"><span id="formTitle">새 정산단위</span>
+          <span style="display:flex;gap:8px">
+            <button class="btn sm ghost" id="btnCancel">취소</button>
+            <button class="btn sm primary" id="btnSave">저장 → 배포</button>
+          </span></div>
+
+        <div class="grid c2e">
+          <!-- ① 기본 -->
+          <div class="blk">
+            <div class="blk-h"><span class="n">1</span>기본</div>
+            <div class="blk-b">
+              <div class="fr"><span class="k">이름</span><input type="text" id="pName" placeholder="예: AI Frontier 교육"></div>
+              <div class="fr"><span class="k">유형</span>
+                <span class="segc" id="segType">
+                  <button data-v="RECURRING" class="on">월 한도</button>
+                  <button data-v="CAMPAIGN">1회성</button>
+                  <button data-v="TRIP">국내출장</button>
+                </span></div>
+              <div id="tripFields" style="display:none">
+                <div class="fr"><span class="k">목적지</span><input type="text" id="pDest" placeholder="예: 대전"></div>
+                <div class="fr"><span class="k">인원</span><select id="pMembers"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+              </div>
+              <div class="fr" id="periodFields" style="display:none"><span class="k">기간</span>
+                <input type="date" id="pStart" value="2026-08-01"> <span>~</span> <input type="date" id="pEnd" value="2026-08-31"></div>
+              <div class="preset-why" style="margin-top:8px;font-size:11.5px">ⓘ 해외출장 정산단위는 <b>출장 품의 승인 시 자동 생성</b>됩니다 — 여기서 만들지 않습니다.<br>
+                ⓘ 국내출장은 목적지·기간만 입력하면 일비·비목·전결라인이 <b>표준 기본값으로 자동</b> 세팅됩니다.</div>
+            </div>
+          </div>
+
+          <!-- ② 회계 요소 -->
+          <div class="blk">
+            <div class="blk-h"><span class="n">2</span>회계 요소</div>
+            <div class="blk-b">
+              <div class="fr"><span class="k">허용 비목</span><span class="chips" id="accChips" style="flex:1"></span></div>
+              <div class="fr"><span class="k">Cost Center</span><input type="text" id="pCC" value="AQ131" style="flex:0 0 110px"> <span class="muted">기본: 기안자 팀</span></div>
+              <div class="fr"><span class="k">한도</span>
+                <input type="number" id="pLimit" value="300000" style="flex:0 0 110px" step="10000"> 원
+                <span class="segc" id="segBasis"><button data-v="perPerson" class="on">1인당</button><button data-v="shared">공동</button></span>
+                <span class="segc" id="segPeriod"><button data-v="daily">일</button><button data-v="monthly" class="on">월</button><button data-v="total">총액</button></span></div>
+              <p class="muted" style="margin-top:6px">한도 = 금액 × 집계기준(1인당/공동) × 기간 · 초과는 <b>경고만, 차단 없음</b></p>
+            </div>
+          </div>
+
+          <!-- ③ 배포 대상 -->
+          <div class="blk">
+            <div class="blk-h"><span class="n">3</span>배포 대상</div>
+            <div class="blk-b">
+              <div class="fr"><span class="k">범위</span>
+                <span class="segc" id="segScope"><button data-v="company" class="on">전사</button><button data-v="teams">팀</button><button data-v="users">개인</button></span></div>
+              <div class="fr"><span class="k">대상</span><input type="text" id="pTarget" placeholder="전사 구성원 전체 (신청자 자동 적용)" disabled></div>
+              <p class="muted" style="margin-top:6px">대상의 영수증 처리에만 이 정산단위가 후보로 노출되고, 한도도 이 기준으로 집계됩니다.</p>
+              <div class="preset-why" style="margin-top:8px;background:#E8EFFD;border-color:#9DB8EE;color:#1D4ED8;font-size:11.5px">
+                조합 예: AI구독 = 전사×1인당 · 팀빌딩 = 팀×공동 · 신규구성원지원 = 명단×1인당</div>
+            </div>
+          </div>
+
+          <!-- ④ 자동화 양식 -->
+          <div class="blk">
+            <div class="blk-h"><span class="n">4</span>자동화 양식 — 적요·키워드</div>
+            <div class="blk-b">
+              <div class="fr"><span class="k">적요양식</span><input type="text" id="pMemo" value="[이름]_[월]월 {merchant}"></div>
+              <div class="fr"><span class="k"></span>
+                <span class="var-btn" data-var="[이름]">[이름]</span>
+                <span class="var-btn" data-var="[직급]">[직급]</span>
+                <span class="var-btn" data-var="[월]">[월]</span>
+                <span class="var-btn" data-var="[팀]">[팀]</span>
+                <span class="var-btn" data-var="{merchant}">{가맹점}</span></div>
+              <div class="preset-why" style="background:var(--ok-bg);border-color:#B5E3D0;color:#0B7A55;font-size:11.5px">미리보기: <b id="memoPrev"></b></div>
+              <div class="fr" style="margin-top:8px"><span class="k">매칭 키워드</span>
+                <input type="text" id="pKwInput" placeholder="입력 후 Enter (예: ANTHROPIC)" style="flex:1"></div>
+              <div class="chips" id="kwChips" style="margin-top:4px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ④-b 전결라인 -->
+        <div class="blk" style="margin-top:12px">
+          <div class="blk-h"><span class="n">4</span>자동화 양식 — 전결라인 <span style="font-weight:400;color:var(--ink-3);font-size:10.5px;margin-left:6px">기안자는 자동 추가 · [상위자]는 상신자 기준으로 자동 전개</span></div>
+          <div class="blk-b">
+            <div>
+              <span class="lineitem var"><span class="ty">기안</span><b>[기안자]</b> <small class="muted">자동</small></span>
+              <span id="reviewerItems"></span>
+              <span class="lineitem var"><span class="ty">승인</span><b id="approveLabel">[상위자]</b> <small class="muted">조직도 자동</small></span>
+            </div>
+            <div class="fr" style="margin-top:8px"><span class="k">검토자 추가</span>
+              <input type="text" id="pReviewer" placeholder="이름 입력 후 Enter (예: 이진현 매니저)" style="flex:1"></div>
+            <p class="muted">직급이 전원 "매니저"이므로 [상위자]는 조직도·직책 기준으로 해석됩니다 — 예: 홍길동 기안 시 [상위자] → 팀장.</p>
+          </div>
+        </div>
+        <p class="muted" id="saveMsg" style="margin-top:10px"></p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="js/layout.js"></script>
+<script src="js/quick-data.js"></script>
+<script>
+renderChrome({ top: '간편정산', active: '정산단위 설정',
+               breadcrumb: ['메뉴', '간편정산', '정산단위 설정'] });
+
+const D = SKD;
+const $ = (id) => document.getElementById(id);
+
+let PRESETS = [], ACCOUNTS = [], RECEIPTS = [];
+let expanded = null;      // 상세 패널 열린 프리셋 id
+let editingId = null;     // 수정 모드
+const form = { type: "RECURRING", basis: "perPerson", period: "monthly", scope: "company", accs: new Set(["WELFARE_AI"]), kws: [], reviewers: [] };
+
+const TYPE_BADGE = {
+  RECURRING: '<span class="badge" style="background:#FDECEF;color:#C2255C">월 한도</span>',
+  CAMPAIGN: '<span class="badge warn">1회성</span>',
+  TRIP: '<span class="badge info">출장</span>'
+};
+
+async function load() {
+  PRESETS = (await eaccApi("/api/presets")) || null;
+  if (PRESETS === null) {
+    $("srcNote").innerHTML = '<span class="badge neutral">서버 미연결</span> 정산단위 설정은 서버(:4000) 실데이터 기능입니다 — <code>cd server → npm start</code>';
+    $("listTbl").innerHTML = "";
+    return;
+  }
+  ACCOUNTS = ACCOUNTS.length ? ACCOUNTS : ((await eaccApi("/api/accounts")) || []);
+  RECEIPTS = (await eaccApi("/api/receipts")) || [];
+  renderList(); renderAccChips();
+}
+
+/* ── 1. 관리 목록 ─────────────────────────────────────── */
+function targetLabel(p) {
+  const t = p.target || { scope: "company" };
+  const basis = p.limitBasis === "shared" ? "공동" : "1인당";
+  if (t.scope === "teams") return `${(t.teams || []).join(",") || "팀"} · <b>${basis}</b>`;
+  if (t.scope === "users") return `명단 ${(t.users || []).length}명 · <b>${basis}</b>`;
+  if (p.type === "TRIP") return `${(p.assignees || []).length}명`;
+  return `전사 · <b>${basis}</b>`;
+}
+
+function renderList() {
+  const cntOf = (id) => RECEIPTS.filter(r => r.presetId === id).length;
+  $("listTbl").innerHTML = `
+    <thead><tr><th>이름</th><th>유형</th><th>대상</th><th>기간/상태</th><th style="min-width:150px">한도 소진</th><th style="text-align:right">건수</th><th>액션</th></tr></thead>
+    <tbody>${PRESETS.map(p => {
+      const used = (p.usage && p.usage.usedKRW) || 0;
+      const limit = (p.rules && p.rules.limitKRW) || 0;
+      const pct = limit ? Math.min(100, used / limit * 100) : 0;
+      const periodTxt = p.period ? `${D.dateShort(p.period.start)}–${D.dateShort(p.period.end)}` :
+        (p.active !== false ? '<span class="badge ok">활성</span>' : '<span class="badge neutral">비활성</span>');
+      const perLabel = p.rules && p.rules.limitPeriod === "daily" ? "일당" : p.rules && p.rules.limitPeriod === "monthly" ? "월" : "총";
+      return `
+      <tr data-id="${p.id}" style="cursor:pointer;${p.active === false ? "opacity:.55" : ""}${expanded === p.id ? "background:#FDF3F7" : ""}">
+        <td style="font-weight:700">${p.name}</td>
+        <td>${TYPE_BADGE[p.type] || p.type}</td>
+        <td>${targetLabel(p)}</td>
+        <td>${periodTxt}</td>
+        <td>${limit ? `<div class="g"><div style="height:7px;background:#ECEEF3;border-radius:99px;overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:99px;background:${used > limit ? "var(--danger)" : "var(--sk-grad)"}"></div></div>
+          <div class="muted" style="font-size:10.5px;margin-top:2px">${perLabel} ${D.krw(used)} / ${D.krw(limit)}${used > limit ? " ⚠" : ""}</div></div>` : '<span class="muted">한도 없음</span>'}</td>
+        <td class="num" style="text-align:right">${cntOf(p.id)}</td>
+        <td onclick="event.stopPropagation()">
+          <button class="btn sm act-edit" data-id="${p.id}">수정</button>
+          <button class="btn sm act-toggle" data-id="${p.id}">${p.active === false ? "활성" : "비활성"}</button>
+          <button class="btn sm ghost act-del" data-id="${p.id}" style="color:var(--danger)">삭제</button>
+        </td>
+      </tr>
+      ${expanded === p.id ? `<tr><td colspan="7" style="padding:0">
+        <div class="detail-panel">
+          <div class="col"><b>비목별 사용</b>
+            ${Object.entries((p.usage && p.usage.byAccountCode) || {}).map(([c, v]) => {
+              const a = ACCOUNTS.find(x => x.code === c);
+              return `<div class="row"><span>${a ? `[${a.realCode || a.code}] ${a.realName || a.name}` : c}</span><b class="num">${D.krw(v)}</b></div>`;
+            }).join("") || '<div class="row"><span class="muted">아직 사용 없음</span></div>'}
+          </div>
+          <div class="col"><b>양식·규칙</b>
+            <div class="row"><span>적요양식</span><span>${(p.rules.descriptionTemplate || "{merchant}")}</span></div>
+            <div class="row"><span>키워드</span><span>${(p.rules.matchKeywords || []).join(", ") || "—"}</span></div>
+            <div class="row"><span>전결라인</span><span>기안 → ${((p.rules.approvalLineTemplate && p.rules.approvalLineTemplate.reviewers) || []).concat(["[상위자]"]).join(" → ")}</span></div>
+            <div class="row"><span>예산부서</span><span>[${p.rules.costCenter || "기안팀"}]</span></div>
+          </div>
+        </div></td></tr>` : ""}`;
+    }).join("")}</tbody>`;
+
+  document.querySelectorAll("#listTbl tbody tr[data-id]").forEach(tr =>
+    tr.onclick = () => { expanded = expanded === tr.dataset.id ? null : tr.dataset.id; renderList(); });
+  document.querySelectorAll(".act-toggle").forEach(b => b.onclick = async () => {
+    const p = PRESETS.find(x => x.id === b.dataset.id);
+    const res = await eaccApiTry(`/api/presets/${p.id}`, { method: "PATCH", body: { active: p.active === false } });
+    if (res.ok) load(); else alert("변경 실패: " + ((res.data && res.data.hint) || res.status));
+  });
+  document.querySelectorAll(".act-del").forEach(b => b.onclick = async () => {
+    if (!confirm("이 정산단위를 삭제할까요? 소속 영수증은 일반 결제로 풀립니다.")) return;
+    const res = await eaccApiTry(`/api/presets/${b.dataset.id}`, { method: "DELETE" });
+    if (res.ok) load();
+    else alert("삭제 불가: " + ((res.data && res.data.hint) || "이미 상신된 전표가 있으면 비활성화만 가능합니다"));
+  });
+  document.querySelectorAll(".act-edit").forEach(b => b.onclick = () => openForm(PRESETS.find(x => x.id === b.dataset.id)));
+}
+
+/* ── 2. 생성 폼 ───────────────────────────────────────── */
+function bindSeg(id, key, onChange) {
+  document.querySelectorAll(`#${id} button`).forEach(b => b.onclick = () => {
+    form[key] = b.dataset.v;
+    document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle("on", x === b));
+    if (onChange) onChange();
+  });
+}
+function setSeg(id, v) {
+  document.querySelectorAll(`#${id} button`).forEach(x => x.classList.toggle("on", x.dataset.v === v));
+}
+
+function renderAccChips() {
+  $("accChips").innerHTML = ACCOUNTS.map(a =>
+    `<button class="chip ${form.accs.has(a.code) ? "on brand" : ""}" data-c="${a.code}" title="[${a.realCode || a.code}]">${a.name}</button>`).join("");
+  document.querySelectorAll("#accChips .chip").forEach(c => c.onclick = () => {
+    form.accs.has(c.dataset.c) ? form.accs.delete(c.dataset.c) : form.accs.add(c.dataset.c);
+    renderAccChips();
+  });
+}
+function renderKws() {
+  $("kwChips").innerHTML = form.kws.map((k, i) =>
+    `<span class="chip on brand">${k} <b data-i="${i}" style="cursor:pointer">✕</b></span>`).join("") || '<span class="muted">키워드가 영수증 가맹점명과 일치하면 자동 추천됩니다</span>';
+  document.querySelectorAll("#kwChips b[data-i]").forEach(x => x.onclick = () => { form.kws.splice(+x.dataset.i, 1); renderKws(); });
+}
+function renderReviewers() {
+  $("reviewerItems").innerHTML = form.reviewers.map((r, i) =>
+    `<span class="lineitem"><span class="ty">검토</span><b>${r}</b><span class="rm" data-i="${i}">⊗</span></span>`).join("");
+  document.querySelectorAll("#reviewerItems .rm").forEach(x => x.onclick = () => { form.reviewers.splice(+x.dataset.i, 1); renderReviewers(); });
+}
+function memoPreview() {
+  $("memoPrev").textContent = ($("pMemo").value || "{merchant}")
+    .replaceAll("[이름]", D.USER.name).replaceAll("[직급]", "매니저")
+    .replaceAll("[월]", String(new Date(D.TODAY).getMonth() + 1)).replaceAll("[팀]", D.USER.team)
+    .replaceAll("{merchant}", "ANTHROPIC* CLAUDE SUB");
+}
+function typeChanged() {
+  $("tripFields").style.display = form.type === "TRIP" ? "" : "none";
+  $("periodFields").style.display = form.type === "RECURRING" ? "none" : "";
+  if (form.type === "TRIP") { form.accs = new Set(["TRAVEL_MEAL", "TRAVEL_TRANSPORT", "TRAVEL_LODGING"]); renderAccChips(); }
+}
+function scopeChanged() {
+  const t = $("pTarget");
+  t.disabled = form.scope === "company";
+  t.value = "";
+  t.placeholder = form.scope === "company" ? "전사 구성원 전체 (신청자 자동 적용)"
+    : form.scope === "teams" ? "팀명 입력 (쉼표 구분 · 예: 전력사업기획팀)"
+    : "명단 입력 (쉼표 구분 · 예: 홍길동, 박한별)";
+}
+
+function openForm(p) {
+  $("formCard").style.display = "";
+  $("saveMsg").textContent = "";
+  editingId = p ? p.id : null;
+  $("formTitle").textContent = p ? `정산단위 수정 — ${p.name}` : "새 정산단위";
+  form.type = p ? p.type : "RECURRING";
+  form.basis = p ? (p.limitBasis || "perPerson") : "perPerson";
+  form.period = p ? ((p.rules && p.rules.limitPeriod) || "monthly") : "monthly";
+  form.scope = p ? ((p.target && p.target.scope) || "company") : "company";
+  form.accs = new Set(p ? ((p.rules && p.rules.allowedAccountCodes) || []) : ["WELFARE_AI"]);
+  form.kws = p ? ((p.rules && p.rules.matchKeywords) || []).slice() : [];
+  form.reviewers = p ? (((p.rules || {}).approvalLineTemplate || {}).reviewers || []).slice() : [];
+  $("pName").value = p ? p.name : "";
+  $("pCC").value = p ? ((p.rules && p.rules.costCenter) || "AQ131") : "AQ131";
+  $("pLimit").value = p ? ((p.rules && p.rules.limitKRW) || 0) : 300000;
+  $("pMemo").value = p ? ((p.rules && p.rules.descriptionTemplate) || "{merchant}") : "[이름]_[월]월 {merchant}";
+  if (p && p.period) { $("pStart").value = p.period.start; $("pEnd").value = p.period.end; }
+  if (p && p.target) $("pTarget").value = (p.target.teams || p.target.users || []).join(", ");
+  setSeg("segType", form.type); setSeg("segBasis", form.basis); setSeg("segPeriod", form.period); setSeg("segScope", form.scope);
+  typeChanged(); scopeChanged(); renderAccChips(); renderKws(); renderReviewers(); memoPreview();
+  $("formCard").scrollIntoView({ behavior: "smooth" });
+}
+
+async function save() {
+  if (!$("pName").value.trim()) { $("saveMsg").textContent = "이름을 입력하세요"; return; }
+  const targetVals = $("pTarget").value.split(",").map(x => x.trim()).filter(Boolean);
+  const body = {
+    type: form.type,
+    name: $("pName").value.trim(),
+    limitBasis: form.basis,
+    target: { scope: form.scope, teams: form.scope === "teams" ? targetVals : [], users: form.scope === "users" ? targetVals : [] },
+    rules: {
+      allowedAccountCodes: [...form.accs],
+      costCenter: $("pCC").value.trim() || undefined,
+      limitKRW: +$("pLimit").value || 0,
+      limitPeriod: form.period,
+      descriptionTemplate: $("pMemo").value.trim() || "{merchant}",
+      matchKeywords: form.kws,
+      approvalLineTemplate: { draft: "$DRAFTER", reviewers: form.reviewers, approve: "$SUPERIOR" }
+    }
+  };
+  if (form.type !== "RECURRING") body.period = { start: $("pStart").value, end: $("pEnd").value };
+  if (form.type === "TRIP") {
+    body.startDate = $("pStart").value; body.endDate = $("pEnd").value;
+    body.destination = $("pDest").value.trim() || $("pName").value.trim();
+    body.country = "KR"; body.members = +$("pMembers").value;
+    if (!body.rules.limitKRW) delete body.rules.limitKRW; // 표준 기본값 자동 산정
+  }
+  const res = editingId
+    ? await eaccApiTry(`/api/presets/${editingId}`, { method: "PATCH", body })
+    : await eaccApiTry("/api/presets", { body });
+  if (res.ok) {
+    $("formCard").style.display = "none";
+    await load();
+    $("srcNote").innerHTML = `✓ <b>${body.name}</b> ${editingId ? "수정" : "배포"} 완료 — 대상 구성원의 영수증에 즉시 추천됩니다`;
+  } else {
+    $("saveMsg").textContent = "저장 실패: " + ((res.data && (res.data.hint || res.data.error)) || "서버 오류");
+  }
+}
+
+/* ── 이벤트 바인딩 ───────────────────────────────────── */
+bindSeg("segType", "type", typeChanged);
+bindSeg("segBasis", "basis");
+bindSeg("segPeriod", "period");
+bindSeg("segScope", "scope", scopeChanged);
+$("btnNew").onclick = () => openForm(null);
+$("btnCancel").onclick = () => { $("formCard").style.display = "none"; };
+$("btnSave").onclick = save;
+$("btnReload").onclick = load;
+$("pMemo").oninput = memoPreview;
+document.querySelectorAll(".var-btn").forEach(b => b.onclick = () => { $("pMemo").value += b.dataset.var; memoPreview(); });
+$("pKwInput").onkeydown = (e) => {
+  if (e.key === "Enter") { e.preventDefault();
+    const v = $("pKwInput").value.trim(); if (v && !form.kws.includes(v)) { form.kws.push(v); renderKws(); } $("pKwInput").value = ""; }
+};
+$("pReviewer").onkeydown = (e) => {
+  if (e.key === "Enter") { e.preventDefault();
+    const v = $("pReviewer").value.trim(); if (v) { form.reviewers.push(v); renderReviewers(); } $("pReviewer").value = ""; }
+};
+
+load();
+</script>
+</body>
+</html>
