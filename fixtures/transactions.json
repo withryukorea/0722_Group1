@@ -317,29 +317,5 @@
     "biz": "우편",
     "category": null,
     "status": "unmatched"
-  },
-  {
-    "id": "tx_309",
-    "cardLast4": "9112",
-    "merchant": "OPENAI *CHATGPT",
-    "amount": 22,
-    "currency": "USD",
-    "amountKRW": 33000,
-    "approvedAt": "2026-07-09T10:12:00+09:00",
-    "biz": "컴퓨터소프트웨어",
-    "category": null,
-    "status": "unmatched"
-  },
-  {
-    "id": "tx_310",
-    "cardLast4": "9112",
-    "merchant": "ANTHROPIC CLAUDE",
-    "amount": 110,
-    "currency": "USD",
-    "amountKRW": 165000,
-    "approvedAt": "2026-07-05T09:30:00+09:00",
-    "biz": "컴퓨터소프트웨어",
-    "category": null,
-    "status": "unmatched"
   }
 ]
