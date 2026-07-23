@@ -264,7 +264,7 @@ function fallbackRender() {
 /* ═══════════════ 부팅: 서버 우선 ═══════════════ */
 (async () => {
   const list = await eaccApi("/api/receipts");
-  if (list) {
+  if (Array.isArray(list)) {
     RECEIPTS = list;
     TXS = (await eaccApi("/api/transactions")) || [];
     $("unitTabs").style.display = "none";
@@ -275,8 +275,11 @@ function fallbackRender() {
     $("srcNote").innerHTML = `서버 저장소 영수증 ${RECEIPTS.length}건 중 매칭 완료 ${matchedIds.length}건 — 초안은 <b>POST /api/vouchers/preview</b>, 상신은 <b>POST /api/vouchers</b>로 접수됩니다`;
     serverRender();
   } else {
-    $("srcNote").innerHTML = `<span class="badge neutral">서버 미연결</span> 시제품#1 내장 데모로 동작 중`;
-    fallbackRender();
+    RECEIPTS = [];
+    TXS = [];
+    $("unitTabs").style.display = "none";
+    $("srcNote").innerHTML = `<span class="badge danger">서버 연결 실패</span> 샘플 정산으로 대체하지 않았습니다. 서버 연결 후 다시 시도해 주세요.`;
+    serverRender();
   }
 })();
 </script>

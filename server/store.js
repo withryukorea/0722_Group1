@@ -112,7 +112,7 @@ function nextVoucherId() {
   return id;
 }
 
-// 영수증 id 생성기 (rcpt_101, rcpt_102 ... — WoZ 고정 데이터(rcpt_001~007)와 겹치지 않게 101부터)
+// 영수증 id 생성기 — 초기 시드 ID와 겹치지 않도록 다음 번호부터 발급
 function nextReceiptId() {
   const id = "rcpt_" + String(100 + db._receiptSeq).padStart(3, "0");
   db._receiptSeq += 1;

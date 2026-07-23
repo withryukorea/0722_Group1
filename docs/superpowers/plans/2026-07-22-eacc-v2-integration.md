@@ -4,7 +4,9 @@
 
 **Goal:** 시제품#1("찍으면 끝")의 PC 4화면·모바일 4화면을 E-acc(eaccounting/) 안으로 머지해, 하나의 서버(:4000)·하나의 DB로 동작하는 "새로운 E-acc" 초기 통합 버전을 만든다.
 
-**Architecture:** PC는 E-acc 채름(renderChrome) 안에 신규 톱메뉴 "간편정산" + `quick-*.html` 4장으로 포팅. 모바일은 `eaccounting/m/`에 별도 창(전용 채름)으로 편입 — 같은 서버가 정적 서빙(`/m/`), 같은 `/api/*` 사용. 화면은 실 API 우선 + SKD 목데이터 폴백(기존 eaccApi 패턴)으로 데모 무중단.
+**Architecture:** PC는 E-acc 채름(renderChrome) 안에 신규 톱메뉴 "간편정산" + `quick-*.html` 4장으로 포팅. 모바일은 `eaccounting/m/`에 별도 창(전용 채름)으로 편입 — 같은 서버가 정적 서빙(`/m/`), 같은 `/api/*` 사용.
+
+> 2026-07-23 변경: 아래 초기 계획의 자동 데모키·SKD 폴백 단계는 폐기됐다. 실제 영수증·금액 화면은 API/OCR 실패를 샘플 성공으로 바꾸지 않는다. 기존 데모는 별도 `/api/receipts/demo`를 사용자가 선택할 때만 유지하며 `sot/05_api.md` 계약을 따른다.
 
 **Tech Stack:** 정적 HTML/CSS/JS (빌드 없음), Express :4000 (수정 없음), Preset 엔진 API (`/api/receipts`, `/api/match`, `/api/vouchers`, `/api/presets`).
 
@@ -68,19 +70,22 @@ renderChrome({ top:'간편정산', active:'영수증 업로드',
 ```
 
 - [ ] **Step 2: 콘텐츠 이식** — 원본 `.page` 내부를 `main.content`로 이동, `SKP.chrome("upload")` 호출 제거(→ renderChrome), `href="expenses.html"` → `quick-match.html`
-- [ ] **Step 3: 실 API 연결** — 데모 칩 클릭 시 시뮬레이션 대신 서버 우선:
+- [ ] **Step 3: 실 API 연결** — 실제 이미지 multipart 업로드만 허용하고 `ocrMode:"real"`을 검증:
 
 ```js
-async function enqueueReal(demoKey, chipLabel) {
-  const r = await eaccApi('/api/receipts', { method:'POST', body:{ key: demoKey } });
-  if (r) { showServerResult(r); refreshQueueFromServer(); }
-  else enqueue(/* 기존 SKD 폴백 시뮬레이션 */);
+async function enqueueReal(file) {
+  const fd = new FormData();
+  fd.append('image', file);
+  const r = await fetch('/api/receipts', { method:'POST', body:fd });
+  const body = await r.json();
+  if (!r.ok || body.ocrMode !== 'real') throw new Error(body.message || 'OCR 실패');
+  return body;
 }
 ```
 
-데모키 매핑(API 계약 §): `coffee/chicken/anthropic/taxi1/taxi2/officedepot/openai` — 기존 SKD 데모(파리크라상 등)와 라벨만 맞추고 rid→key 테이블 작성. 파일 업로드(드롭존)는 multipart `POST /api/receipts` 시도 → 실패 시 기존 시뮬레이션 폴백.
-- [ ] **Step 4: 검증** — `curl -X POST localhost:4000/api/receipts -H "Content-Type: application/json" -d '{"key":"coffee"}'` → Receipt JSON 확인. 브라우저에서 칩 클릭 → 인식 결과에 서버 응답(가맹점·금액·suggestedPresetId) 표시 확인
-- [ ] **Step 5: Commit** — `feat(v2): 간편정산 영수증 업로드 화면 (실 API + 폴백)`
+실패 시 Receipt·업로드 파일을 저장하지 않고 오류와 재시도만 표시한다.
+- [ ] **Step 4: 검증** — 실제 이미지 multipart 업로드 → `ocrMode:"real"`·가맹점·금액 확인 → `GET /api/receipts` 최신 행과 대시보드 통계에 같은 값 확인
+- [ ] **Step 5: Commit** — `fix(v2): 간편정산 실제 OCR 전용 업로드`
 
 ### Task 3: quick-match.html (자동매칭 / 사용내역)
 

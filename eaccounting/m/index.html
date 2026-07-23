@@ -12,9 +12,9 @@
   <header class="app-head"></header>
   <main class="app-body">
 
-    <!-- 이번 달 사용 총액 -->
+    <!-- PC 간편정산 대시보드와 같은 전체 누적 총액 -->
     <section class="hero">
-      <div class="h-label" id="heroLabel">2026년 7월 등록 지출</div>
+      <div class="h-label" id="heroLabel">등록 지출 총액 (전체 누적)</div>
       <div class="h-amount num" id="heroTotal"></div>
       <div class="h-sub" id="heroSub"></div>
       <div class="gauge" id="heroTrip"></div>
@@ -31,8 +31,8 @@
     <div class="section-title">최근 영수증 <a class="muted" href="receipts.html">전체보기 ›</a></div>
     <section class="card" id="recent" style="padding:4px 16px"></section>
 
-    <!-- 대분류별 사용 현황 (데모 데이터 기준) -->
-    <div class="section-title">카테고리별 사용 현황 <span class="muted" id="demoTag">데모 데이터 기준</span></div>
+    <!-- 서버 계정과목별 사용 현황 -->
+    <div class="section-title">카테고리별 사용 현황 <span class="muted" id="demoTag">서버 실데이터</span></div>
     <section class="card" id="groupCards" style="padding:6px 16px"></section>
 
     <!-- 출장비 기준 대비 -->
@@ -51,10 +51,11 @@ const D = SKD;
 SKM.chrome("home", "영수증 사진 한 장으로 정산 끝 — AXE-acc 모바일 (PC와 같은 저장소)");
 const $ = (id) => document.getElementById(id);
 
-/* ---- 요약·최근: 서버 실데이터 우선 ---- */
+/* ---- 요약·최근·분석: 서버 실데이터 전용 ---- */
 (async () => {
   const receipts = await eaccApi("/api/receipts");
-  if (receipts) {
+  const stats = Array.isArray(receipts) ? await eaccApi("/api/stats") : null;
+  if (Array.isArray(receipts)) {
     /* 결재 대기 전표 알림 — 탭하면 문서함으로 */
     eaccApi("/api/vouchers").then(vs => {
       const pending = (vs || []).filter(v => v.status === "submitted").length;
@@ -66,10 +67,9 @@ const $ = (id) => document.getElementById(id);
           <span style="color:var(--sk-red);font-weight:800">›</span>
         </a>`;
     });
-    const month = receipts.filter(r => ((r.ocr || {}).paidAt || r.createdAt || "").startsWith("2026-07"));
-    const total = month.reduce((s, r) => s + (r.amountKRW || 0), 0);
+    const total = stats ? stats.totalKRW : receipts.reduce((s, r) => s + (r.amountKRW || 0), 0);
     $("heroTotal").textContent = D.krw(total);
-    $("heroSub").textContent = `영수증 ${month.length}건 · 매칭 완료 ${month.filter(r => r.matchedTxId).length}건 · 서버 실데이터`;
+    $("heroSub").textContent = `영수증 ${receipts.length}건 · 매칭 완료 ${receipts.filter(r => r.matchedTxId).length}건 · PC와 동일한 서버 집계`;
     const un = receipts.filter(r => !r.matchedTxId).length;
     $("heroTrip").innerHTML = un
       ? `<div class="g-head"><span>🔗 미매칭 영수증</span><b>${un}건</b></div>
@@ -94,83 +94,41 @@ const $ = (id) => document.getElementById(id);
           </div>
         </div>`;
       }).join("") || '<p class="muted" style="padding:12px 0">아직 영수증이 없습니다 — 촬영해 보세요</p>';
+
+    const accounts = stats && Array.isArray(stats.byAccount) ? stats.byAccount.filter(a => a.totalKRW > 0) : [];
+    const grand = accounts.reduce((sum, a) => sum + a.totalKRW, 0);
+    const colors = ["#EA002C", "#2563EB", "#D96414", "#0E9F6E", "#8055E8"];
+    $("groupCards").innerHTML = accounts.map((a, i) => `
+      <div style="padding:11px 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="cat" style="font-size:13px"><i style="background:${colors[i % colors.length]}"></i>${a.name}</span>
+          <b class="num" style="font-size:14.5px">${D.krw(a.totalKRW)}</b>
+        </div>
+        <div class="g-track" style="height:6px;margin:7px 0 6px"><div class="g-fill" style="width:${grand ? a.totalKRW / grand * 100 : 0}%;background:${colors[i % colors.length]}"></div></div>
+        <div class="muted" style="font-size:11.5px">${a.count}건 · 서버 계정과목 집계</div>
+      </div>`).join("") || '<p class="muted" style="padding:12px 0">분류된 사용 내역이 없습니다.</p>';
+
+    const trips = stats && Array.isArray(stats.presets)
+      ? stats.presets.filter(p => p.type === "TRIP" && p.limitKRW)
+      : [];
+    $("tripGauges").innerHTML = trips.map(p => {
+      const pct = Math.min(100, p.usedKRW / p.limitKRW * 100);
+      const over = p.usedKRW > p.limitKRW;
+      return `<div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
+        <div class="g-head"><span>✈ <b>${p.name}</b></span><b class="num">${D.krw(p.usedKRW)} / ${D.krw(p.limitKRW)}</b></div>
+        <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
+        <div class="g-foot"><span>서버 정산단위 한도</span><span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">${over ? "기준 초과" : "기준 이내 ✓"}</span></div>
+      </div>`;
+    }).join("") || '<p class="muted" style="padding:12px 0">등록된 출장 정산단위가 없습니다.</p>';
   } else {
-    /* 폴백: 시제품#1 내장 데모 */
-    const july = D.valid().filter(r => r.paidAt.startsWith("2026-07"));
-    const julyTotal = july.reduce((s, r) => s + r.amountKRW, 0);
-    $("heroTotal").textContent = D.krw(julyTotal);
-    $("heroSub").textContent = `영수증 ${july.length}건 · 외화 ${july.filter(r => r.currency !== "KRW").length}건 자동 환산 (내장 데모)`;
-    const act = D.activeTrip();
-    if (act) {
-      const todaySpent = D.RECEIPTS.filter(r => r.tripId === act.id && r.paidAt.startsWith(D.TODAY))
-        .reduce((s, r) => s + r.amountKRW, 0);
-      const remain = act.dailyCapKRW - todaySpent;
-      $("heroTrip").innerHTML = `
-        <div class="g-head"><span>✈ ${act.title} · 오늘 잔여 한도</span><b>${D.krw(remain)}</b></div>
-        <div class="g-track"><div class="g-fill" style="width:${Math.min(100, todaySpent / act.dailyCapKRW * 100)}%"></div></div>
-        <div class="g-foot"><span>오늘 사용 ${D.krw(todaySpent)}</span><span>일일 Cap ${D.krw(act.dailyCapKRW)} (2명)</span></div>`;
-    }
-    $("recent").innerHTML = D.valid()
-      .slice().sort((a, b) => b.paidAt.localeCompare(a.paidAt)).slice(0, 4)
-      .map(r => {
-        const G = D.GROUPS[D.groupOf(r)];
-        const url = D.imgUrl(r.img);
-        return `
-        <div class="rcpt-row">
-          <div class="rcpt-thumb">${url ? `<img src="${url}" alt="">` : (r.source === "pdf" ? "📄" : "🧾")}</div>
-          <div class="rcpt-main">
-            <div class="m1">${r.merchant}</div>
-            <div class="m2"><span class="cat"><i style="background:${G.hex}"></i>${G.name} · ${D.subOf(r)}</span><span>${D.dt(r.paidAt)}</span></div>
-          </div>
-          <div class="rcpt-amt">
-            <div class="a1 num">${D.krw(r.amountKRW)}</div>
-            <div class="a2">${r.currency !== "KRW" ? D.money(r) + " 환산" : (r.status === "review" ? "확인 필요" : "매칭 완료")}</div>
-          </div>
-        </div>`;
-      }).join("");
+    $("heroTotal").textContent = D.krw(0);
+    $("heroSub").textContent = "서버 연결 실패 · 샘플 금액으로 대체하지 않음";
+    $("heroTrip").innerHTML = '<div class="g-foot"><span>실제 영수증 데이터를 불러오려면 서버 연결이 필요합니다.</span></div>';
+    $("recent").innerHTML = '<p class="muted" style="padding:18px 0;text-align:center">실제 영수증 목록을 불러오지 못했습니다.<br>연결을 확인한 뒤 새로고침해 주세요.</p>';
+    $("groupCards").innerHTML = '<p class="muted" style="padding:12px 0">서버 연결이 필요합니다.</p>';
+    $("tripGauges").innerHTML = '<p class="muted" style="padding:12px 0">서버 연결이 필요합니다.</p>';
   }
 })();
-
-/* ---- 분석 위젯: 시제품#1 데모 데이터 기준 (카테고리 체계 필요) ---- */
-const GT = D.groupTotals();
-const grand = Object.values(GT).reduce((s, g) => s + g.total, 0);
-$("groupCards").innerHTML = D.GROUP_ORDER.map(g => {
-  const G = D.GROUPS[g], t = GT[g];
-  if (!t.total) return "";
-  const subs = Object.entries(t.subs).sort((a, b) => b[1] - a[1])
-    .map(([s, v]) => `<span class="muted" style="white-space:nowrap">${s} <b class="num" style="color:var(--ink)">${D.fmt(v / 1000)}k</b></span>`)
-    .join('<span class="muted"> · </span>');
-  return `
-    <div style="padding:11px 0;border-bottom:1px solid var(--line)">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span class="cat" style="font-size:13px"><i style="background:${G.hex}"></i>${G.name}</span>
-        <b class="num" style="font-size:14.5px">${D.krw(t.total)}</b>
-      </div>
-      <div class="g-track" style="height:6px;margin:7px 0 6px"><div class="g-fill" style="width:${t.total / grand * 100}%;background:${G.hex}"></div></div>
-      <div style="display:flex;gap:2px;flex-wrap:wrap;font-size:11.5px">${subs}</div>
-    </div>`;
-}).join("").replace(/border-bottom:1px solid var\(--line\)(?![\s\S]*border-bottom)/, "border-bottom:none");
-
-$("tripGauges").innerHTML = D.TRIPS.filter(t => t.status !== "planned").map(t => {
-  const cap = D.tripCap(t), spent = D.tripSpent(t);
-  const pct = Math.min(100, spent / cap * 100), over = spent > cap;
-  const label = t.type === "domestic"
-    ? `식대 기준 ${D.krw(t.mealCapPerDayKRW)}/일 × ${D.tripDays(t)}일`
-    : `일일 Cap ${D.krw(t.dailyCapKRW)} × ${D.tripDays(t)}일`;
-  return `
-    <div class="gauge ${over ? "over" : ""}" style="margin-bottom:16px">
-      <div class="g-head">
-        <span>${t.type === "domestic" ? "🚄" : "✈"} ${t.title}
-          <span class="badge ${t.status === "active" ? "brand" : "neutral"}" style="margin-left:4px">${t.status === "active" ? "진행중" : "완료"}</span>
-        </span>
-        <b class="num">${D.krw(spent)} / ${D.krw(cap)}</b>
-      </div>
-      <div class="g-track"><div class="g-fill" style="width:${pct}%"></div></div>
-      <div class="g-foot"><span>${label}</span>
-        <span style="font-weight:700;color:${over ? "var(--danger)" : "var(--ok)"}">
-          ${over ? "기준 초과 " + D.krw(spent - cap) : "기준 이내 · 잔여 " + D.krw(cap - spent)}</span></div>
-    </div>`;
-}).join("") + `<p class="muted" style="line-height:1.5">국내 출장 식대는 일수 합산 기준으로 판정합니다. 예: 3일 출장 = 35,000원 × 3일 = 105,000원 이내</p>`;
 </script>
 </body>
 </html>

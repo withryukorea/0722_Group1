@@ -4,7 +4,7 @@
    목적: 이 화면은 "모바일웹과 동일한 데이터"를 같은 서버에서 읽는다.
    - 원본 목업(design/)의 window.SKD 와 100% 같은 인터페이스를 제공하되,
      RECEIPTS/CARD_TX/TRIPS/BUDGETS 를 라이브 API(GET /api/*)에서 채운다.
-   - API 실패 시 데모 시드로 폴백(app/api.js 의 demoFallback 과 동일 철학).
+   - API 실패 시 샘플로 바꾸지 않고 빈 상태와 연결 오류를 표시한다.
    - 화면 인라인 스크립트는 `SKD.load().then(render)` 로 데이터 로드 후 렌더.
 
    설계 메모:
@@ -209,16 +209,19 @@ window.SKD = (function () {
       serviceDate: rc.serviceDate || (ocr.paidAt || "").slice(0, 10) || TODAY,
       category,
       tripId,
-      source: category === "WELFARE_AI" ? "pdf" : "photo",
+      source: rc.source || "mobile",
+      ocrMode: rc.ocrMode || "seed",
       img,
       status,
       presetId: rc.presetId || null, // 정산단위(세트) 소속 — 담기/빼기 대상
       matchedTxId: rc.matchedTxId || null,
-      approvalNo: null, // 2차 패스에서 매칭 tx의 승인번호 연결
+      approvalNo: ocr.approvalNo || null, // 미인식 시 2차 패스에서 매칭 거래 승인번호 연결
       cardLast4: ocr.cardLast4 || null,
       vat: mapVat(rc),
       items: ocr.items || [],
-      why: "라이브 서버 데이터 — 프리셋·키워드·출장기간으로 자동 분류"
+      why: rc.ocrMode === "real"
+        ? "실제 Vision OCR 결과 — 프리셋·키워드·출장기간으로 자동 분류"
+        : "서버 등록 데이터 — 프리셋·키워드·출장기간으로 자동 분류"
     };
   }
 
@@ -324,7 +327,7 @@ window.SKD = (function () {
   function fillObj(obj, entries) { for (const k in obj) delete obj[k]; Object.assign(obj, entries); }
   function presetName(id) { const p = PRESETS_BY_ID[id]; return p ? p.name : (id || ""); }
 
-  /* ================= load(): 라이브 로드(폴백) ================= */
+  /* ================= load(): 라이브 데이터만 로드 ================= */
   let MODE = "loading";
   let _err = null;
   let _promise = null;
@@ -355,17 +358,17 @@ window.SKD = (function () {
         fill(TRIPS, trips);
         fill(RECEIPTS, receipts);
         fill(CARD_TX, cards);
-        fill(BUDGETS, (bg && bg.length ? bg.map(mapBudget) : demoBudgets()));
+        fill(BUDGETS, (bg || []).map(mapBudget));
         MODE = "live";
       } catch (e) {
         _err = e;
-        fill(TRIPS, demoTrips());
-        fill(RECEIPTS, demoReceipts());
-        fill(CARD_TX, demoCardTx());
-        fill(BUDGETS, demoBudgets());
-        fill(PRESETS, []);        // 오프라인 데모: 서버 프리셋 없음(사용자 정산단위 기능 비활성)
+        fill(TRIPS, []);
+        fill(RECEIPTS, []);
+        fill(CARD_TX, []);
+        fill(BUDGETS, []);
+        fill(PRESETS, []);
         fillObj(PRESETS_BY_ID, {});
-        MODE = "demo";
+        MODE = "error";
       }
       return { mode: MODE, error: _err };
     })();
@@ -385,8 +388,8 @@ window.SKD = (function () {
       b.style.cssText = "margin-left:8px;font-size:10.5px;vertical-align:middle";
       b.title = live
         ? "공유 서버(라이브) 데이터 · " + (API.activeBase || "현재 주소")
-        : "서버 연결 실패 — 데모 시드로 표시 중";
-      b.textContent = live ? "● 라이브 공유" : "● 데모(오프라인)";
+        : "서버 연결 실패 — 샘플 데이터로 대체하지 않음";
+      b.textContent = live ? "● 라이브 공유" : "● 서버 연결 실패";
       host.appendChild(b);
     }
 
@@ -398,17 +401,10 @@ window.SKD = (function () {
       const localHelp = location.hostname === "localhost" || location.hostname === "127.0.0.1"
         ? " 서버를 실행한 뒤 http://localhost:4000/pc/에서 열어 주세요."
         : " 공유 서버 주소 설정을 확인해 주세요.";
-      alert.innerHTML = "<strong>데모 데이터 표시 중</strong> — 공유 서버에 연결되지 않아 이 금액은 모바일과 동기화되지 않습니다." + localHelp;
+      alert.innerHTML = "<strong>실데이터를 불러오지 못했습니다</strong> — 샘플 데이터로 대체하지 않았습니다." + localHelp;
       page.insertBefore(alert, page.firstChild);
-      console.warn("[PC] 공유 서버 연결 실패. 데모 데이터로 전환했습니다.", _err);
+      console.error("[PC] 공유 서버 연결 실패. 빈 상태를 표시합니다.", _err);
     }
-  }
-
-  /* 데모 스토리텔링용(업로드 화면 칩): 라이브에 없으면 데모 시드에서 조회 */
-  const _demoIndex = {};
-  demoReceipts().forEach(r => _demoIndex[r.id] = r);
-  function sampleReceipt(id) {
-    return RECEIPTS.find(r => r.id === id) || _demoIndex[id] || null;
   }
 
   return {
@@ -417,6 +413,6 @@ window.SKD = (function () {
     fmt, krw, money, dateShort, dt, tripDays, tripCap, tripSpent, tripAll,
     groupOf, subOf, groupTotals, activeTrip, valid, imgUrl, attachTip,
     matchBasis, candidatesFor, vatInfo, presetName,
-    load, reload, mountBadge, sampleReceipt, get MODE() { return MODE; }
+    load, reload, mountBadge, get MODE() { return MODE; }
   };
 })();

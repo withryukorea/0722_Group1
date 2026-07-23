@@ -22,9 +22,9 @@ window.PC_CONFIG = (function () {
     localFallbackBase: runtime.localFallbackBase !== undefined
       ? runtime.localFallbackBase
       : localFallbackBase,
-    requestTimeoutMs: runtime.requestTimeoutMs || 8000,
-    demoFallback: runtime.demoFallback !== undefined ? runtime.demoFallback : true,
-    // 영수증 원본 이미지 폴백 경로(데모 시드 전용): pc/ 기준 상대경로
+    // Render 콜드스타트 + Vision OCR 시간을 함께 기다린다. 서버 OCR 자체 제한은 30초.
+    requestTimeoutMs: runtime.requestTimeoutMs || 70000,
+    // 레거시 화면 자산 경로. API 연결 실패 시 데이터 폴백에는 사용하지 않는다.
     demoImageBase: '../data_sample/images/',
   };
 })();

@@ -96,8 +96,8 @@ const STATUS_BADGE = {
   duplicate: '<span class="badge danger">중복 감지</span>'
 };
 
-/* ── 데이터 소스: 서버 우선, 실패 시 시제품#1 내장 데이터 ───────────── */
-let MODE = "fallback";     // "server" | "fallback"
+/* ── 데이터 소스: 서버 실데이터 전용 ───────────────────────────── */
+let MODE = "loading";      // "server" | "error"
 let ROWS = [];             // 통합 행 모델
 let TXS = [];              // 서버 카드 승인내역 (드로어 표시용)
 let PRESETS = [];
@@ -114,7 +114,7 @@ function adaptServer(r, scoreInfo) {
     amount: o.amount || 0, currency: o.currency || "KRW", fxRate: r.fxRate || 1,
     amountKRW: r.amountKRW || 0,
     paidAt: o.paidAt || r.createdAt || "", serviceDate: r.serviceDate || (o.paidAt || "").slice(0, 10),
-    imgSrc: r.croppedUrl, source: r.uploadedFile ? "photo" : "woz",
+    imgSrc: r.croppedUrl, source: r.ocrMode === "real" ? "actual-ocr" : "seed",
     txId: r.matchedTxId || (scoreInfo && scoreInfo.txId) || null,
     score, status, checks: r.checks || [],
     suggestedPresetId: r.suggestedPresetId || null, presetId: r.presetId || null,
@@ -138,7 +138,7 @@ function adaptLocal(r) {
 
 async function load(runMatch) {
   const list = await eaccApi("/api/receipts");
-  if (list) {
+  if (Array.isArray(list)) {
     MODE = "server";
     PRESETS = (await eaccApi("/api/presets")) || [];
     TXS = (await eaccApi("/api/transactions")) || [];
@@ -157,9 +157,11 @@ async function load(runMatch) {
     $("srcNote").innerHTML = `서버 저장소의 영수증 ${ROWS.length}건 — 법인카드 승인내역 ${TXS.length}건과 매칭 (금액 60 · 일시 30 · 가맹점 10점, ≥70 자동확정)`;
     $("fGroup").style.display = $("fSub").style.display = "none";
   } else {
-    MODE = "fallback";
-    ROWS = D.RECEIPTS.map(adaptLocal);
-    $("srcNote").innerHTML = `<span class="badge neutral">서버 미연결</span> 시제품#1 내장 데모 데이터로 표시 중`;
+    MODE = "error";
+    ROWS = [];
+    TXS = [];
+    $("srcNote").innerHTML = `<span class="badge danger">서버 연결 실패</span> 샘플 내역으로 대체하지 않았습니다. 서버 연결 후 다시 불러와 주세요.`;
+    $("fGroup").style.display = $("fSub").style.display = "none";
   }
   render();
 }

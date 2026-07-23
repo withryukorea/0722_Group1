@@ -24,8 +24,11 @@ window.PC_API = (function () {
           : options.body,
       });
       if (!res.ok) {
-        const error = new Error(`API ${res.status} ${path}`);
+        const details = await res.json().catch(() => null);
+        const error = new Error(details && details.message ? details.message : `API ${res.status} ${path}`);
         error.status = res.status;
+        error.code = details && details.error ? details.error : '';
+        error.details = details;
         error.apiBase = base;
         throw error;
       }
@@ -76,7 +79,13 @@ window.PC_API = (function () {
     const form = new FormData();
     form.append('image', file);
     form.append('source', source || 'pc');
-    return request('/api/receipts', { method: 'POST', body: form });
+    const receipt = await request('/api/receipts', { method: 'POST', body: form });
+    if (!receipt || receipt.ocrMode !== 'real') {
+      const error = new Error('실제 OCR 결과가 아니어서 저장하지 않았습니다.');
+      error.code = 'NON_REAL_OCR';
+      throw error;
+    }
+    return receipt;
   }
 
   return {

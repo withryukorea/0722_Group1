@@ -18,7 +18,7 @@ app.use("/api/transactions", require("./routes/transactions"));
 app.use("/api/vouchers", require("./routes/vouchers"));
 app.use("/api", require("./routes/reference")); // approval-rules, budgets, fx, accounts
 
-app.use("/api/receipts", require("./routes/receipts")); // P3 (실 OCR + WoZ 폴백)
+app.use("/api/receipts", require("./routes/receipts")); // P3 (실업로드는 OCR 성공 시에만 저장)
 app.use("/api", require("./routes/match")); // P4 (/api/match, /api/vouchers/preview)
 app.use("/api/presets", require("./routes/presets")); // Preset 엔진 (sot/05)
 app.use("/api/trips", require("./routes/presets").tripsAlias); // 구 trips 호환 별칭 → TRIP Preset
