@@ -183,3 +183,4 @@ CardTransaction, Voucher, ApprovalRule(전결규정, fallback 전용), fx, accou
 - 전결라인 양식의 `$SUPERIOR`(차상위자) 해석은 조직도 mock(`eaccounting/js/org-data.js`) 기준.
 - 단일 사용자(`u_me`) 하드코딩, 실제 인증 없음.
 - 프로덕션 보안·백업 체계 없음 (PoC 범위 밖).
+- 수동 크롭의 회전(quarter/fine rotation) 조정은 없음 — 크롭 실패 시 원본 사용 또는 재크롭(전체 재업로드)만 지원. `reference/RECEIPT_PROCESSING_BACKEND_REFERENCE_2026-07-22.md` 참고, 이번 라운드엔 미반영.

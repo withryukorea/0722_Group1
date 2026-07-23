@@ -35,7 +35,8 @@
 |---|---|---|
 | GET | `/api/transactions?status=unmatched` | 카드승인내역 목록 (기존 유지) |
 | PATCH | `/api/transactions/:id` | 상태/매칭 갱신 (기존 유지) |
-| POST | `/api/receipts` (multipart) | 영수증 업로드(모바일 촬영 + 이어카운팅 PC 파일 공용) → 크롭(원본/파생 분리)+OCR, `suggestedPresetId`·`checks[]` 포함해 반환 |
+| POST | `/api/receipts` (multipart) | 실 이미지 → Vision OCR(성공만 저장, `ocrMode:"real"`), 데모 `{key}` → WoZ(`ocrMode:"woz"`). 실패 시 저장 안 함 |
+| GET | `/api/receipts/ocr-status` | 비밀값 없이 실 OCR 설정 여부·모델 조회 |
 | PATCH | `/api/receipts/:id` | 사용자가 `presetId`·`accountCode`·`vat.confirmed` 확정 |
 | POST | `/api/match` | body: `{receiptIds[]}` → 거래 매칭 결과 `[{receiptId, txId, score}]` |
 | POST | `/api/vouchers/preview` | 매칭된 건들로 전표 초안 생성 (정산단위 규칙 반영) |
@@ -111,10 +112,32 @@
 - `rank` 파라미터(CEO|DIVISION_HEAD|HQ_HEAD|TEAM_LEAD|TEAM_MEMBER, 기본 TEAM_MEMBER)로 직급별 기준 적용.
 - 구 `POST /api/trips` 별칭도 동일 로직 (`dailyCapPerPersonKRW` 미지정 시 policy 자동).
 
-### 영수증 — source·크롭 분리·OCR 수정
+### 영수증 — 하이브리드 OCR (2026-07-23, Codex 실 OCR 반영)
 
-`POST /api/receipts` — multipart `image`(원본, 항상 보존) + 선택 `cropped`(크롭본) + `source`("mobile"|"pc", 기본 mobile).
-응답에 `source`, `crop: {status: "auto"|"manual"|"original", updatedAt}` 추가. WoZ 폴백은 기존과 동일(`?key=`).
+`POST /api/receipts` 두 경로:
+
+- **실제 이미지 업로드**(multipart `image`[, `cropped`]) → `server/ocr.js`의 Vision OCR(Letsur AI Gateway)로 인식.
+  가맹점·금액을 신뢰 있게 인식한 경우에만 저장하고 `ocrMode:"real"` 반환.
+  **키 미설정·인식 실패·타임아웃 시 저장하지 않고 오류 반환**(WoZ 폴백 금지 — 성공 위장 방지):
+
+  | 실패 | HTTP | 의미 |
+  |---|---:|---|
+  | `IMAGE_REQUIRED` | 400 | 이미지도 데모 key도 없음 |
+  | `OCR_UNSUPPORTED_MEDIA` | 415 | 이미지 아님(PDF 등) |
+  | `OCR_NOT_CONFIGURED` | 503 | 실 OCR 키(`LETSUR_API_KEY`) 미설정 |
+  | `OCR_PROVIDER_ERROR`/`OCR_INVALID_RESULT` | 502 | 제공자 오류 또는 가맹점·금액 검증 실패 |
+  | `OCR_TIMEOUT` | 504 | 인식 제한시간 초과 |
+
+  실패 응답은 `{error, message, ocrMode:"failed", saved:false}`.
+
+- **데모 샘플 key**(JSON `{key}`, 이미지 없음) → `fixtures/receipts-ocr` WoZ 픽스처로 저장, `ocrMode:"woz"`.
+  연출용 데모 샘플칩·시드 재현용으로 **유지**(키 없이도 동작). 즉 "새 영수증(실 업로드)만 실 OCR, 기존 데모·시드 기록은 보존".
+
+- `GET /api/receipts/ocr-status` — 비밀값 없이 `{configured, model, demoKeyFallback:true, actualUploadFallback:false}` 반환.
+
+응답 공통에 `ocrMode`, `source`("mobile"|"pc"), `crop:{status:"auto"|"manual"|"original", updatedAt}` 포함.
+
+> 배포: `LETSUR_API_KEY`는 Render 대시보드(또는 로컬 `server/.env`, git 무시)에만 넣는다 — 커밋 금지. `render.yaml`은 `sync:false`로 참조만.
 
 `POST /api/receipts/:id/crop` — 재크롭: multipart `cropped` 파일 → `crop.status:"manual"` / `{"useOriginal":true}` → 원본 폴백(`crop.status:"original"`).
 

@@ -105,6 +105,7 @@ let PRESETS = null, ACCOUNTS = [];
 })();
 const presetOf = (id) => (PRESETS || []).find(p => p.id === id) || null;
 
+<<<<<<< HEAD
 /* 프리셋 → 정산 정보 요약 (계정·예산부서·적요·전결라인 — 저장 시 이대로 확정) */
 function presetInfoHtml(p) {
   if (!p) return "";
@@ -125,6 +126,8 @@ function presetInfoHtml(p) {
     전결라인 ${line}</div>`;
 }
 
+=======
+>>>>>>> 5f33e1cf8204590bc343426f61c7803eaef9d3e9
 /* 서버 WoZ 데모 샘플 (fixtures/receipts-ocr 9종 중 모바일 데모 7종) */
 const SAMPLES = [
   { key: "coffee",    label: "☕ 폴바셋 커피" },

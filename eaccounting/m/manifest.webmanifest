@@ -1,0 +1,17 @@
+{
+  "name": "AXE-acc 모바일 — SK e-Accounting",
+  "short_name": "AXE-acc",
+  "description": "영수증 촬영·업로드·매칭·결재까지, 이어카운팅과 같은 서버를 쓰는 모바일 창",
+  "lang": "ko",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#EA002C",
+  "background_color": "#F5F6F8",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

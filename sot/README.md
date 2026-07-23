@@ -38,3 +38,10 @@
 ## 참고 (레퍼런스 프로젝트)
 
 `C:\Users\admin\Corp_Card_Receipt_Mgmt`의 증빙 캡처 패턴(원본/크롭 분리 저장, 리셋 가능한 파생 이미지) 일부를 설계에 참고했다. 그 프로젝트의 SoT/패키지/거버넌스 체계, 보안 하드닝 요구사항은 이 PoC 스케일에 맞지 않아 가져오지 않았다.
+
+`reference/RECEIPT_PROCESSING_BACKEND_REFERENCE_2026-07-22.md`(+ 동봉 zip)는 같은 원 프로젝트에서 뽑은 **영수증 파싱/크롭 백엔드 소스 레퍼런스**다. Python/FastAPI 코드라 우리 스택(Node/Express)에 그대로 이식하지 않고, 체크리스트만 반영했다:
+
+- 원본 불변 보존 + 크롭 파생물 분리 저장 — 이미 구현됨(`server/routes/receipts.js`).
+- 증빙 미리보기 `Cache-Control: no-store` — 이번 라운드에 `GET /api/receipts/:id/image`에 반영.
+- 유한/제한된 회전·크롭 사각형 검증(수동 크롭의 quarter/fine rotation) — **이번 라운드엔 없음, 향후 개선 후보**로만 남긴다 (`02_architecture_db_schema.md` Known Gaps).
+- 권한 체크·시크릿 분리·합성 데이터 우선 원칙은 이미 이 PoC의 Non-Goals/코딩규칙과 같은 방향이라 별도 반영 없음.

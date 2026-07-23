@@ -82,7 +82,9 @@
 .qk .cat i { width: 8px; height: 8px; border-radius: 3px; flex: 0 0 auto; }
 
 /* ---- 게이지(예산 소진) ---- */
-.qk .gauge { margin-top: 6px; }
+/* common.css 의 레거시 .gauge{height:12px;overflow:hidden}(다른 컴포넌트)가 새어들어
+   v2 게이지를 납작하게 누르던 것을 차단 — 높이/오버플로/배경을 명시적으로 되돌린다 */
+.qk .gauge { margin-top: 6px; height: auto; overflow: visible; background: none; border-radius: 0; }
 .qk .gauge .g-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-2); margin-bottom: 5px; gap: 8px; }
 .qk .gauge .g-head b { color: var(--ink); font-size: 13px; }
 .qk .gauge .g-track { height: 8px; background: #ECEEF3; border-radius: 999px; overflow: hidden; position: relative; }

@@ -402,7 +402,11 @@ function renderSummary() {
     `<tr><td class="grp" colspan="2">총계</td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td>
      <td class="r"></td><td class="r"></td><td class="r"><b>${fmt(total)}</b></td><td class="cap">-</td></tr>`;
   renderDomesticPolicy(role, dailyLimit, lodgeLimit);
+<<<<<<< HEAD
   if (!window._apvLine) document.getElementById('review-1').innerHTML = total > 300000 ? 'Upstream사업실<br><b>박아무개 실장</b>' : '';
+=======
+  if (!window._apvLine) document.getElementById('review-1').innerHTML = total > 300000 ? '전력사업기획실<br><b>박아무개 실장</b>' : '';
+>>>>>>> 5f33e1cf8204590bc343426f61c7803eaef9d3e9
 }
 
 async function syncTravelPolicy() {
@@ -442,7 +446,11 @@ async function submitVoucher() {
     body: {
       title: `국내출장비 정산 (${city})`,
       lines: cashLines.map(l => ({ amountKRW: l.amount, description: `[현금/${l.type}] ${l.detail || '실비'}` })),
+<<<<<<< HEAD
       approvalLine: apvLineNames() || (total <= 300000 ? ['김현준 기술위원'] : ['김현준 기술위원', '박아무개 실장']),
+=======
+      approvalLine: apvLineNames() || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 실장']),
+>>>>>>> 5f33e1cf8204590bc343426f61c7803eaef9d3e9
     },
   });
   if (r.ok) {

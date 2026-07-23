@@ -22,7 +22,11 @@ const PROFILE = {
   team: "Upstream기술팀",
   office: "Upstream사업실",
   costCenter: "AQ131",
+<<<<<<< HEAD
   superiors: ["김현준 기술위원", "박아무개 실장"], // 차상위 → 차차상위
+=======
+  superiors: ["김아무개 팀장", "박아무개 실장"], // 차상위 → 차차상위
+>>>>>>> 5f33e1cf8204590bc343426f61c7803eaef9d3e9
 };
 
 /* 전결라인 양식($DRAFTER/$SUPERIOR/$SUPERIOR2) → 실제 이름으로 해석

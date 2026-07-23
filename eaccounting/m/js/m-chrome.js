@@ -3,6 +3,28 @@
    ☰ + 중앙 타이틀 + 홈 아이콘, 드로어 메뉴(사용자/회사 + 업무 메뉴 + 시스템문의).
    각 화면에서 SKM.chrome("home"|"capture"|"receipts"|"docs"|"schedule", sub) 호출.
    PC AXE-acc(:4000 루트)와 같은 서버·같은 DB, 창(뷰)만 모바일 전용. */
+
+/* ── PWA 배선 (구 /app 의 설치·오프라인 자산을 v2 모바일로 이관) ──
+   모든 m/ 화면이 이 파일을 로드하므로 여기 한 곳에서 매니페스트 링크·테마색·설치메타를
+   <head>에 주입하고 서비스워커를 등록한다 (http/https 서빙 시에만 — file:// 데모는 제외). */
+(function installPWA() {
+  const head = document.head;
+  if (head && !document.querySelector('link[rel="manifest"]')) {
+    const add = (tag, attrs) => { const el = document.createElement(tag); Object.assign(el, attrs); head.appendChild(el); };
+    add("link", { rel: "manifest", href: "manifest.webmanifest" });
+    add("meta", { name: "theme-color", content: "#EA002C" });
+    add("link", { rel: "apple-touch-icon", href: "icon.svg" });
+    add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
+    add("meta", { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" });
+    add("meta", { name: "apple-mobile-web-app-title", content: "AXE-acc" });
+  }
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js", { scope: "./" }).catch(() => { /* 등록 실패해도 화면은 정상 동작 */ });
+    });
+  }
+})();
+
 window.SKM = (function () {
   const WING = `
     <svg width="26" height="20" viewBox="0 0 52 40" aria-hidden="true">

@@ -453,7 +453,11 @@ function initInfo() {
   document.getElementById('evid-date').value = `${y}-${m}-${d}`;
   document.getElementById('post-date').value = `${y}-${m}-${d}`;
   const total = lines.reduce((s, l) => s + l.amount, 0);
+<<<<<<< HEAD
   if (total > 300000 && !window._apvLine) document.getElementById('review-1').innerHTML = 'Upstream사업실<br><b>박아무개 실장</b>';
+=======
+  if (total > 300000 && !window._apvLine) document.getElementById('review-1').innerHTML = '전력사업기획실<br><b>박아무개 실장</b>';
+>>>>>>> 5f33e1cf8204590bc343426f61c7803eaef9d3e9
 }
 
 /* ── 유형 선택 팝업 ── */
@@ -514,7 +518,11 @@ window.addEventListener('scroll', () => {
    나머지는 사용자가 확인/수정한다. 사용자가 이미 입력한 칸은 덮어쓰지 않는다. */
 let previewData = null;                  // 마지막 preview 응답 (상신 시 receiptId/presetId/결재선의 근거)
 const previewByTx = new Map();           // txId → preview 라인
+<<<<<<< HEAD
 const DEPT_OF = { '김현준 기술위원': 'Upstream기술팀', '박아무개 실장': 'Upstream사업실', '최아무개 매니저': '경영기획실' };
+=======
+const DEPT_OF = { '김아무개 팀장': '전력사업기획팀', '박아무개 실장': '전력사업기획실', '최아무개 매니저': '경영기획실' };
+>>>>>>> 5f33e1cf8204590bc343426f61c7803eaef9d3e9
 
 async function loadPreview() {
   if (!draft.apiMode) return false;
@@ -588,7 +596,11 @@ async function submitVoucher() {
     })),
     approvalLine: apvLineNames()                                     // 사용자가 결재선을 직접 바꿨으면 그 값
       || (previewData ? previewData.approvalLine : null)             // 아니면 preview 양식 해석 결과
+<<<<<<< HEAD
       || (total <= 300000 ? ['김현준 기술위원'] : ['김현준 기술위원', '박아무개 실장']),
+=======
+      || (total <= 300000 ? ['김아무개 팀장'] : ['김아무개 팀장', '박아무개 실장']),
+>>>>>>> 5f33e1cf8204590bc343426f61c7803eaef9d3e9
     approvalLineDetail: window._apvLine ? undefined : (previewData ? previewData.approvalLineDetail : undefined),
   };
   const r = await eaccApiTry('/api/vouchers', { body: payload });
