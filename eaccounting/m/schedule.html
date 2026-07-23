@@ -67,15 +67,107 @@ function presetCard(p) {
   </div>`;
 }
 
+/* 유형별 슬롯: 시제품#1 규칙 — 국내/해외 각 최대 2건 사전 등록 */
+const TRIP_MAX_PER_TYPE = 2;
+let newType = "domestic";
+
 function serverRender(presets) {
-  const trips = presets.filter(p => p.type === "TRIP");
+  const trips = presets.filter(p => p.type === "TRIP" && p.active !== false);
   const others = presets.filter(p => p.type !== "TRIP");
+  const dom = trips.filter(p => ((p.meta || {}).country || "KR") === "KR");
+  const fo  = trips.filter(p => ((p.meta || {}).country || "KR") !== "KR");
+
   $("content").innerHTML = `
-    <div class="section-title">출장 일정 (TRIP 프리셋) <span class="slot-note">${trips.length}건 · 서버 실데이터</span></div>
-    ${trips.map(presetCard).join("") || '<p class="muted" style="padding:6px 2px">등록된 출장 프리셋이 없습니다</p>'}
+    <div class="section-title">국내출장 일정 <span class="slot-note">${dom.length}/${TRIP_MAX_PER_TYPE}건 · 서버 실데이터</span></div>
+    ${dom.map(presetCard).join("") || '<p class="muted" style="padding:6px 2px">등록된 국내출장이 없습니다</p>'}
+    <div class="section-title">해외출장 일정 <span class="slot-note">${fo.length}/${TRIP_MAX_PER_TYPE}건</span></div>
+    ${fo.map(presetCard).join("") || '<p class="muted" style="padding:6px 2px">등록된 해외출장이 없습니다</p>'}
+
+    <div class="section-title">새 출장 일정 등록 <span class="muted">등록 즉시 TRIP 프리셋 생성</span></div>
+    <section class="card">
+      <div class="seg" id="typeSeg">
+        <button type="button" data-t="domestic" class="${newType === "domestic" ? "on" : ""}">국내출장</button>
+        <button type="button" data-t="foreign" class="${newType === "foreign" ? "on" : ""}">해외출장</button>
+      </div>
+      <div id="slotWarn"></div>
+      <form id="tripForm">
+        <div class="field"><label>출장명</label><input id="fTitle" placeholder="예: 대전 연구원 방문" required></div>
+        <div class="field"><label>경로 (출발지 → 목적지, 복수 지역 가능)</label>
+          <input id="fRoute" placeholder="예: 서울 → 부산 → 울산 → 서울" required>
+          <div class="hint">경로의 지역명이 영수증 자동추천 키워드로 등록됩니다</div></div>
+        <div class="field" id="countryField" style="display:${newType === "foreign" ? "block" : "none"}"><label>국가</label>
+          <select id="fCountry"><option value="JP">일본 (JPY)</option><option value="US">미국 (USD)</option><option value="CN">중국 (CNY)</option><option value="EU">유럽 (EUR)</option></select></div>
+        <div class="form2">
+          <div class="field"><label>시작일</label><input type="date" id="fStart" value="2026-08-03" required></div>
+          <div class="field"><label>종료일</label><input type="date" id="fEnd" value="2026-08-05" required></div>
+        </div>
+        <div class="field"><label>인원</label><select id="fMembers"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+        <div class="preset-why" id="capPreview">기간을 입력하면 출장비 지급기준(travel-policy)으로 일일 한도가 자동 계산됩니다</div>
+        <button type="submit" class="btn primary block" id="btnAdd" style="margin-top:12px">일정 등록</button>
+        <p class="muted" id="addMsg" style="margin-top:6px;text-align:center"></p>
+      </form>
+    </section>
+
     <div class="section-title">정기·특수 정산 프리셋 <span class="slot-note">${others.length}건</span></div>
-    ${others.map(presetCard).join("")}
-    <p class="muted" style="margin-top:10px;line-height:1.5;text-align:center">프리셋 등록·변경은 <b>PC AXE-acc(관리자)</b>에서 진행합니다<br>모바일은 조회 전용입니다</p>`;
+    ${others.map(presetCard).join("")}`;
+
+  /* ── 등록 폼 동작 ── */
+  const updateSlot = () => {
+    const count = (newType === "domestic" ? dom : fo).length;
+    const full = count >= TRIP_MAX_PER_TYPE;
+    $("btnAdd").disabled = full;
+    $("slotWarn").innerHTML = full
+      ? `<div class="preset-why" style="background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn);margin:0 0 12px">
+          ${newType === "domestic" ? "국내" : "해외"}출장은 <b>최대 ${TRIP_MAX_PER_TYPE}건</b>까지 사전 등록할 수 있습니다.
+          완료된 출장 프리셋을 비활성화하면 슬롯이 비워집니다.</div>` : "";
+  };
+  updateSlot();
+
+  $("typeSeg").querySelectorAll("button").forEach(b => b.onclick = (e) => {
+    e.preventDefault();
+    newType = b.dataset.t;
+    $("typeSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    $("countryField").style.display = newType === "foreign" ? "block" : "none";
+    capPreview(); updateSlot();
+  });
+  ["fStart", "fEnd", "fMembers"].forEach(id => $(id).onchange = capPreview);
+  capPreview();
+
+  function capPreview() {
+    const s = $("fStart").value, e = $("fEnd").value;
+    const days = s && e ? Math.max(1, Math.round((new Date(e) - new Date(s)) / 86400000) + 1) : 0;
+    const m = +$("fMembers").value;
+    if (!days) { $("capPreview").innerHTML = "기간을 입력하면 기준 금액이 자동 계산됩니다"; return; }
+    $("capPreview").innerHTML = newType === "domestic"
+      ? `<b>기준 자동 계산 (등록 시 확정)</b> · 국내 일당 기준 × ${m}명 × ${days}일 — 서버의 출장비 지급기준(travel-policy)이 일일 한도를 자동 산정합니다`
+      : `<b>기준 자동 계산 (등록 시 확정)</b> · 국가별 일일 Cap × ${m}명 × ${days}일 — 현지 통화 결제는 환율 자동 환산 후 차감됩니다`;
+  }
+
+  $("tripForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const route = $("fRoute").value.split("→").map(x => x.trim()).filter(Boolean);
+    const body = {
+      type: "TRIP",
+      name: $("fTitle").value,
+      startDate: $("fStart").value, endDate: $("fEnd").value,
+      destination: route.length > 1 ? route.slice(1, -1).join("·") || route[route.length - 1] : ($("fRoute").value || $("fTitle").value),
+      country: newType === "domestic" ? "KR" : $("fCountry").value,
+      members: +$("fMembers").value,
+      rules: { matchKeywords: route, descriptionTemplate: `${$("fTitle").value} {merchant}` }
+    };
+    const res = await eaccApiTry("/api/presets", { body });
+    if (res.ok) {
+      const lim = res.data && res.data.rules && res.data.rules.limitKRW;
+      P = (await eaccApi("/api/presets")) || P;
+      S = (await eaccApi("/api/stats")) || S;
+      renderSeg();
+      const am = $("addMsg");
+      if (am) am.textContent = `✓ 등록 완료 — 일일 한도 ${lim ? D.krw(lim) : "자동"} (지급기준 자동 산정)`;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      $("addMsg").textContent = "등록 실패: " + ((res.data && (res.data.hint || res.data.error)) || "서버 오류");
+    }
+  };
 }
 
 /* ── 예산조회 (기존 E-acc 예산조회의 모바일판 — /api/stats 실데이터) ── */
