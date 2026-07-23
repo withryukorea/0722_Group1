@@ -23,6 +23,28 @@ const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 const upload = multer({ dest: UPLOAD_DIR, limits: { fileSize: 15 * 1024 * 1024 } });
 
+// 기존 해커톤 데모는 명시적인 /demo 호출로만 생성한다.
+// 실제 이미지 업로드 실패가 이 데이터로 자동 전환되는 일은 없다.
+const DEMO_DIR = path.join(__dirname, "..", "..", "fixtures", "receipts-ocr");
+const DEMO_INDEX = JSON.parse(fs.readFileSync(path.join(DEMO_DIR, "index.json"), "utf-8")).receipts;
+
+function demoFixture(key) {
+  const entry = DEMO_INDEX.find((item) => item.key === key);
+  if (!entry) return null;
+  return {
+    entry,
+    data: JSON.parse(fs.readFileSync(path.join(DEMO_DIR, entry.file), "utf-8")),
+  };
+}
+
+function existingDemoImage(data) {
+  const url = data && data.imageUrl;
+  if (!url || !url.startsWith("/data_sample/")) return null;
+  const root = path.resolve(__dirname, "..", "..");
+  const target = path.resolve(root, decodeURIComponent(url).replace(/^\/+/, ""));
+  return target.startsWith(root + path.sep) && fs.existsSync(target) ? url : null;
+}
+
 function removeUpload(file) {
   if (!file || !file.path) return;
   try { fs.unlinkSync(file.path); } catch (error) { /* 실패 업로드 정리 best-effort */ }
@@ -63,6 +85,44 @@ function buildChecks(ocr, receiptId) {
   }
   return checks;
 }
+
+// POST /api/receipts/demo — 기존 데모를 사용자가 명시적으로 선택했을 때만 새 행으로 추가한다.
+// 실사진 POST /api/receipts와 완전히 분리해 OCR 실패 시 데모가 섞이지 않게 한다.
+router.post("/demo", (req, res) => {
+  const selected = demoFixture(req.body && req.body.key);
+  if (!selected) {
+    return res.status(404).json({ error: "DEMO_NOT_FOUND", message: "선택한 데모 영수증을 찾을 수 없습니다.", saved: false });
+  }
+
+  const id = nextReceiptId();
+  const ocr = { ...selected.data.ocr, items: [...(selected.data.ocr.items || [])] };
+  const serviceDate = (req.body && req.body.serviceDate) || ocr.serviceDate || (ocr.paidAt || "").slice(0, 10) || null;
+  const fixtureImage = existingDemoImage(selected.data);
+  const receipt = {
+    id,
+    ocrMode: "demo",
+    source: (req.body && req.body.source) === "pc" ? "pc" : "mobile",
+    imageUrl: fixtureImage || `/api/receipts/${id}/image`,
+    croppedUrl: fixtureImage || `/api/receipts/${id}/image`,
+    crop: { status: "original", updatedAt: new Date().toISOString() },
+    ocr,
+    ...fxFields(ocr),
+    serviceDate,
+    vat: { extracted: ocr.vat ?? null, confirmed: null },
+    checks: buildChecks(ocr, id),
+    suggestedPresetId: suggestPreset(ocr, serviceDate),
+    presetId: null,
+    accountCode: null,
+    matchedTxId: null,
+    tripId: (req.body && req.body.tripId) || selected.data.tripId || null,
+    wozKey: selected.entry.key,
+    uploadedFile: null,
+    croppedFile: null,
+    createdAt: new Date().toISOString(),
+  };
+  db.receipts.push(receipt);
+  res.status(201).json(receipt);
+});
 
 // POST /api/receipts — multipart(image[, cropped])
 // 원본(image)은 항상 보존, 크롭본(cropped)은 별도 파일 — 없으면 원본을 그대로 크롭본으로 사용 (sot/02 유입 흐름 3단계)

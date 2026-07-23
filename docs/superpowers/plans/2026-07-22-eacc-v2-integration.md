@@ -6,7 +6,7 @@
 
 **Architecture:** PC는 E-acc 채름(renderChrome) 안에 신규 톱메뉴 "간편정산" + `quick-*.html` 4장으로 포팅. 모바일은 `eaccounting/m/`에 별도 창(전용 채름)으로 편입 — 같은 서버가 정적 서빙(`/m/`), 같은 `/api/*` 사용.
 
-> 2026-07-23 변경: 아래 초기 계획의 데모키·SKD 폴백 단계는 폐기됐다. 실제 영수증·금액 화면은 API/OCR 실패를 샘플 성공으로 바꾸지 않으며 `sot/05_api.md`의 실 OCR 전용 계약을 따른다.
+> 2026-07-23 변경: 아래 초기 계획의 자동 데모키·SKD 폴백 단계는 폐기됐다. 실제 영수증·금액 화면은 API/OCR 실패를 샘플 성공으로 바꾸지 않는다. 기존 데모는 별도 `/api/receipts/demo`를 사용자가 선택할 때만 유지하며 `sot/05_api.md` 계약을 따른다.
 
 **Tech Stack:** 정적 HTML/CSS/JS (빌드 없음), Express :4000 (수정 없음), Preset 엔진 API (`/api/receipts`, `/api/match`, `/api/vouchers`, `/api/presets`).
 

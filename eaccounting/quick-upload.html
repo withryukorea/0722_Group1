@@ -38,6 +38,12 @@
             </div>
           </div>
 
+          <section class="card" style="margin-top:14px">
+            <div class="card-title">기존 데모 영수증 <span class="more" id="demoSrc">명시적으로 선택할 때만 추가</span></div>
+            <div class="chips" id="demoChips"></div>
+            <p class="muted" style="margin-top:8px">데모는 기존 시나리오 보존용입니다. 새 사진 업로드가 실패해도 데모로 자동 전환되지 않습니다.</p>
+          </section>
+
           <!-- 처리 큐 -->
           <section class="card" style="margin-top:14px">
             <div class="card-title">처리 현황 <span class="more" id="queueCount">0건</span></div>
@@ -87,6 +93,22 @@ $("pipeSteps").innerHTML = STEPS.map(([t, d], i) => `
     <div style="font-size:12.5px"><b>${t}</b><div class="muted" style="margin-top:1px">${d}</div></div>
   </div>`).join("");
 
+const DEMOS = [
+  { key: "coffee",      label: "☕ 폴바셋" },
+  { key: "chicken",     label: "🍗 치킨" },
+  { key: "anthropic",   label: "🤖 Anthropic" },
+  { key: "taxi1",       label: "🚕 카카오택시" },
+  { key: "taxi2",       label: "🚕 카카오택시 복귀" },
+  { key: "officedepot", label: "🗂 오피스디포" },
+  { key: "openai",      label: "📄 OpenAI" },
+  { key: "ktx-return",  label: "🚄 KTX 울산→서울" },
+  { key: "gukbap",      label: "🍲 백세촌국밥" }
+];
+$("demoChips").innerHTML = DEMOS.map(d => `<button class="chip" data-key="${d.key}">${d.label}</button>`).join("");
+document.querySelectorAll("#demoChips .chip").forEach(button => {
+  button.onclick = () => enqueue({ demoKey: button.dataset.key, name: button.textContent });
+});
+
 /* 서버 프리셋 이름 캐시 */
 let PRESETS = [];
 (async () => {
@@ -103,7 +125,7 @@ function enqueue(opt) {
   const item = {
     id: "q" + Date.now() + Math.random().toString(36).slice(2, 5),
     name: opt.name || (opt.file ? opt.file.name : "영수증"),
-    phase: 0, serverReceipt: undefined, serverError: null,
+    phase: 0, serverReceipt: undefined, serverError: null, isDemo: Boolean(opt.demoKey),
     isPdf: false,
     objUrl: opt.file && opt.file.type.startsWith("image/") ? URL.createObjectURL(opt.file) : null
   };
@@ -111,7 +133,7 @@ function enqueue(opt) {
   renderQueue();
 
   /* 서버 호출 (애니메이션과 병행) */
-  const post = postMultipart(opt.file);
+  const post = opt.demoKey ? postDemo(opt.demoKey) : postMultipart(opt.file);
   post.then(r => { item.serverReceipt = r; maybeFinish(item); })
     .catch(error => { item.serverReceipt = null; item.serverError = error.message || "영수증을 인식하지 못했습니다."; maybeFinish(item); });
 
@@ -120,6 +142,12 @@ function enqueue(opt) {
     if (item.phase >= PHASES.length) { clearInterval(timer); item.animDone = true; maybeFinish(item); }
     renderQueue();
   }, 380);
+}
+
+async function postDemo(key) {
+  const result = await eaccApiTry("/api/receipts/demo", { body: { key, source: "pc" } });
+  if (result.ok && result.data && result.data.ocrMode === "demo") return result.data;
+  throw new Error((result.data && result.data.message) || `데모 영수증 추가 실패 (HTTP ${result.status})`);
 }
 
 async function postMultipart(file) {
@@ -184,13 +212,13 @@ function showServerResult(item) {
       <dt class="muted">금액</dt><dd class="num" style="font-weight:700">${amt}</dd>
       <dt class="muted">일시</dt><dd>${o.paidAt ? D.dt(o.paidAt) : "-"}</dd>
       <dt class="muted">이용일</dt><dd>${r.serviceDate || "-"}</dd>
-      <dt class="muted">인식 방식</dt><dd><span class="badge ok">실제 OCR</span></dd>
+      <dt class="muted">처리 방식</dt><dd><span class="badge ${r.ocrMode === "demo" ? "neutral" : "ok"}">${r.ocrMode === "demo" ? "기존 데모" : "실제 OCR"}</span></dd>
       ${r.suggestedPresetId ? `<dt class="muted">프리셋 추천</dt><dd><span class="badge brand">⚡ ${presetName(r.suggestedPresetId)}</span></dd>` : ""}
       ${o.vat != null ? `<dt class="muted">부가세</dt><dd>${D.krw(o.vat)} <span class="badge neutral">영수증 표기</span></dd>` : ""}
     </dl>
     ${(r.checks || []).map(c => `<div class="preset-why" style="margin-top:8px;${c.status === "warn" ? "background:var(--warn-bg);border-color:#EAD3A8;color:var(--warn)" : ""}">
       ${c.status === "warn" ? "⚠️" : "ℹ️"} ${c.message}</div>`).join("")}
-    <div class="preset-why" style="margin-top:10px">영수증 <b>${r.id}</b> 저장 완료 — 모바일·이어카운팅이 같은 목록을 조회합니다.</div>
+    <div class="preset-why" style="margin-top:10px">영수증 <b>${r.id}</b> 새 행 추가 완료 — 모바일·이어카운팅이 같은 목록을 조회합니다.</div>
     <div style="display:flex;gap:8px;margin-top:12px"><a class="btn primary" style="flex:1" href="m/receipts.html">영수증 목록 확인 ›</a><a class="btn" style="flex:1" href="quick-match.html">자동매칭 확인 ›</a></div>`;
 }
 

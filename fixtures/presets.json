@@ -133,7 +133,7 @@
       },
       "approvalLine": ["김아무개 팀장"],
       "descriptionTemplate": "부산출장 {merchant}",
-      "matchKeywords": ["부산", "울산", "KTX", "철도", "서울역"],
+      "matchKeywords": ["부산", "울산", "KTX", "철도", "서울역", "백세촌"],
       "requireItemized": false
     },
     "usage": { "usedKRW": 0, "byDay": {}, "byAccountCode": {} }

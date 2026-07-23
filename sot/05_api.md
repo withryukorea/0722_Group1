@@ -23,7 +23,7 @@
 | 추가 | `POST /api/presets` — 이어카운팅 전용: 관리자 배포(RECURRING/CAMPAIGN)·직원 국내출장 생성(TRIP, 표준 기본값). 해외출장 TRIP은 품의 자동생성을 seed로 시뮬레이트. **모바일에서는 호출하지 않음** |
 | 추가 | `GET /api/presets?active=true` — 모바일 리뷰 선택지·대시보드 + 이어카운팅 목록 공용 |
 | 추가 | `PATCH /api/presets/:id` — 비활성화/수정 |
-| 변경 | `POST /api/receipts` 응답에 `suggestedPresetId`, `checks[]`, `ocrMode:"real"` 추가. 실제 이미지 OCR 실패 시 저장하지 않고 오류 반환(WoZ 자동 폴백 금지) |
+| 변경 | `POST /api/receipts` 응답에 `suggestedPresetId`, `checks[]`, `ocrMode:"real"` 추가. 실제 이미지 OCR 실패 시 저장하지 않고 오류 반환(WoZ 자동 폴백 금지). 기존 데모는 별도 `POST /api/receipts/demo`로만 추가 |
 | 추가 | `PATCH /api/receipts/:id` — 사용자가 `presetId`·`accountCode` 확정, `vat.confirmed` 저장 |
 | 변경 | `POST /api/vouchers/preview` — `receipt.presetId` 있으면 그 정산단위 규칙 사용, 없으면 기존 P4 자동분류 + fallback |
 | 추가 | `GET /api/travel-policy` — 국내·해외 출장비 화면이 공통 지급기준을 조회 |
@@ -57,14 +57,14 @@
 | 모바일 (`eaccounting/m/`, 구 `app/` 호환) | 직원 | **유입 전용**: 실제 사진 촬영 → Vision OCR → 파싱확인·정산단위 선택 → 저장·보관함. 정산·상신 없음 |
 | 이어카운팅 간편정산 (`eaccounting/quick-*.html`) | 직원·관리자 | 실제 이미지 업로드 · 자동매칭 · 정산/전표 생성 · 분석 대시보드 · 문서함 연동. 구 `/pc/*`는 이 화면으로 리다이렉트 |
 
-실 영수증·금액 화면은 API 실패를 fixture/내장 샘플 성공으로 바꾸지 않는다. 실패 시 저장하지 않고 오류 또는 빈 상태를 표시한다.
+실 영수증·금액 화면은 API 실패를 fixture/내장 샘플 성공으로 바꾸지 않는다. 실패 시 저장하지 않고 오류 또는 빈 상태를 표시한다. 기존 데모 버튼은 명시적인 `/api/receipts/demo` 호출로만 새 행을 추가한다.
 
 ---
 
 ## 확정 계약: 요청·응답 예시 (1단계 서버 구현 반영, 2026-07-22)
 
 아래 예시는 실제 서버 응답을 그대로 기록한 것이다 (모바일·PC·이어카운팅 담당은 이 형태를 기준으로 개발).
-1단계에서 추가된 엔드포인트: `POST /api/match/confirm`, `POST /api/receipts/:id/crop`.
+1단계에서 추가된 엔드포인트: `POST /api/match/confirm`, `POST /api/receipts/:id/crop`, `POST /api/receipts/demo`.
 
 ### 정산단위 (신 스키마)
 
@@ -119,7 +119,7 @@
 `POST /api/receipts` — multipart `image`(원본, 항상 보존) + 선택 `cropped`(크롭본) + `source`("mobile"|"pc", 기본 mobile).
 실제 이미지에서는 Vision OCR로 가맹점·금액을 검증한 경우에만 저장하고 `ocrMode:"real"`, `source`, `crop: {status: "auto"|"manual"|"original", updatedAt}`를 반환한다.
 키 누락·제공자 오류·타임아웃·필수값 인식 실패 시 `4xx/5xx`, `ocrMode:"failed"`, `saved:false`를 반환하며 Receipt 목록에는 추가하지 않는다.
-`POST /api/receipts`에는 샘플 fixture 호출 경로가 없다. 실제 이미지가 없거나 OCR이 실패하면 저장하지 않고 오류를 반환한다.
+`POST /api/receipts`에는 샘플 fixture 호출 경로가 없다. 실제 이미지가 없거나 OCR이 실패하면 저장하지 않고 오류를 반환한다. 기존 시연 데이터는 `POST /api/receipts/demo` body `{key, source?}`로 명시적으로 선택하며 응답은 `ocrMode:"demo"`다.
 
 | 실패 | HTTP | 의미 |
 |---|---:|---|
