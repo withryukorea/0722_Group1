@@ -6,3 +6,6 @@ dist/
 build/
 server/uploads/
 .superpowers/
+
+# 실제 화면 캡처 원본 (개인정보 포함) — 마스킹본(ref/screens/)만 커밋 허용
+ref/_originals/
