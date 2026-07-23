@@ -224,6 +224,9 @@ function applyFilter() {
   const status = document.getElementById('f-status').value;
   const owner = document.getElementById('f-owner').value.trim();
   const merchant = document.getElementById('f-merchant').value.trim();
+  // 정산단위 정산 모드에서는 '조회'도 선택된 정산단위 필터를 존중한다.
+  // (안 그러면 태깅 여부와 무관하게 전체 거래가 나와버린다)
+  if (mode === 'preset') { applyPresetFilter(apprno, status, owner, merchant); return; }
   view = ALL.filter(t =>
     (!apprno || t.apprNo.includes(apprno)) &&
     (!status || t.status === status) &&
@@ -275,18 +278,33 @@ async function setMode(m) {
   applyPresetFilter();
 }
 
-function applyPresetFilter() {
+function applyPresetFilter(apprno, status, owner, merchant) {
   const pid = document.getElementById('preset-select').value;
   const sum = document.getElementById('preset-summary');
   if (!pid) { view = []; renderTable(); sum.textContent = '정산단위를 선택하세요.'; return; }
-  // 이 정산단위로 태깅된(영수증 presetId 매칭) 미정산 카드내역만 필터
-  view = ALL.filter(t => t.status === '미정산' && (receiptByTx.get(t.id) || {}).presetId === pid);
+  const preset = PRESETS.find(p => p.id === pid) || {};
+  const kws = (preset.rules && preset.rules.matchKeywords) || [];
+  // 이 정산단위에 속하는 미정산 카드내역 판별 (서버 suggestPreset 과 동일한 규칙):
+  //   ① 영수증이 이 정산단위로 태깅됐거나, ② 정산단위의 매칭 키워드가 가맹점/통화에 걸리는 건
+  //   → 영수증이 아직 없어도 성격상 이 정산단위 건(예: AI구독료=ANTHROPIC/OPENAI…)으로 구분·조회한다.
+  const belongs = (t) => {
+    if ((receiptByTx.get(t.id) || {}).presetId === pid) return true;
+    const raw = RAWTX.find(x => x.id === t.id) || {};
+    const hay = `${raw.merchant || ''} ${raw.currency || ''}`.toUpperCase();
+    return kws.some(k => k && hay.includes(k.toUpperCase()));
+  };
+  view = ALL.filter(t => t.status === '미정산' && belongs(t))
+            .filter(t =>   // 조회 버튼에서 넘어온 추가 검색조건도 반영
+              (!apprno || t.apprNo.includes(apprno)) &&
+              (!status || t.status === status) &&
+              (!owner || t.owner.includes(owner)) &&
+              (!merchant || t.merchant.toLowerCase().includes(merchant.toLowerCase())));
   renderTable();
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = true; });  // 자동 선택
   const total = view.reduce((s, t) => s + t.amount, 0);
   sum.innerHTML = view.length
     ? `<b>${view.length}</b>건 자동 선택 · 합계 <b>${total.toLocaleString('ko-KR')}</b>원`
-    : '이 정산단위로 태깅된 미정산 카드내역이 없습니다.';
+    : '이 정산단위로 태깅·매칭된 미정산 카드내역이 없습니다.';
 }
 
 function createVoucher() {
