@@ -1,14 +1,18 @@
 // [P3] 영수증 업로드 → OCR → Receipt JSON 반환
 // ─────────────────────────────────────────────────────────────
-// 실제 OCR API 없이도 데모가 100% 재현되도록 WoZ 폴백을 사용한다:
-//   fixtures/receipts-ocr/ 의 사전매핑 결과(데모 영수증 9종 — tx_001~007 7종 + data_sample 실물 2종 tx_305/tx_307)
-// 앱은 폴백이든 실제 OCR이든 동일한 Receipt JSON을 받는다 (docs/04 §4).
+// 하이브리드 OCR (2026-07-23):
+//   · 실제 이미지 업로드(multipart image) → Vision OCR(ocr.js). 성공한 인식만 저장,
+//     키 미설정·인식 실패 시 저장하지 않고 정직한 오류 반환 (WoZ 폴백 금지) — Codex real-OCR 반영
+//   · 데모 샘플칩(JSON {key}, 이미지 없음) → fixtures/receipts-ocr WoZ 픽스처(데모 9종 — tx_001~007 7종
+//     + data_sample 실물 2종 tx_305/tx_307). 실물 샘플 사진이 있으면 그걸 증빙으로 사용. 데모 재현용 유지
+//   · 시드 영수증(rcpt_101~)도 그대로 보존 — "새 영수증만 실 OCR, 기존 데모·기록은 유지"
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const { db, nextReceiptId, recomputeUsage } = require("../store");
 const { suggestPreset } = require("./presets");
+const { recognizeReceipt } = require("../ocr");
 
 const router = express.Router();
 
@@ -58,42 +62,21 @@ function pickWoz(key) {
   );
 }
 
-/* ── 실 OCR (Letsur AI Gateway, server/.env) — 실패 시 WoZ 폴백 (sot: 서버 OCR + WoZ) ── */
-const OCR_PROMPT = `영수증 이미지에서 다음 정보를 JSON으로만 답하세요(설명 금지):
-{"merchant":"가맹점명","amount":숫자,"currency":"KRW|USD|JPY","paidAt":"ISO8601(+09:00, 결제/승인 일시. 예매성 결제도 승인일)","serviceDate":"YYYY-MM-DD(탑승/투숙 등 실제 이용일, 없으면 null)","vat":숫자또는null,"invoiceNo":"문서번호 또는 null","items":[{"name":"품목","amount":숫자}],"confidence":0~1}`;
-
-async function realOcr(filePath, mimetype) {
-  const key = process.env.LETSUR_API_KEY;
-  if (!key || typeof fetch !== "function") return null;
-  try {
-    const b64 = fs.readFileSync(filePath).toString("base64");
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 25000);
-    const resp = await fetch(`${process.env.LETSUR_BASE_URL || "https://gw.letsur.ai"}/v1/chat/completions`, {
-      method: "POST",
-      signal: ctrl.signal,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: process.env.OCR_MODEL || "gpt-4o",
-        max_tokens: 1000,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: OCR_PROMPT },
-            { type: "image_url", image_url: { url: `data:${mimetype || "image/jpeg"};base64,${b64}` } },
-          ],
-        }],
-      }),
-    });
-    clearTimeout(timer);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    const text = data.choices?.[0]?.message?.content || "";
-    const json = text.match(/\{[\s\S]*\}/);
-    return json ? JSON.parse(json[0]) : null;
-  } catch (e) {
-    return null; // 어떤 실패든 WoZ 폴백으로
-  }
+/* 실패한 업로드 파일 정리 + OCR 실패 응답 (저장하지 않음 — 성공 위장 금지) */
+function removeUpload(file) {
+  if (!file || !file.path) return;
+  try { fs.unlinkSync(file.path); } catch (e) { /* best-effort */ }
+}
+function failOcr(res, result, files) {
+  (files || []).forEach(removeUpload);
+  const error = result.error || {};
+  return res.status(error.status || 502).json({
+    error: error.code || "OCR_FAILED",
+    message: error.message || "영수증을 인식하지 못했습니다.",
+    providerStatus: error.providerStatus,
+    ocrMode: "failed",
+    saved: false,
+  });
 }
 
 /* 환율 반영: 원본 통화 보존 + 결제 시점 환율/원화 환산액을 함께 저장 (data_sample 환율 규칙) */
@@ -120,27 +103,42 @@ function buildChecks(ocr, receiptId) {
   return checks;
 }
 
-// POST /api/receipts — multipart(image[, cropped]) 또는 JSON { key, tripId, serviceDate, source }
-// 원본(image)은 항상 보존, 크롭본(cropped)은 별도 파일 — 없으면 원본을 그대로 크롭본으로 사용 (sot/02 유입 흐름 3단계)
+// POST /api/receipts
+//   · multipart image(+cropped) → 실제 Vision OCR(ocr.js). 성공한 인식만 저장, 실패는 오류 반환(폴백 금지).
+//   · JSON { key }(이미지 없음) → WoZ 데모 픽스처(연출용 샘플칩·데모 재현). 유지.
 router.post("/", upload.fields([{ name: "image", maxCount: 1 }, { name: "cropped", maxCount: 1 }]), async (req, res) => {
-  const id = nextReceiptId();
   const original = req.files && req.files.image ? req.files.image[0] : null;
   const cropped = req.files && req.files.cropped ? req.files.cropped[0] : null;
-  // 1) 실 OCR (키가 있고 이미지가 올라온 경우 — 크롭본 우선) → 2) WoZ 폴백
-  const ocrTarget = cropped || original;
-  let ocr = ocrTarget ? await realOcr(ocrTarget.path, ocrTarget.mimetype) : null;
-  let woz = null;
-  if (!ocr) {
-    woz = pickWoz((req.body && req.body.key) || req.query.key);
-    ocr = woz
-      ? wozData(woz.file).ocr
-      : { merchant: "", amount: 0, currency: "KRW", paidAt: null, items: [], confidence: 0.3 };
+  const demoKey = (req.body && req.body.key) || req.query.key;
+
+  let ocr, woz = null, ocrMode;
+  if (original) {
+    // 실제 이미지 업로드 → 실 OCR. 성공 인식만 저장, 실패는 저장하지 않고 정직한 오류(WoZ 폴백 금지).
+    const result = await recognizeReceipt((cropped || original).path, (cropped || original).mimetype);
+    if (!result.ok) return failOcr(res, result, [original, cropped]);
+    ocr = result.ocr;
+    ocrMode = "real";
+  } else {
+    // 이미지 없이 온 요청 = 데모 샘플칩({key}) — WoZ 픽스처로 데모 재현. (실 업로드 아님)
+    woz = pickWoz(demoKey);
+    if (!woz) {
+      removeUpload(cropped);
+      return res.status(400).json({
+        error: "IMAGE_REQUIRED",
+        message: "실제 OCR을 실행할 영수증 이미지가 필요합니다. (데모는 샘플 key로 호출하세요)",
+        ocrMode: "failed", saved: false,
+      });
+    }
+    ocr = wozData(woz.file).ocr;
+    ocrMode = "woz";
   }
 
+  const id = nextReceiptId();
   const serviceDate = (req.body && req.body.serviceDate) || ocr.serviceDate || (ocr.paidAt || "").slice(0, 10) || null;
   const wozImg = !original && woz ? wozImageUrl(woz) : null; // 업로드 없이 데모키로 만든 건은 실물 샘플 사진을 증빙으로
   const receipt = {
     id,
+    ocrMode,                                 // real(실 OCR 인식) | woz(데모 샘플)
     source: (req.body && req.body.source) === "pc" ? "pc" : "mobile", // mobile(촬영) | pc(이어카운팅 업로드)
     imageUrl: original ? `/uploads/${original.filename}` : wozImg || `/api/receipts/${id}/image`,
     croppedUrl: cropped ? `/uploads/${cropped.filename}`
@@ -163,6 +161,16 @@ router.post("/", upload.fields([{ name: "image", maxCount: 1 }, { name: "cropped
   };
   db.receipts.push(receipt);
   res.status(201).json(receipt);
+});
+
+// GET /api/receipts/ocr-status — 비밀값 없이 실 OCR 설정 여부만 (반드시 "/:id" 보다 먼저 등록)
+router.get("/ocr-status", (req, res) => {
+  res.json({
+    configured: Boolean(process.env.LETSUR_API_KEY), // 실 OCR 키 설정 여부
+    model: process.env.OCR_MODEL || "gpt-4o",
+    demoKeyFallback: true,      // 데모 샘플 key({key}) 경로는 WoZ로 유지됨
+    actualUploadFallback: false, // 실 이미지 업로드는 WoZ로 폴백하지 않음(정직한 실패)
+  });
 });
 
 // POST /api/receipts/:id/crop — 재크롭(파일 교체) 또는 크롭 실패 시 원본 사용 확정 (sot/02 유입 흐름 4단계)
