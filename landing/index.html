@@ -97,6 +97,41 @@
     </a>
   </main>
 
+  <!-- 시연용 데모 초기화 — 시드 초기값으로 복구(Supabase 상태도 갱신). 시연 직전 1회 클릭 권장 -->
+  <div style="text-align:center; margin-top:34px;">
+    <button id="demo-reset"
+      style="height:38px; padding:0 20px; border:1px solid #d0d5dd; border-radius:8px; background:#fff; color:#667085; font-size:13px; cursor:pointer;">
+      🔄 데모 초기화 (시연 전 클릭)
+    </button>
+    <div id="demo-reset-msg" style="margin-top:10px; font-size:12.5px; color:#9aa1ad;"></div>
+  </div>
+
   <footer>© 2026 이어카운팅 · 전표 자동화 서비스</footer>
+
+  <script>
+  (function () {
+    var btn = document.getElementById('demo-reset');
+    var msg = document.getElementById('demo-reset-msg');
+    btn.addEventListener('click', async function () {
+      if (!confirm('데모 데이터를 초기값으로 되돌립니다.\n그동안 업로드·수정·삭제한 내역은 사라지고, 시드 상태(AI구독료 정산 2건 등)로 복구됩니다.\n진행할까요?')) return;
+      btn.disabled = true; btn.textContent = '초기화 중…'; msg.textContent = '';
+      try {
+        var res = await fetch('/api/reset', { method: 'POST' });
+        var data = await res.json().catch(function () { return {}; });
+        if (res.ok && data.ok) {
+          msg.style.color = '#0B7A55';
+          msg.textContent = '✓ 초기화 완료 — 이제 이어카운팅/모바일에서 시드 상태로 시연하세요.';
+        } else {
+          msg.style.color = '#B42318';
+          msg.textContent = '초기화 실패: HTTP ' + res.status + (data.hint ? ' · ' + data.hint : '');
+        }
+      } catch (e) {
+        msg.style.color = '#B42318';
+        msg.textContent = '서버에 연결할 수 없어 초기화하지 못했습니다.';
+      }
+      btn.disabled = false; btn.textContent = '🔄 데모 초기화 (시연 전 클릭)';
+    });
+  })();
+  </script>
 </body>
 </html>

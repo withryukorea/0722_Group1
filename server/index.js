@@ -103,12 +103,20 @@ app.use((err, req, res, next) => {
 
 async function start() {
   await persistence.initialize(db, replaceState);
-  // 데모 증빙(시드 영수증)이 재기동·재배포 후에도 항상 보이도록 보정 — 시연 안정성.
-  // 복원 상태에 빠진 시드 증빙을 다시 채우고, 클라우드 모드면 그 상태를 영구 저장한다.
-  const restored = ensureSeedReceipts(db);
-  if (restored) {
-    console.log(`  · 데모 증빙 ${restored}건 자동 복원`);
-    try { await persistence.persist(db); } catch (e) { console.error("[seed-restore] 저장 실패:", e.message || e); }
+  // 시연 모드(opt-in): RESEED_ON_BOOT 설정 시 부팅할 때마다 시드 초기값으로 재시드한다.
+  //   → 저장된 Supabase 상태를 덮어써 "재부팅 = 깨끗한 데모"가 되게 한다.
+  //   (해커톤 시연용. 평상시엔 끄면 업로드/수정 내역이 재부팅 후에도 유지된다.)
+  if (/^(1|true|yes|on)$/i.test(process.env.RESEED_ON_BOOT || "")) {
+    reset();
+    console.log("  · RESEED_ON_BOOT — 부팅 시 시드 초기값으로 재시드 (저장상태 덮어씀)");
+    try { await persistence.persist(db); } catch (e) { console.error("[reseed] 저장 실패:", e.message || e); }
+  } else {
+    // 평상시: 저장 상태 유지 + 빠진 시드 증빙만 보정(시연 안정성).
+    const restored = ensureSeedReceipts(db);
+    if (restored) {
+      console.log(`  · 데모 증빙 ${restored}건 자동 복원`);
+      try { await persistence.persist(db); } catch (e) { console.error("[seed-restore] 저장 실패:", e.message || e); }
+    }
   }
   return app.listen(PORT, () => {
     console.log(`\n  가짜 E-Accounting 서버 실행 중`);

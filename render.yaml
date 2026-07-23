@@ -28,3 +28,6 @@ services:
         value: receipt-images
       - key: SUPABASE_STATE_ID
         value: main
+      - key: RESEED_ON_BOOT
+        value: "0"          # 시연 모드: "1"로 바꾸면 재배포·재시작할 때마다 시드 초기값으로 리셋(저장상태 덮어씀).
+                            # 평상시 "0"이면 업로드/수정 내역이 재부팅 후에도 유지된다.
